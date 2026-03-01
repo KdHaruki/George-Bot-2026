@@ -10,9 +10,15 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    emoji ="👍"
-    await message.add_reaction(emoji)
+    if message.author.bot:
+        return  # Botの発言は無視
 
+    print(f"[MESSAGE] {message.guild} | #{message.channel} | "
+          f"{message.author} : {message.content}")
+
+    emoji = "👍"
+    await message.add_reaction(emoji)
+    
 TOKEN = os.getenv("DISCORD_TOKEN")
 # Web サーバの立ち上げ
 keep_alive()
