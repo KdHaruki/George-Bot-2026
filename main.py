@@ -17,7 +17,7 @@ async def on_message(message):
           f"{message.author} : {message.content}")
 
     emoji = "👍"
-    await message.add_reaction(emoji)
+    #await message.add_reaction(emoji)
     
 TOKEN = os.getenv("DISCORD_TOKEN")
 # Web サーバの立ち上げ
