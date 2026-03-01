@@ -12,11 +12,10 @@ async def on_ready():
 async def on_message(message):
     if message.author.bot:
         return  # Botの発言は無視
-
-    #emoji = "👍"
-    #await message.add_reaction(emoji)
-
+    
     if message.content == '/info':
+        emoji = "👍"
+        await message.add_reaction(emoji)
         await message.channel.send(message)
     
 TOKEN = os.getenv("DISCORD_TOKEN")
