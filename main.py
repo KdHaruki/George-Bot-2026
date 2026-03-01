@@ -13,11 +13,11 @@ async def on_message(message):
     if message.author.bot:
         return  # Botの発言は無視
 
-    print(f"[MESSAGE] {message.guild} | #{message.channel} | "
-          f"{message.author} : {message.content}")
-
-    emoji = "👍"
+    #emoji = "👍"
     #await message.add_reaction(emoji)
+
+    if message.content == '/info':
+        await message.channel.send(message)
     
 TOKEN = os.getenv("DISCORD_TOKEN")
 # Web サーバの立ち上げ
