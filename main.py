@@ -8,7 +8,7 @@ client = discord.Client(intents=discord.Intents.default())
 async def on_ready():
     print('ログインしました')
 
-@client.event
+#@client.event
 #async def on_message(message):
 #    emoji ="👍"
 #    await message.add_reaction(emoji)
