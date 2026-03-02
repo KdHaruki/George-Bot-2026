@@ -1,4 +1,5 @@
 import discord
+import random
 import os
 from keep_alive import keep_alive
 
@@ -8,10 +9,17 @@ client = discord.Client(intents=discord.Intents.default())
 async def on_ready():
     print('ログインしました')
 
-#@client.event
-#async def on_message(message):
-#    emoji ="👍"
-#    await message.add_reaction(emoji)
+@client.event
+async def on_message(message):
+    # Bot本体のメッセージには反応しない。
+    if message.author.bot:
+        return
+    
+    # 20%の確率で絵文字を付与する。
+    if random.random() < 0.2:
+        emojis = ["👍", "🔥", "😂", "🎉", "✨", "👀", "💯"]
+        emoji = random.choice(emojis)
+        await message.add_reaction(emoji)
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 # Web サーバの立ち上げ
