@@ -10,8 +10,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    emoji ="👍"
-    await message.add_reaction(emoji)
+    await message.channel.send(message)
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 # Web サーバの立ち上げ
