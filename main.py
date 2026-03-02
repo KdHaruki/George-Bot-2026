@@ -21,11 +21,14 @@ async def on_message(message):
     if message.author.bot:
         return
     
-    # 20%の確率で絵文字を付与する。
-    if random.random() < 0.2:
+    # メンションされていたら必ず反応
+    if client.user in message.mentions:
+        await message.channel.send("なに〜？😎")
+
+    # それ以外は20%でリアクション
+    elif random.random() < 0.2:
         emojis = ["😆", "😂", "😍", "😭", "😡", "🤔", "😎", "🥺", "👍", "🎉", "👀"]
-        emoji = random.choice(emojis)
-        await message.add_reaction(emoji)
+        await message.add_reaction(random.choice(emojis))
 
 #############################################
 # サーバ立ち上げ
