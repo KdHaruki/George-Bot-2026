@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 import random
 import os
-from openai import OpenAI
 import progress as progress_module
 from keep_alive import keep_alive
 
@@ -25,40 +24,12 @@ class MyClient(discord.Client):
 client = MyClient()
 
 ########################################
-# AI設定
-########################################
-
-ai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-SYSTEM_PROMPT = """
-あなたは知恵深い魔女の少女ソフィーナ。
-一人称は私。
-相手は春樹。
-知的で少しツンデレな性格。
-"""
-
-########################################
 # 起動確認
 ########################################
 
 @client.event
 async def on_ready():
     print("ログインしました")
-
-########################################
-# AI会話
-########################################
-
-def ask_ai(text):
-
-    response = ai_client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": text}
-        ]
-    )
-
-    return response.choices[0].message.content
 
 ########################################
 # progress オートコンプリート
@@ -152,27 +123,13 @@ async def on_message(message):
                 result = progress_module.progressSearch(keyword)
             await message.channel.send(result)
         else:
-            text = message.content.replace(f"<@{client.user.id}>","").strip()
-        if text == "":
-            await message.channel.send("呼んだ？")
-            return
-
-        try:
-            reply = ask_ai(text)
-            await message.channel.send(reply)
-
-        except Exception as e:
-            await message.channel.send("少し魔力が乱れているみたいね…また後で話しかけて。")
-            print(e)
-        
-#        else:
-#            await message.channel.send("今の機能はこんな感じだぜ！" + "\n"
-#                                       "--------------------------------------------------" + "\n"
-#                                       "1. プログレスの検索方法" + "\n"
-#                                       "「@ジョージ pro プログレス名」" + "\n"
-#                                       "「/progress プログレス名」" + "\n"
-#                                       "--------------------------------------------------" + "\n"
-#                                       )
+            await message.channel.send("今の機能はこんな感じだぜ！" + "\n"
+                                       "--------------------------------------------------" + "\n"
+                                       "1. プログレスの検索方法" + "\n"
+                                       "「@ジョージ pro プログレス名」" + "\n"
+                                       "「/progress プログレス名」" + "\n"
+                                       "--------------------------------------------------" + "\n"
+                                       )
 
     # 20%でリアクション
     if random.random() < 0.2:
