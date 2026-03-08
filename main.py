@@ -33,11 +33,7 @@ async def on_ready():
 # /progress プログレス検索
 ########################################
 
-@client.tree.command(
-    name="progress",
-    description="プログレスを検索する"
-)
-@app_commands.describe(name="検索する名前")
+@client.tree.command(name="progress", description="プログレス検索")
 async def progress(interaction: discord.Interaction, name: str):
 
     result = progress.progressSearch(name)
