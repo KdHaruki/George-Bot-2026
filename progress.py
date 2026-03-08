@@ -240,17 +240,27 @@ def progressSearch(text):
 
     result = ""
 
-    found = []
+    exact = []
+    nickname = []
+    name_partial = []
+    other = []
 
     for p in progressData:
 
-        if text in p["progressName"]:
-            found.append(p)
+        # 名前完全一致
+        if text == p["progressName"]:
+            exact.append(p)
 
+        # ニックネーム完全一致
+        elif text == p["progressNickname1"] or text == p["progressNickname2"] or text == p["progressNickname3"]:
+            nickname.append(p)
+
+        # 名前部分一致
+        elif text in p["progressName"]:
+            name_partial.append(p)
+
+        # その他検索
         elif (
-            text in p["progressNickname1"] or
-            text in p["progressNickname2"] or
-            text in p["progressNickname3"] or
             text in p["progressWorld"] or
             text in p["progressLike"] or
             text in p["progressDisLike"] or
@@ -260,7 +270,17 @@ def progressSearch(text):
             text in p["progressDetail3"] or
             text in p["progressEx"]
         ):
-            found.append(p)
+            other.append(p)
+
+    # 優先順位
+    if exact:
+        found = exact
+    elif nickname:
+        found = nickname
+    elif name_partial:
+        found = name_partial
+    else:
+        found = other
 
     if len(found) == 0:
         return response(3)
