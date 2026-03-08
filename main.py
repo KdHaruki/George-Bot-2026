@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 import random
 import os
-import re_progress
+import progress
 from keep_alive import keep_alive
 
 ########################################
@@ -40,7 +40,7 @@ async def on_ready():
 @app_commands.describe(name="検索する名前")
 async def progress(interaction: discord.Interaction, name: str):
 
-    result = re_progress.progressSearch(name)
+    result = progress.progressSearch(name)
 
     await interaction.response.send_message(result)
 
@@ -65,7 +65,7 @@ async def progress(interaction: discord.Interaction, name: str):
 
 async def world(interaction: discord.Interaction, world: app_commands.Choice[int]):
 
-    result = re_progress.progressSearchAll(world.value)
+    result = progress.progressSearchAll(world.value)
 
     await interaction.response.send_message(result)
 
