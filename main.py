@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 import random
 import os
 import re_progress
