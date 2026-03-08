@@ -124,8 +124,12 @@ async def on_message(message):
             await message.channel.send(result)
         else:
             await message.channel.send("今の機能はこんな感じだぜ！" + "\n"
-                                       "プログレスの検索「@ジョージ pro プログレス名」" + "\n"
-                                       "　　　　　　　　「/progress プログレス名」" + "\n")
+                                       "--------------------------------------------------" + "\n"
+                                       "1. プログレスの検索" + "\n"
+                                       "「@ジョージ pro プログレス名」" + "\n"
+                                       "「/progress プログレス名」" + "\n"
+                                       "--------------------------------------------------" + "\n"
+                                       )
 
     # 20%でリアクション
     if random.random() < 0.2:
