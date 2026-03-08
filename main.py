@@ -23,10 +23,10 @@ async def on_message(message):
     
     # メンションされていたら必ず反応
     if client.user in message.mentions:
-        await message.channel.send(message.mentions)
+        await message.channel.send(message.content.split())
 
     # 20%でリアクション
-    elif random.random() < 0.2:
+    if random.random() < 0.2:
         emojis = ["😆", "😂", "😍", "😭", "🤔", "😎", "🥺", "👍", "🎉", "👀"]
         await message.add_reaction(random.choice(emojis))
 
