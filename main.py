@@ -32,6 +32,29 @@ async def on_ready():
     print("ログインしました")
 
 ########################################
+# progress オートコンプリート
+########################################
+
+async def progress_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+):
+
+    results = []
+
+    for p in progress_module.progressData:
+        name = p["progressName"]
+
+        if current in name:
+            results.append(
+                app_commands.Choice(
+                    name=name,
+                    value=name
+                )
+            )
+
+    return results[:25]
+########################################
 # /progress プログレス検索
 ########################################
 
@@ -40,6 +63,7 @@ async def on_ready():
     description="プログレス検索"
 )
 @app_commands.describe(name="名前または世界")
+@app_commands.autocomplete(name=progress_autocomplete)
 
 async def progress(interaction: discord.Interaction, name: str):
 
@@ -107,3 +131,5 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 keep_alive()
 
 client.run(TOKEN)
+
+__all__ = ["progressData","progressSearch","progressSearchAll"]
