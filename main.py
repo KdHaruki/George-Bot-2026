@@ -39,37 +39,25 @@ async def on_ready():
     name="progress",
     description="プログレス検索"
 )
-@app_commands.describe(name="検索する名前")
+@app_commands.describe(name="名前または世界")
 
 async def progress(interaction: discord.Interaction, name: str):
 
-    result = progress_module.progressSearch(name)
+    name = name.strip()
 
-    await interaction.response.send_message(result)
+    world_map = {
+        "青":0,"青の":0,"青世界":0,"青の世界":0,
+        "黒":1,"黒の":1,"黒世界":1,"黒の世界":1,
+        "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
+        "白":3,"白の":3,"白世界":3,"白の世界":3,
+        "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
+        "全":5,"全ての":5,"全世界":5,"全ての世界":5
+    }
 
-########################################
-# /world 世界一覧
-########################################
-
-@client.tree.command(
-    name="world",
-    description="世界別プログレス一覧"
-)
-
-@app_commands.describe(world="世界を選択")
-
-@app_commands.choices(world=[
-    app_commands.Choice(name="青の世界", value=0),
-    app_commands.Choice(name="黒の世界", value=1),
-    app_commands.Choice(name="赤の世界", value=2),
-    app_commands.Choice(name="白の世界", value=3),
-    app_commands.Choice(name="緑の世界", value=4),
-    app_commands.Choice(name="全ての世界", value=5),
-])
-
-async def world(interaction: discord.Interaction, world: app_commands.Choice[int]):
-
-    result = progress_module.progressSearchAll(world.value)
+    if name in world_map:
+        result = progress_module.progressSearchAll(world_map[name])
+    else:
+        result = progress_module.progressSearch(name)
 
     await interaction.response.send_message(result)
 
@@ -83,9 +71,27 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # メンションされたら返信
+    # メンションされた場合
     if client.user in message.mentions:
-        await message.channel.send("なに？")
+        parts = message.content.split()
+        if len(parts) >= 3 and parts[1].lower() in ["pro", "progress", "プロ", "プログレス"]:
+            keyword = parts[2]
+            world_map = {
+                "青":0,"青の":0,"青世界":0,"青の世界":0,
+                "黒":1,"黒の":1,"黒世界":1,"黒の世界":1,
+                "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
+                "白":3,"白の":3,"白世界":3,"白の世界":3,
+                "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
+                "全":5,"全ての":5,"全世界":5,"全ての世界":5
+            }
+
+            if keyword in world_map:
+                result = progress_module.progressSearchAll(world_map[keyword])
+            else:
+                result = progress_module.progressSearch(keyword)
+            await message.channel.send(result)
+        else:
+            await message.channel.send("？")
 
     # 20%でリアクション
     if random.random() < 0.2:
