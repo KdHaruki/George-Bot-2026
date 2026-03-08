@@ -29,7 +29,6 @@ client = MyClient()
 ########################################
 
 ai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 SYSTEM_PROMPT = """
 あなたは知恵深い魔女の少女ソフィーナ。
 一人称は私。
