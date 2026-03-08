@@ -35,25 +35,33 @@ async def on_ready():
 # progress オートコンプリート
 ########################################
 
-async def progress_autocomplete(
-    interaction: discord.Interaction,
-    current: str
-):
+async def progress_autocomplete(interaction: discord.Interaction, current: str):
 
-    results = []
+    current = current.lower()
+
+    starts = []
+    contains = []
 
     for p in progress_module.progressData:
+
         name = p["progressName"]
+        name_lower = name.lower()
 
-        if current in name:
-            results.append(
-                app_commands.Choice(
-                    name=name,
-                    value=name
-                )
-            )
+        if current == "":
+            starts.append(name)
 
-    return results[:25]
+        elif name_lower.startswith(current):
+            starts.append(name)
+
+        elif current in name_lower:
+            contains.append(name)
+
+    results = starts + contains
+
+    return [
+        app_commands.Choice(name=r, value=r)
+        for r in results[:25]
+    ]
 ########################################
 # /progress プログレス検索
 ########################################
