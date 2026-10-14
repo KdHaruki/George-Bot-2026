@@ -66,6 +66,12 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn((1, 1), self.chat.sessions)
         self.assertIn((1, 2), self.chat.sessions)
 
+    async def test_shared_notes_only_used_when_supplied(self):
+        await self.chat.reply((1, 1), "好きなゲームは？", [("サーバー設定", "合言葉はテスト共有資料")])
+        self.assertIn("テスト共有資料", self.generate.call_args.kwargs["config"].system_instruction)
+        await self.chat.reply((2, 1), "こんにちは")
+        self.assertNotIn("テスト共有資料", self.generate.call_args.kwargs["config"].system_instruction)
+
     async def test_registered_subject_is_grounded_on_followup(self):
         await self.chat.reply((1, 1), "ロザリーについて教えて")
         self.assertIn('"progressName": "ロザリー"', self.generate.call_args.kwargs["config"].system_instruction)

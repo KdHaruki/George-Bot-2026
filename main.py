@@ -4,12 +4,14 @@ import random
 import os
 import logging
 import re
+import asyncio
 from threading import Thread
 from ambient_chat import AmbientChat, PARTICIPATION_CHANCE
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
 from fun_features import TimerManager, draw_fortune, parse_duration
+from registered_memory import MemoryStore, MemoryUnavailable
 
 ########################################
 # Botクラス
@@ -26,6 +28,7 @@ class MyClient(discord.Client):
         self.george_chat = GeorgeChat()
         self.ambient = AmbientChat()
         self.timers = TimerManager()
+        self.memories = MemoryStore()
         self.cleaned_guilds = set()
 
     async def setup_hook(self):
@@ -50,6 +53,14 @@ class MyClient(discord.Client):
             await self.george_chat.close()
         finally:
             await super().close()
+
+    def clear_server_context(self, guild):
+        for key in list(self.george_chat.sessions):
+            channel = self.get_channel(key[0])
+            if getattr(getattr(channel, "guild", None), "id", None) == guild.id:
+                self.george_chat.sessions.pop(key, None)
+        for channel in [*guild.channels, *guild.threads]:
+            self.ambient.states.pop(channel.id, None)
 
 client = MyClient()
 
@@ -145,6 +156,55 @@ async def omikuji(interaction: discord.Interaction):
     await interaction.response.send_message(draw_fortune(), allowed_mentions=discord.AllowedMentions.none())
 
 
+@client.tree.command(name="記憶登録", description="サーバー全員で共有する設定を登録・更新（管理者用）")
+@app_commands.guild_only()
+@app_commands.default_permissions(manage_guild=True)
+@app_commands.describe(タイトル="1〜40文字。同じタイトルなら更新", 内容="覚えてほしい設定。1〜300文字")
+async def register_memory(interaction: discord.Interaction, タイトル: str, 内容: str):
+    if not interaction.permissions.manage_guild:
+        await interaction.response.send_message("サーバー管理権限が必要だぜ。", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        await asyncio.to_thread(client.memories.save, interaction.guild_id, 0, タイトル, 内容)
+        client.clear_server_context(interaction.guild)
+        answer = "共有設定を保存したぜ！ このサーバーの会話で参照するぞ。反映のため、このサーバーの短期会話履歴もクリアしたぜ。"
+    except (MemoryUnavailable, ValueError) as exc:
+        answer = str(exc)
+    await interaction.followup.send(answer, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+
+
+@client.tree.command(name="記憶一覧", description="このサーバーの共有登録設定を確認")
+@app_commands.guild_only()
+async def list_memory(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        notes = await asyncio.to_thread(client.memories.list, interaction.guild_id, 0)
+        text = "共有登録設定：\n" + "\n\n".join(f"【{title}】\n{content}" for title, content in notes) if notes else "まだ共有設定は登録されてないぜ。"
+    except MemoryUnavailable as exc:
+        text = str(exc)
+    for offset in range(0, len(text), 1800):
+        await interaction.followup.send(text[offset:offset + 1800], ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+
+
+@client.tree.command(name="記憶削除", description="共有登録設定をタイトルで削除（管理者用）")
+@app_commands.guild_only()
+@app_commands.default_permissions(manage_guild=True)
+async def delete_memory(interaction: discord.Interaction, タイトル: str):
+    if not interaction.permissions.manage_guild:
+        await interaction.response.send_message("サーバー管理権限が必要だぜ。", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        deleted = await asyncio.to_thread(client.memories.delete, interaction.guild_id, 0, タイトル)
+        if deleted:
+            client.clear_server_context(interaction.guild)
+        answer = "共有設定を削除して、このサーバーの短期会話履歴もクリアしたぜ。" if deleted else "そのタイトルの設定は見つからなかったぜ。"
+    except MemoryUnavailable as exc:
+        answer = str(exc)
+    await interaction.followup.send(answer, ephemeral=True)
+
+
 @client.tree.command(name="タイマー", description="指定した時間にジョージが呼びかける（再起動で解除）")
 @app_commands.describe(時間="例：10分、1時間30分、30秒（最大24時間）", 内容="何のタイマーか（省略可）")
 async def timer(interaction: discord.Interaction, 時間: str, 内容: str = "タイマー終了"):
@@ -215,7 +275,10 @@ async def on_message(message):
                     answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /progress、会話のリセットは「リセット」だぜ。"
                 else:
                     async with message.channel.typing():
-                        answer = await client.george_chat.reply(key, text)
+                        notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if message.guild and client.memories.url else []
+                        answer = await client.george_chat.reply(key, text, notes)
+            except MemoryUnavailable as exc:
+                answer = str(exc)
             except ChatUnavailable:
                 answer = "会話機能はまだ準備中だぜ。管理者にGEMINI_API_KEYの設定をお願いしてくれ！"
             except ChatBusy:
@@ -238,7 +301,8 @@ async def on_message(message):
     client.ambient.reserve(state)
     snapshot = list(state.messages)
     try:
-        answer = await client.george_chat.ambient_reply(snapshot)
+        notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if client.memories.url else []
+        answer = await client.george_chat.ambient_reply(snapshot, notes)
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
