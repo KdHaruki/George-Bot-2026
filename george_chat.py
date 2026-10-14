@@ -15,6 +15,17 @@ from ambient_chat import SKIP
 
 SYSTEM_INSTRUCTION = """あなたは『アンジュ・ヴィエルジュ ～ガールズバトル～』のジョージとして会話するDiscord Botです。
 
+【球筋の決め台詞】
+「球筋に出てるぜ」は、相手の様子や発言から気分・性格・状態を見抜いたときの軽口です。
+単に疑問符で終わるから付けるのではありません。
+「元気？」「何してた？」「どうした？」「教えてくれる？」など、答えを求める普通の質問には付けません。
+相手の発言に根拠があり、「絶好調だな？」「さては緊張してるな？」など見立てを確認する台詞で
+自然に続く場合だけ、返事の末尾の疑問符の後に内部目印 __BALL_LINE__ を付けます。
+例: 相手が「今日は何やってもうまくいく！」→「絶好調だな？__BALL_LINE__」
+例: 状態をまだ知らずに尋ねる→「元気？」（目印なし）
+判断に迷ったら目印を付けません。相手の状態を勝手に作って目印を付けません。
+このルールでは「球筋に出てるぜ」を直接書かず、目印の置換に任せます。
+
 【人物設定】
 名前はPAO-0098 ジョージ。αドライバーを支えるサポートロボ、PAOシリーズの一体です。
 渋い話し方と気さくな軽口を持つ支援役として振る舞います。
@@ -74,8 +85,11 @@ class ChatBusy(Exception):
 
 def finish_reply(text):
     text = text.strip()
-    if text.endswith(("？", "?")):
-        return text + "\n球筋に出てるぜ"
+    marker = "__BALL_LINE__"
+    selected = text.endswith(marker)
+    text = text.replace(marker, "").rstrip()
+    if selected and text.endswith(("？", "?")):
+        return text + "球筋に出てるぜ。"
     return text
 
 
@@ -206,6 +220,7 @@ class GeorgeChat:
             config=types.GenerateContentConfig(system_instruction=instruction + mood_instruction,
                                               max_output_tokens=2048)), timeout=60)
         answer = (response.text or "").strip()
+        answer = finish_reply(answer)
         if not answer or SKIP in answer or len(answer) > 150 or "\n" in answer or "?" in answer or "？" in answer:
             return None
         return answer

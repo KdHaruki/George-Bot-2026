@@ -32,6 +32,13 @@ NeonなどでPostgresデータベースを作成し、接続文字列をRender�
 タイマーは1人3件・Bot全体100件まで。再起動・停止で消えます。
 これらの機能はGemini APIを使いません。通知にはチャンネルへの送信権限が必要です。
 
+コマンドは起動時に全体登録し、Gateway接続後に参加サーバーにも同期します。
+Logsの `Commands synced globally:` と `Commands synced to guild ...:` で登録内容を確認できます。
+ボタン操作では `Interaction received:`、`Feedback button received:`、
+`Feedback button acknowledged` を出します。本文・ユーザー情報・トークンは記録しません。
+Developer PortalのGeneral InformationにあるInteractions Endpoint URLは空欄にしてください。
+このBotはGatewayでボタン・コマンドを受け取り、Flaskはヘルスチェック専用です。
+
 ## 控えめな雑談参加
 
 Botが閲覧・送信できるサーバー内の全チャンネルで、起動時から自主参加できます。

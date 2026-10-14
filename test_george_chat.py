@@ -10,8 +10,11 @@ from google.genai import errors
 
 class ErrorDiagnosticsTests(unittest.TestCase):
     def test_question_suffix(self):
-        self.assertEqual(finish_reply("どうした？  \n"), "どうした？\n球筋に出てるぜ")
-        self.assertEqual(finish_reply("元気?"), "元気?\n球筋に出てるぜ")
+        self.assertEqual(finish_reply("どうした？  \n"), "どうした？")
+        self.assertEqual(finish_reply("元気?"), "元気?")
+        self.assertEqual(finish_reply("絶好調だな？__BALL_LINE__"), "絶好調だな？球筋に出てるぜ。")
+        self.assertEqual(finish_reply("元気だぜ！__BALL_LINE__"), "元気だぜ！")
+        self.assertEqual(finish_reply("途中__BALL_LINE__の目印"), "途中の目印")
         self.assertEqual(finish_reply("どうした？ 話を聞くぜ。"), "どうした？ 話を聞くぜ。")
         self.assertEqual(finish_reply("元気だぜ！"), "元気だぜ！")
 

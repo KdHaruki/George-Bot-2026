@@ -27,11 +27,26 @@ class MyClient(discord.Client):
         self.ambient = AmbientChat()
         self.feedback = FeedbackView()
         self.timers = TimerManager()
+        self.synced_guilds = set()
 
     async def setup_hook(self):
         await self.feedback.restore_mood()
         self.add_view(self.feedback)
-        await self.tree.sync()
+        commands = await self.tree.sync()
+        print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
+        print("Feedback buttons registered: 4", flush=True)
+
+    async def sync_guild_commands(self, guild):
+        if guild.id in self.synced_guilds:
+            return
+        self.synced_guilds.add(guild.id)
+        try:
+            self.tree.copy_global_to(guild=guild)
+            commands = await self.tree.sync(guild=guild)
+            print(f"Commands synced to guild {guild.id}: " + ", ".join(command.name for command in commands), flush=True)
+        except discord.HTTPException as exc:
+            self.synced_guilds.discard(guild.id)
+            logging.warning("Guild command sync failed: guild=%s type=%s status=%s", guild.id, type(exc).__name__, exc.status)
 
     async def close(self):
         try:
@@ -48,7 +63,20 @@ client = MyClient()
 
 @client.event
 async def on_ready():
-    print("ログインしました")
+    print("ログインしました", flush=True)
+    for guild in client.guilds:
+        await client.sync_guild_commands(guild)
+
+
+@client.event
+async def on_guild_join(guild):
+    await client.sync_guild_commands(guild)
+
+
+@client.event
+async def on_interaction(interaction):
+    # Never log interaction tokens or message contents.
+    print(f"Interaction received: type={interaction.type.name}", flush=True)
 
 ########################################
 # progress オートコンプリート

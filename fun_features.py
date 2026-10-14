@@ -73,6 +73,7 @@ class FeedbackView(discord.ui.View):
                         self.mood.channels.popitem(last=False)
 
     async def respond(self, interaction, replies, action):
+        print(f"Feedback button received: action={action}", flush=True)
         now = time.monotonic()
         if now - self.last_click.get(interaction.user.id, -100) < 5:
             await interaction.response.send_message("ちょっと待ってくれ、連打は目が回るぜ！", ephemeral=True)
@@ -82,6 +83,7 @@ class FeedbackView(discord.ui.View):
         if len(self.last_click) > 1024:
             self.last_click.popitem(last=False)
         await interaction.response.defer(thinking=True)
+        print("Feedback button acknowledged", flush=True)
         async with self.mood_lock:
             previous = self.mood.values(interaction.channel_id)
             try:
@@ -98,6 +100,18 @@ class FeedbackView(discord.ui.View):
                 return
         confidence, confusion = self.mood.values(interaction.channel_id)
         await interaction.followup.send(random.choice(replies) + f"\n🎩 {self.mood.status(interaction.channel_id)}｜ドヤ度 {confidence}・空回り度 {confusion}", allowed_mentions=discord.AllowedMentions.none())
+
+    async def on_error(self, interaction, error, item):
+        import logging
+        logging.warning("Feedback button failed: type=%s status=%s", type(error).__name__, getattr(error, "status", None))
+        try:
+            text = "ボタンの返事でエラーになったぜ。管理者に起動ログを確認してもらってくれ！"
+            if interaction.response.is_done():
+                await interaction.followup.send(text, ephemeral=True)
+            else:
+                await interaction.response.send_message(text, ephemeral=True)
+        except discord.HTTPException:
+            logging.warning("Feedback error response could not be delivered")
 
     @discord.ui.button(label="そうだよ", style=discord.ButtonStyle.success, custom_id="george:agree")
     async def agree(self, interaction, button):
