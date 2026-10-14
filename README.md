@@ -40,3 +40,19 @@ APIの利用上限・料金はGoogle側の設定を確認してください。
 
 ジョージの口調は `george_chat.py` の `SYSTEM_INSTRUCTION` で調整できます。
 APIキー未設定・APIエラー時は案内を返し、検索機能は引き続き利用できます。
+
+## 会話が失敗するとき
+
+Discordの返答にHTTPコードまたはエラー分類を表示し、起動ログには
+`Gemini request failed: type=... code=... reason=...` を出します。
+APIキー・会話本文・Googleのエラー本文はログに出しません。
+
+- HTTP 400: キー・リクエスト設定・利用地域などを確認。
+- HTTP 401/403: キーとプロジェクトの権限・API制限を確認。
+- HTTP 402: 支払い設定や残高を確認。
+- HTTP 404: `GEMINI_MODEL` が利用可能なモデルか確認。
+- HTTP 429: AI Studioの利用枠を確認。上限の種類によっては待つだけで解消しません。
+- HTTP 5xx / timeout: 時間を置いて再試行。
+- network: Botの起動環境からGoogleへの通信を確認。
+
+環境変数やコードを変更したら、実際に動いているBotを再起動してください。

@@ -4,7 +4,7 @@ import random
 import os
 import logging
 import re
-from george_chat import GeorgeChat, ChatBusy, ChatUnavailable
+from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
 
@@ -150,8 +150,8 @@ async def on_message(message):
                 answer = "今、返事を考えてるぜ！ 少し待ってから話しかけてくれ。"
             except Exception as exc:
                 # Do not log API keys, message contents, or provider error bodies.
-                logging.warning("Gemini request failed (%s)", type(exc).__name__)
-                answer = "今はうまく返事ができないぜ。少し待ってからもう一度試してくれ！"
+                diagnostic, answer = describe_chat_error(exc)
+                logging.warning("Gemini request failed: %s", diagnostic)
             for offset in range(0, len(answer), 1900):
                 await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none())
 

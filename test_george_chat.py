@@ -4,7 +4,26 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from george_chat import GeorgeChat, ChatBusy, ChatUnavailable
+from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
+from google.genai import errors
+
+
+class ErrorDiagnosticsTests(unittest.TestCase):
+    def test_api_status_and_secret_redaction(self):
+        for code, reason in [(400, "invalid_request"), (403, "authentication"),
+                             (404, "model_not_found"), (429, "quota"),
+                             (503, "provider_unavailable")]:
+            with self.subTest(code=code):
+                exc = errors.APIError(code, {"error": {"message": "SECRET_KEY private user text"}})
+                diagnostic, answer = describe_chat_error(exc)
+                self.assertIn(f"reason={reason}", diagnostic)
+                self.assertIn(f"HTTP {code}", answer)
+                self.assertNotIn("SECRET_KEY", diagnostic + answer)
+                self.assertNotIn("private user text", diagnostic + answer)
+
+    def test_timeout_and_unknown(self):
+        self.assertIn("reason=timeout", describe_chat_error(TimeoutError())[0])
+        self.assertIn("reason=unknown", describe_chat_error(RuntimeError("secret"))[0])
 
 
 class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
