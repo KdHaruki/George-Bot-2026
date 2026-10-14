@@ -5,7 +5,7 @@ import time
 from collections import OrderedDict
 
 import discord
-from mood_store import MoodStore
+from mood_store import MoodStore, database_error_reason
 
 
 class MoodMeter:
@@ -56,7 +56,9 @@ class FeedbackView(discord.ui.View):
     async def restore_mood(self):
         try:
             rows = await asyncio.to_thread(self.store.load)
-        except Exception:
+        except Exception as exc:
+            import logging
+            logging.warning("Mood restore failed: reason=%s", database_error_reason(exc))
             raise RuntimeError("調子メーターの保存先に接続できません。DATABASE_URLを確認してください。") from None
         for channel_id, confidence, confusion in reversed(rows):
             self.mood.channels[channel_id] = (confidence, confusion)
