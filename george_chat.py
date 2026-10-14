@@ -203,6 +203,28 @@ class GeorgeChat:
             raise ChatBusy()
         self.sessions.pop(key, None)
 
+    async def fortune_details(self, fortune):
+        if self.client is None:
+            raise ChatUnavailable()
+        response = await asyncio.wait_for(self.client.aio.models.generate_content(
+            model=self.model,
+            contents=f"おみくじの運勢は『{fortune}』で確定です。この運勢に合うジョージの一言とラッキーアイテムを新しく考えてください。",
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION + "\nおみくじは遊びです。未来を保証せず、不安をあおりません。コメントは日本語1〜2文で120文字以内。ラッキーアイテムは身近で安全な物を一つ、30文字以内。毎回同じ定型にせず、架空の原作設定や購入を強いる商品は出しません。JSONのcommentとlucky_itemのみ返します。内部目印は使いません。",
+                max_output_tokens=2048,
+                response_mime_type="application/json",
+                response_schema={"type": "OBJECT", "properties": {
+                    "comment": {"type": "STRING"}, "lucky_item": {"type": "STRING"}},
+                    "required": ["comment", "lucky_item"]})), timeout=60)
+        details = json.loads(response.text or "{}")
+        comment, item = details.get("comment"), details.get("lucky_item")
+        if not isinstance(comment, str) or not isinstance(item, str):
+            raise ValueError("Invalid fortune response")
+        comment, item = comment.strip(), item.strip()
+        if not 1 <= len(comment) <= 120 or not 1 <= len(item) <= 30 or "\n" in item:
+            raise ValueError("Invalid fortune response length")
+        return comment.replace("__BALL_LINE__", ""), item
+
     async def ambient_reply(self, messages, notes=()):
         if self.client is None:
             raise ChatUnavailable()

@@ -10,7 +10,7 @@ from ambient_chat import AmbientChat, PARTICIPATION_CHANCE
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
-from fun_features import TimerManager, draw_fortune, parse_duration
+from fun_features import TimerManager, draw_fortune, parse_duration, FORTUNES
 from registered_memory import MemoryStore, MemoryUnavailable
 
 ########################################
@@ -153,7 +153,16 @@ async def progress(interaction: discord.Interaction, name: str):
 
 @client.tree.command(name="おみくじ", description="ジョージのおみくじで運試し")
 async def omikuji(interaction: discord.Interaction):
-    await interaction.response.send_message(draw_fortune(), allowed_mentions=discord.AllowedMentions.none())
+    await interaction.response.defer(thinking=True)
+    fortune = random.choice(FORTUNES)[0]
+    try:
+        comment, item = await client.george_chat.fortune_details(fortune)
+        result = f"🎍 今日のおみくじ：**{fortune}**\n{comment}\nラッキーアイテム：{item}"
+    except Exception as exc:
+        diagnostic, _ = describe_chat_error(exc)
+        logging.warning("Fortune generation failed: %s", diagnostic)
+        result = draw_fortune(fortune) + "\n※今回はAIの返事を用意できなかったので、定型の結果だぜ。"
+    await interaction.followup.send(result, allowed_mentions=discord.AllowedMentions.none())
 
 
 @client.tree.command(name="記憶登録", description="サーバー全員で共有する設定を登録・更新（管理者用）")

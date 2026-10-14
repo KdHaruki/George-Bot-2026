@@ -15,8 +15,11 @@ FORTUNES = [
 ]
 
 
-def draw_fortune():
-    fortune, comment = random.choice(FORTUNES)
+def draw_fortune(fortune=None):
+    if fortune is None:
+        fortune, comment = random.choice(FORTUNES)
+    else:
+        comment = dict(FORTUNES)[fortune]
     return f"🎍 今日のおみくじ：**{fortune}**\n{comment}\nラッキーアイテム：{random.choice(['温かい飲み物', 'お気に入りの曲', 'ハンカチ', 'おやつ', '本', '帽子'])}"
 
 
