@@ -25,6 +25,20 @@ class ErrorDiagnosticsTests(unittest.TestCase):
         self.assertIn("reason=timeout", describe_chat_error(TimeoutError())[0])
         self.assertIn("reason=unknown", describe_chat_error(RuntimeError("secret"))[0])
 
+    def test_bad_request_causes_without_provider_text(self):
+        cases = [
+            ("API key not valid. SECRET", "invalid_api_key"),
+            ("Your API key was reported as leaked. SECRET", "blocked_api_key"),
+            ("User location is not supported for the API use. SECRET", "unsupported_location"),
+            ("Free tier is not available in your country. SECRET", "free_tier_unavailable"),
+            ("Model is not supported for generateContent. SECRET", "unsupported_model"),
+        ]
+        for message, reason in cases:
+            with self.subTest(reason=reason):
+                diagnostic, answer = describe_chat_error(errors.APIError(400, {"error": {"message": message}}))
+                self.assertIn(f"reason={reason}", diagnostic)
+                self.assertNotIn("SECRET", diagnostic + answer)
+
 
 class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):

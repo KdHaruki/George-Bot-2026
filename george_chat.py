@@ -39,6 +39,18 @@ def describe_chat_error(exc):
         reason, hint = "network", "Geminiに接続できないぜ。管理者にネットワーク設定を確認してもらってくれ！"
     elif code == 400:
         reason, hint = "invalid_request", "Geminiへのリクエストが拒否されたぜ。管理者にAPIキー・モデル・利用地域の設定を確認してもらってくれ！"
+        # Inspect locally, but emit only fixed categories, never provider text.
+        provider_message = str(getattr(exc, "message", "") or "").lower()
+        if "api key not valid" in provider_message or "api key expired" in provider_message:
+            reason, hint = "invalid_api_key", "APIキーが無効か期限切れと返されたぜ。管理者にGEMINI_API_KEYを確認してもらってくれ！"
+        elif "api key was reported as leaked" in provider_message:
+            reason, hint = "blocked_api_key", "漏えい検知でAPIキーが停止されてるぜ。管理者にAI Studioで新しいキーを発行してもらってくれ！"
+        elif "location is not supported" in provider_message or "country is not supported" in provider_message:
+            reason, hint = "unsupported_location", "Botの接続地域がGeminiの利用対象外と返されたぜ。管理者にRenderの稼働地域を確認してもらってくれ！"
+        elif "free tier is not available" in provider_message:
+            reason, hint = "free_tier_unavailable", "この接続地域では無料枠が利用できないと返されたぜ。管理者に利用条件を確認してもらってくれ！"
+        elif "model" in provider_message and ("not supported" in provider_message or "not found" in provider_message or "invalid model" in provider_message):
+            reason, hint = "unsupported_model", "指定モデルがこのリクエストに対応していないと返されたぜ。管理者にモデルIDと対応APIを確認してもらってくれ！"
     elif code in (401, 403):
         reason, hint = "authentication", "Geminiの認証か権限で止まってるぜ。管理者にAPIキーとプロジェクトの権限・制限を確認してもらってくれ！"
     elif code == 402:
