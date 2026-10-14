@@ -5,6 +5,7 @@ import os
 import logging
 import re
 from threading import Thread
+from ambient_chat import AmbientChat, PARTICIPATION_CHANCE
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
@@ -22,6 +23,7 @@ class MyClient(discord.Client):
 
         self.tree = app_commands.CommandTree(self)
         self.george_chat = GeorgeChat()
+        self.ambient = AmbientChat()
 
     async def setup_hook(self):
         await self.tree.sync()
@@ -114,6 +116,15 @@ async def on_message(message):
     if message.author.bot:
         return
 
+    # Keep the original random reactions independent of ambient participation.
+    if random.random() < 0.2:
+        emojis = ["😆", "😂", "😍", "😭", "🤔", "😎", "🥺", "👍", "🎉", "👀"]
+        try:
+            await message.add_reaction(random.choice(emojis))
+        except discord.HTTPException:
+            # Missing reaction permissions must not prevent conversation replies.
+            logging.warning("Random reaction could not be added")
+
     # メンションされた場合
     if client.user in message.mentions or isinstance(message.channel, discord.DMChannel):
         parts = message.content.split()
@@ -139,7 +150,7 @@ async def on_message(message):
             try:
                 if text.lower() in ("reset", "リセット"):
                     client.george_chat.reset(key)
-                    answer = "この場所でのキミとの会話をリセットしたぜ！"
+                    answer = "会話をリセットしたぜ。"
                 elif not text:
                     answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /progress、会話のリセットは「リセット」だぜ。"
                 else:
@@ -155,11 +166,27 @@ async def on_message(message):
                 logging.warning("Gemini request failed: %s", diagnostic)
             for offset in range(0, len(answer), 1900):
                 await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none())
+        client.ambient.note_reply(message.channel.id)
+        return
 
-    # 20%でリアクション
-    if random.random() < 0.2:
-        emojis = ["😆","😂","😍","😭","🤔","😎","🥺","👍","🎉","👀"]
-        await message.add_reaction(random.choice(emojis))
+    if message.guild is None:
+        return
+    directed = bool(message.mentions or message.role_mentions or message.mention_everyone or message.reference)
+    state = client.ambient.observe(message.channel.id, message.author.id, message.content, directed=directed)
+    if state is None or client.george_chat.client is None or random.random() >= PARTICIPATION_CHANCE:
+        return
+    client.ambient.reserve(state)
+    snapshot = list(state.messages)
+    try:
+        answer = await client.george_chat.ambient_reply(snapshot)
+        # If users have moved on or the context was evicted, stay quiet.
+        if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
+            await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
+    except Exception as exc:
+        diagnostic, _ = describe_chat_error(exc)
+        logging.warning("Ambient chat skipped: %s", diagnostic)
+    finally:
+        state.busy = False
 
 ########################################
 # サーバ起動

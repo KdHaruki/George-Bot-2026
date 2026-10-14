@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
+from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, character_context
 from google.genai import errors
 
 
@@ -56,6 +56,31 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.chat.reset((1, 1))
         self.assertNotIn((1, 1), self.chat.sessions)
         self.assertIn((1, 2), self.chat.sessions)
+
+    async def test_registered_subject_is_grounded_on_followup(self):
+        await self.chat.reply((1, 1), "ロザリーについて教えて")
+        self.assertIn('"progressName": "ロザリー"', self.generate.call_args.kwargs["config"].system_instruction)
+        await self.chat.reply((1, 1), "好きなものは？")
+        self.assertIn('"progressLike": "手品、鏡"', self.generate.call_args.kwargs["config"].system_instruction)
+        await self.chat.reply((2, 1), "好きなものは？")
+        self.assertNotIn('"progressName": "ロザリー"', self.generate.call_args.kwargs["config"].system_instruction)
+
+    def test_unknown_subject_has_no_invented_record(self):
+        self.assertEqual(character_context("未登録の人物について"), "")
+
+    async def test_ambient_skip_and_no_personal_history(self):
+        await self.chat.reply((1, 1), "個人の話")
+        messages = [(1, 100, "天気いいね"), (2, 200, "散歩した"), (3, 100, "楽しそう")]
+        self.generate.return_value = SimpleNamespace(text="__SKIP__")
+        self.assertIsNone(await self.chat.ambient_reply(messages))
+        payload = self.generate.call_args.kwargs["contents"]
+        self.assertNotIn("個人の話", payload)
+        self.assertEqual(len(self.chat.sessions[(1, 1)].history), 2)
+        for answer in ("どうだった？", "長" * 151, "一行\n二行"):
+            self.generate.return_value = SimpleNamespace(text=answer)
+            self.assertIsNone(await self.chat.ambient_reply(messages))
+        self.generate.return_value = SimpleNamespace(text="散歩日和だな！")
+        self.assertEqual(await self.chat.ambient_reply(messages), "散歩日和だな！")
 
     async def test_failure_does_not_commit_history(self):
         await self.chat.reply((1, 1), "最初")
