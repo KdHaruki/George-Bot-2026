@@ -157,7 +157,7 @@ class GeorgeChat:
         self.sessions.move_to_end(key)
         return self.sessions[key]
 
-    async def reply(self, key, text, mood_instruction=""):
+    async def reply(self, key, text):
         if self.client is None:
             raise ChatUnavailable()
         session = self._session(key)
@@ -177,7 +177,7 @@ class GeorgeChat:
                     model=self.model,
                     contents=[*session.history, user],
                     config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_INSTRUCTION + context + mood_instruction,
+                        system_instruction=SYSTEM_INSTRUCTION + context,
                         max_output_tokens=2048,
                     ),
                 ),
@@ -197,7 +197,7 @@ class GeorgeChat:
             raise ChatBusy()
         self.sessions.pop(key, None)
 
-    async def ambient_reply(self, messages, mood_instruction=""):
+    async def ambient_reply(self, messages):
         if self.client is None:
             raise ChatUnavailable()
         instruction = SYSTEM_INSTRUCTION + """
@@ -217,7 +217,7 @@ class GeorgeChat:
             item["speaker"] = f"参加者{speakers[author_id]}"
         response = await asyncio.wait_for(self.client.aio.models.generate_content(
             model=self.model, contents=json.dumps(payload, ensure_ascii=False),
-            config=types.GenerateContentConfig(system_instruction=instruction + mood_instruction,
+            config=types.GenerateContentConfig(system_instruction=instruction,
                                               max_output_tokens=2048)), timeout=60)
         answer = (response.text or "").strip()
         answer = finish_reply(answer)

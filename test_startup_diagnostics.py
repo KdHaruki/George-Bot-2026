@@ -21,14 +21,15 @@ class StartupDiagnosticsTests(unittest.TestCase):
 
 
 class GuildSyncTests(unittest.IsolatedAsyncioTestCase):
-    async def test_sync_once_and_register_all_commands(self):
+    async def test_clear_duplicates_once_without_copying_globals(self):
         with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
             bot = MyClient()
         guild = SimpleNamespace(id=123)
-        with patch.object(bot.tree, "copy_global_to") as copy, patch.object(bot.tree, "sync", new=AsyncMock(return_value=[SimpleNamespace(name="調子"), SimpleNamespace(name="おみくじ")])) as sync:
-            await bot.sync_guild_commands(guild)
-            await bot.sync_guild_commands(guild)
-            copy.assert_called_once_with(guild=guild)
+        with patch.object(bot.tree, "clear_commands") as clear, patch.object(bot.tree, "copy_global_to") as copy, patch.object(bot.tree, "sync", new=AsyncMock(return_value=[])) as sync:
+            await bot.clear_guild_commands(guild)
+            await bot.clear_guild_commands(guild)
+            clear.assert_called_once_with(guild=guild)
+            copy.assert_not_called()
             sync.assert_awaited_once_with(guild=guild)
 
 

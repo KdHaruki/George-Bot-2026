@@ -9,7 +9,7 @@ from ambient_chat import AmbientChat, PARTICIPATION_CHANCE
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
-from fun_features import FeedbackView, TimerManager, draw_fortune, parse_duration
+from fun_features import TimerManager, draw_fortune, parse_duration
 
 ########################################
 # Botクラス
@@ -25,27 +25,23 @@ class MyClient(discord.Client):
         self.tree = app_commands.CommandTree(self)
         self.george_chat = GeorgeChat()
         self.ambient = AmbientChat()
-        self.feedback = FeedbackView()
         self.timers = TimerManager()
-        self.synced_guilds = set()
+        self.cleaned_guilds = set()
 
     async def setup_hook(self):
-        await self.feedback.restore_mood()
-        self.add_view(self.feedback)
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
-        print("Feedback buttons registered: 4", flush=True)
 
-    async def sync_guild_commands(self, guild):
-        if guild.id in self.synced_guilds:
+    async def clear_guild_commands(self, guild):
+        if guild.id in self.cleaned_guilds:
             return
-        self.synced_guilds.add(guild.id)
+        self.cleaned_guilds.add(guild.id)
         try:
-            self.tree.copy_global_to(guild=guild)
+            self.tree.clear_commands(guild=guild)
             commands = await self.tree.sync(guild=guild)
-            print(f"Commands synced to guild {guild.id}: " + ", ".join(command.name for command in commands), flush=True)
+            print(f"Guild command duplicates cleared: guild={guild.id} remaining={len(commands)}", flush=True)
         except discord.HTTPException as exc:
-            self.synced_guilds.discard(guild.id)
+            self.cleaned_guilds.discard(guild.id)
             logging.warning("Guild command sync failed: guild=%s type=%s status=%s", guild.id, type(exc).__name__, exc.status)
 
     async def close(self):
@@ -65,12 +61,12 @@ client = MyClient()
 async def on_ready():
     print("ログインしました", flush=True)
     for guild in client.guilds:
-        await client.sync_guild_commands(guild)
+        await client.clear_guild_commands(guild)
 
 
 @client.event
 async def on_guild_join(guild):
-    await client.sync_guild_commands(guild)
+    await client.clear_guild_commands(guild)
 
 
 @client.event
@@ -149,17 +145,6 @@ async def omikuji(interaction: discord.Interaction):
     await interaction.response.send_message(draw_fortune(), allowed_mentions=discord.AllowedMentions.none())
 
 
-@client.tree.command(name="調子", description="このチャンネルのジョージの調子メーターを見る")
-async def mood(interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True)
-    try:
-        await client.feedback.ensure_mood(interaction.channel_id)
-    except Exception:
-        await interaction.followup.send("保存した調子を読み込めなかったぜ。少し待って試してくれ。", ephemeral=True)
-        return
-    await interaction.followup.send(client.feedback.mood.display(interaction.channel_id), allowed_mentions=discord.AllowedMentions.none())
-
-
 @client.tree.command(name="タイマー", description="指定した時間にジョージが呼びかける（再起動で解除）")
 @app_commands.describe(時間="例：10分、1時間30分、30秒（最大24時間）", 内容="何のタイマーか（省略可）")
 async def timer(interaction: discord.Interaction, 時間: str, 内容: str = "タイマー終了"):
@@ -230,7 +215,7 @@ async def on_message(message):
                     answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /progress、会話のリセットは「リセット」だぜ。"
                 else:
                     async with message.channel.typing():
-                        answer = await client.george_chat.reply(key, text, client.feedback.mood.instruction(message.channel.id))
+                        answer = await client.george_chat.reply(key, text)
             except ChatUnavailable:
                 answer = "会話機能はまだ準備中だぜ。管理者にGEMINI_API_KEYの設定をお願いしてくれ！"
             except ChatBusy:
@@ -240,8 +225,7 @@ async def on_message(message):
                 diagnostic, answer = describe_chat_error(exc)
                 logging.warning("Gemini request failed: %s", diagnostic)
             for offset in range(0, len(answer), 1900):
-                await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none(),
-                                           view=client.feedback if offset + 1900 >= len(answer) else None)
+                await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none())
         client.ambient.note_reply(message.channel.id)
         return
 
@@ -254,10 +238,10 @@ async def on_message(message):
     client.ambient.reserve(state)
     snapshot = list(state.messages)
     try:
-        answer = await client.george_chat.ambient_reply(snapshot, client.feedback.mood.instruction(message.channel.id))
+        answer = await client.george_chat.ambient_reply(snapshot)
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
-            await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none(), view=client.feedback)
+            await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Ambient chat skipped: %s", diagnostic)
