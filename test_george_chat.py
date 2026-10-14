@@ -4,11 +4,17 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, character_context
+from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, character_context, finish_reply
 from google.genai import errors
 
 
 class ErrorDiagnosticsTests(unittest.TestCase):
+    def test_question_suffix(self):
+        self.assertEqual(finish_reply("どうした？  \n"), "どうした？\n球筋に出てるぜ")
+        self.assertEqual(finish_reply("元気?"), "元気?\n球筋に出てるぜ")
+        self.assertEqual(finish_reply("どうした？ 話を聞くぜ。"), "どうした？ 話を聞くぜ。")
+        self.assertEqual(finish_reply("元気だぜ！"), "元気だぜ！")
+
     def test_api_status_and_secret_redaction(self):
         for code, reason in [(400, "invalid_request"), (403, "authentication"),
                              (404, "model_not_found"), (429, "quota"),

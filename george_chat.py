@@ -72,6 +72,13 @@ class ChatBusy(Exception):
     pass
 
 
+def finish_reply(text):
+    text = text.strip()
+    if text.endswith(("？", "?")):
+        return text + "\n球筋に出てるぜ"
+    return text
+
+
 def describe_chat_error(exc):
     """Return safe diagnostics without exposing provider bodies or credentials."""
     code = exc.code if isinstance(exc, errors.APIError) else None
@@ -136,7 +143,7 @@ class GeorgeChat:
         self.sessions.move_to_end(key)
         return self.sessions[key]
 
-    async def reply(self, key, text):
+    async def reply(self, key, text, mood_instruction=""):
         if self.client is None:
             raise ChatUnavailable()
         session = self._session(key)
@@ -156,7 +163,7 @@ class GeorgeChat:
                     model=self.model,
                     contents=[*session.history, user],
                     config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_INSTRUCTION + context,
+                        system_instruction=SYSTEM_INSTRUCTION + context + mood_instruction,
                         max_output_tokens=2048,
                     ),
                 ),
@@ -165,7 +172,7 @@ class GeorgeChat:
             answer = (response.text or "").strip()
             if not answer:
                 return "うまく返事を作れなかったぜ。言い方を変えて、もう一度話しかけてくれ！"
-            answer = answer[:6000]
+            answer = finish_reply(answer[:6000])
             session.history = [*session.history, user,
                                types.Content(role="model", parts=[types.Part(text=answer)])][-20:]
             return answer
@@ -176,7 +183,7 @@ class GeorgeChat:
             raise ChatBusy()
         self.sessions.pop(key, None)
 
-    async def ambient_reply(self, messages):
+    async def ambient_reply(self, messages, mood_instruction=""):
         if self.client is None:
             raise ChatUnavailable()
         instruction = SYSTEM_INSTRUCTION + """
@@ -196,7 +203,7 @@ class GeorgeChat:
             item["speaker"] = f"参加者{speakers[author_id]}"
         response = await asyncio.wait_for(self.client.aio.models.generate_content(
             model=self.model, contents=json.dumps(payload, ensure_ascii=False),
-            config=types.GenerateContentConfig(system_instruction=instruction,
+            config=types.GenerateContentConfig(system_instruction=instruction + mood_instruction,
                                               max_output_tokens=2048)), timeout=60)
         answer = (response.text or "").strip()
         if not answer or SKIP in answer or len(answer) > 150 or "\n" in answer or "?" in answer or "？" in answer:

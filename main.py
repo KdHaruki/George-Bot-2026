@@ -9,6 +9,7 @@ from ambient_chat import AmbientChat, PARTICIPATION_CHANCE
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
+from fun_features import FeedbackView, TimerManager, draw_fortune, parse_duration
 
 ########################################
 # Botクラス
@@ -24,12 +25,17 @@ class MyClient(discord.Client):
         self.tree = app_commands.CommandTree(self)
         self.george_chat = GeorgeChat()
         self.ambient = AmbientChat()
+        self.feedback = FeedbackView()
+        self.timers = TimerManager()
 
     async def setup_hook(self):
+        await self.feedback.restore_mood()
+        self.add_view(self.feedback)
         await self.tree.sync()
 
     async def close(self):
         try:
+            await self.timers.close()
             await self.george_chat.close()
         finally:
             await super().close()
@@ -110,6 +116,47 @@ async def progress(interaction: discord.Interaction, name: str):
 # メッセージイベント
 ########################################
 
+@client.tree.command(name="おみくじ", description="ジョージのおみくじで運試し")
+async def omikuji(interaction: discord.Interaction):
+    await interaction.response.send_message(draw_fortune(), allowed_mentions=discord.AllowedMentions.none())
+
+
+@client.tree.command(name="調子", description="このチャンネルのジョージの調子メーターを見る")
+async def mood(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    try:
+        await client.feedback.ensure_mood(interaction.channel_id)
+    except Exception:
+        await interaction.followup.send("保存した調子を読み込めなかったぜ。少し待って試してくれ。", ephemeral=True)
+        return
+    await interaction.followup.send(client.feedback.mood.display(interaction.channel_id), allowed_mentions=discord.AllowedMentions.none())
+
+
+@client.tree.command(name="タイマー", description="指定した時間にジョージが呼びかける（再起動で解除）")
+@app_commands.describe(時間="例：10分、1時間30分、30秒（最大24時間）", 内容="何のタイマーか（省略可）")
+async def timer(interaction: discord.Interaction, 時間: str, 内容: str = "タイマー終了"):
+    try:
+        seconds = parse_duration(時間)
+        if interaction.channel is None:
+            raise ValueError("この場所ではタイマーを使えないぜ。")
+        if len(内容) > 200:
+            raise ValueError("内容は200文字以内で頼むぜ！")
+        task = client.timers.start(interaction.channel, interaction.user.id, seconds, 内容)
+    except ValueError as exc:
+        await interaction.response.send_message(str(exc), ephemeral=True)
+        return
+    try:
+        await interaction.response.send_message(f"⏰ {seconds}秒後に呼ぶぜ！ 内容：{内容}\n再起動や停止で解除されるぞ。取消は /タイマー取消 だ。", allowed_mentions=discord.AllowedMentions.none())
+    except Exception:
+        task.cancel()
+        raise
+
+
+@client.tree.command(name="タイマー取消", description="このチャンネルで自分が設定したタイマーをすべて取り消す")
+async def cancel_timer(interaction: discord.Interaction):
+    count = client.timers.cancel(interaction.channel_id, interaction.user.id)
+    await interaction.response.send_message(f"自分のタイマーを{count}件取り消したぜ。", ephemeral=True)
+
 @client.event
 async def on_message(message):
 
@@ -155,7 +202,7 @@ async def on_message(message):
                     answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /progress、会話のリセットは「リセット」だぜ。"
                 else:
                     async with message.channel.typing():
-                        answer = await client.george_chat.reply(key, text)
+                        answer = await client.george_chat.reply(key, text, client.feedback.mood.instruction(message.channel.id))
             except ChatUnavailable:
                 answer = "会話機能はまだ準備中だぜ。管理者にGEMINI_API_KEYの設定をお願いしてくれ！"
             except ChatBusy:
@@ -165,7 +212,8 @@ async def on_message(message):
                 diagnostic, answer = describe_chat_error(exc)
                 logging.warning("Gemini request failed: %s", diagnostic)
             for offset in range(0, len(answer), 1900):
-                await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none())
+                await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none(),
+                                           view=client.feedback if offset + 1900 >= len(answer) else None)
         client.ambient.note_reply(message.channel.id)
         return
 
@@ -178,10 +226,10 @@ async def on_message(message):
     client.ambient.reserve(state)
     snapshot = list(state.messages)
     try:
-        answer = await client.george_chat.ambient_reply(snapshot)
+        answer = await client.george_chat.ambient_reply(snapshot, client.feedback.mood.instruction(message.channel.id))
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
-            await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
+            await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none(), view=client.feedback)
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Ambient chat skipped: %s", diagnostic)
