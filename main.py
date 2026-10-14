@@ -4,6 +4,7 @@ import random
 import os
 import logging
 import re
+from threading import Thread
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
@@ -164,11 +165,23 @@ async def on_message(message):
 # サーバ起動
 ########################################
 
+def start_gemini_diagnostics():
+    """Opt-in one diagnostic per process, without delaying Discord login."""
+    if os.getenv("GEMINI_DIAGNOSTICS", "").strip() != "1":
+        return None
+    from check_gemini import main as check_gemini
+    thread = Thread(target=check_gemini, kwargs={"test": True}, daemon=True,
+                    name="gemini-startup-diagnostic")
+    thread.start()
+    return thread
+
+
 if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_TOKEN")
     if not TOKEN:
         raise RuntimeError("DISCORD_TOKENを環境変数に設定してください")
     keep_alive()
+    start_gemini_diagnostics()
     client.run(TOKEN)
 
 __all__ = ["progressData","progressSearch","progressSearchAll"]

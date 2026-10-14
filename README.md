@@ -56,3 +56,14 @@ APIキー・会話本文・Googleのエラー本文はログに出しません�
 - network: Botの起動環境からGoogleへの通信を確認。
 
 環境変数やコードを変更したら、実際に動いているBotを再起動してください。
+
+### RenderでShellが使えない場合
+
+`main.py` と `check_gemini.py` をデプロイし、Environmentに
+`GEMINI_DIAGNOSTICS=1` を設定すると、起動ごとに1回だけ固定の短い入力で
+Geminiの文章生成を試します。Discordの会話履歴は送信しません。
+API利用枠を消費し、有料プロジェクトには適用料金がかかります。
+診断は別スレッドで実行し、Discordログインは待たせません。
+Logsの `Configured model:`、`Diagnostic failed:`、`Provider message:` を確認してください。
+APIキーとDiscordトークンは伏せ字にします。
+確認後は `GEMINI_DIAGNOSTICS` を削除するか `0` に戻してください。
