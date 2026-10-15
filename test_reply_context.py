@@ -35,3 +35,18 @@ class ReplyTests(unittest.IsolatedAsyncioTestCase):
             await main.on_message(message)
         fake.george_chat.reply.assert_awaited_once_with((1, 5), message.content, [], reply_to="今日は楽しかったぜ！")
         message.channel.send.assert_awaited_once()
+
+    async def test_image_only_reply_is_read_and_forwarded(self):
+        from test_image_inputs import attachment
+        message = self.message()
+        message.content = ""
+        item = attachment()
+        message.attachments = [item]
+        fake = SimpleNamespace(user=SimpleNamespace(id=99), memories=SimpleNamespace(url=""),
+                               george_chat=SimpleNamespace(reply=AsyncMock(return_value="いい写真だぜ！")),
+                               ambient=SimpleNamespace(note_reply=Mock()))
+        with patch.object(main, "client", fake), patch("main.random.random", return_value=1):
+            await main.on_message(message)
+        item.read.assert_awaited_once()
+        self.assertEqual(fake.george_chat.reply.call_args.kwargs["images"][0].mime_type, "image/png")
+        self.assertEqual(fake.george_chat.reply.call_args.args[1], "添付画像について一言お願い。")

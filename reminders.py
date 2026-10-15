@@ -96,6 +96,9 @@ class ReminderScheduler:
     def __init__(self, store):
         self.store = store
         self.task = None
+        self.last_check_at = None
+        self.last_check_ok = None
+        self.last_delivery_failed = False
 
     def start(self, bot):
         if self.store.url and self.task is None:
@@ -106,11 +109,15 @@ class ReminderScheduler:
         while not bot.is_closed():
             try:
                 await self.deliver_due(bot)
+                self.last_check_ok = True
             except Exception as exc:
+                self.last_check_ok = False
                 logging.warning("Reminder check failed: type=%s", type(exc).__name__)
+            self.last_check_at = datetime.now(timezone.utc)
             await asyncio.sleep(60)
 
     async def deliver_due(self, bot):
+        self.last_delivery_failed = False
         for rid, guild_id, channel_id, user_id, due_at, content in await asyncio.to_thread(self.store.claim_due):
             try:
                 channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
@@ -122,6 +129,7 @@ class ReminderScheduler:
                 await channel.send(f"📅 <@{user_id}> 予定のお知らせだぜ！\n{stamp}（日本時間）\n{discord.utils.escape_mentions(content)}\n予定ID：{rid}",
                                    allowed_mentions=discord.AllowedMentions(users=[discord.Object(id=user_id)], roles=False, everyone=False))
             except Exception as exc:
+                self.last_delivery_failed = True
                 logging.warning("Reminder delivery failed: type=%s", type(exc).__name__)
                 await asyncio.to_thread(self.store.finish, rid, False)
             else:

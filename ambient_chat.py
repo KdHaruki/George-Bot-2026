@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 
 COOLDOWN = 30 * 60
 PARTICIPATION_CHANCE = 0.10
-CONTEXT_TTL = 5 * 60
 SKIP = "__SKIP__"
 SERIOUS = ("相談", "真剣", "深刻", "つらい", "辛い", "死", "病", "事故", "災害", "訃報", "助けて", "喧嘩", "けんか", "仕事", "政治", "戦争")
 
@@ -21,7 +20,7 @@ class AmbientChat:
     def __init__(self):
         self.states = OrderedDict()
 
-    def observe(self, channel_id, author_id, text, directed=False, now=None):
+    def observe(self, channel_id, author_id, text, directed=False, now=None, attachments=()):
         now = time.monotonic() if now is None else now
         if channel_id not in self.states:
             if len(self.states) >= 128:
@@ -34,12 +33,10 @@ class AmbientChat:
             self.states[channel_id] = ChannelState()
         state = self.states[channel_id]
         self.states.move_to_end(channel_id)
-        while state.messages and now - state.messages[0][0] > CONTEXT_TTL:
-            state.messages.popleft()
-        if directed or not text.strip() or text.startswith(("/", "!", "?")):
+        if directed or (not text.strip() and not attachments) or text.startswith(("/", "!", "?")):
             state.messages.clear()
             return None
-        state.messages.append((now, author_id, text[:500]))
+        state.messages.append((now, author_id, text[:500] or "[添付あり・まだ内容は未確認]", tuple(attachments[:2])))
         if state.busy or now < state.next_attempt:
             return None
         if len(state.messages) < 3 or len({m[1] for m in state.messages}) < 2:

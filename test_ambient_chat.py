@@ -25,7 +25,7 @@ class AmbientTests(unittest.TestCase):
         chat.states.pop(1)
         self.assertFalse(chat.still_current(1, state))
 
-    def test_directed_serious_and_expired_context(self):
+    def test_directed_and_serious_context(self):
         chat = AmbientChat()
         self.conversation(chat)
         self.assertIsNone(chat.observe(1, 20, "個別の返事", directed=True, now=103))
@@ -33,7 +33,19 @@ class AmbientTests(unittest.TestCase):
         self.conversation(chat)
         self.assertIsNone(chat.observe(1, 20, "真剣に相談したい", now=104))
         self.assertIsNone(chat.observe(1, 20, "天気いいね", now=500))
-        self.assertEqual(len(chat.states[1].messages), 1)
+        self.assertEqual(len(chat.states[1].messages), 5)
+
+    def test_context_survives_time_gaps_but_is_limited_to_latest_eight(self):
+        chat = AmbientChat()
+        chat.observe(1, 10, "散歩したよ", now=0)
+        chat.observe(1, 20, "どこに行ったの", now=3600)
+        state = chat.observe(1, 10, "公園まで行ったよ", now=7200)
+        self.assertIsNotNone(state)
+        self.assertEqual(state.messages[0][2], "散歩したよ")
+        for i in range(10):
+            chat.observe(1, 10 + i % 2, str(i), now=8000 + i)
+        self.assertEqual(len(state.messages), 8)
+        self.assertEqual([item[2] for item in state.messages], [str(i) for i in range(2, 10)])
 
     def test_multiple_channels_have_separate_context_and_cooldown(self):
         chat = AmbientChat()

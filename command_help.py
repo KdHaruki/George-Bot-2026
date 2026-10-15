@@ -6,6 +6,7 @@ def command_help(in_guild):
                           description="サーバーではメンションか俺の発言への返信、DMではそのまま話しかけてくれ！\n「リセット」で、その場所のキミとの短期会話履歴を消せるぜ。")
     embed.add_field(name="どちらでも使える", inline=False, value=(
         "`/ヘルプ`：この案内\n"
+        "`/状態`：Gemini・DB・予定通知の健康診断（API利用枠を消費、確認は5分間再利用）\n"
         "`/progress name:ロザリー`：プログレス検索。世界名でも検索できるぞ\n"
         "`/おみくじ`：運勢＋AIの一言とラッキーアイテム\n"
         "`/タイマー 時間:10分 内容:休憩`：1秒〜24時間のタイマー\n"
@@ -24,6 +25,10 @@ def command_help(in_guild):
         "短期会話履歴とタイマーは再起動で消えるぜ。\n"
         "共有記憶と予定は管理者が `DATABASE_URL` を設定すればDBに保存するぞ。\n"
         "会話・AIおみくじはGeminiの利用枠を消費するぜ。ウェブ検索は未対応だ。"))
+    embed.add_field(name="画像も見られるぜ", inline=False, value=(
+        "画像と `@ジョージ この画像に一言` を送ってくれ。DMではメンションなしでOK。\n"
+        "PNG・JPEG・WebP、最大2枚・各4MiB。雑談参加時も直近の画像を参照するぞ。\n"
+        "画像はGoogleへ送信するぜ。画像本体は記憶しないから、再確認したい画像は再添付してくれ。"))
     if not in_guild:
         embed.add_field(name="今はDMだぜ！", value="予定・記憶コマンドはDMには出ないぞ。使いたいサーバーのチャンネルで実行してくれ。", inline=False)
     embed.set_footer(text="コマンド入力後、Discordの入力欄で項目を選んで指定してくれ！")

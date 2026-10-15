@@ -15,6 +15,8 @@ from registered_memory import MemoryStore, MemoryUnavailable
 from reminders import ReminderStore, ReminderScheduler, parse_schedule, JST
 from reply_context import george_reply_target
 from command_help import command_help
+from health_check import HealthCheck
+from image_inputs import ImageSource, load_images, ambient_image_sources
 
 ########################################
 # Botクラス
@@ -35,6 +37,7 @@ class MyClient(discord.Client):
         self.reminder_store = ReminderStore()
         self.reminders = ReminderScheduler(self.reminder_store)
         self.cleaned_guilds = set()
+        self.health = HealthCheck()
 
     async def setup_hook(self):
         commands = await self.tree.sync()
@@ -162,6 +165,13 @@ async def progress(interaction: discord.Interaction, name: str):
 async def show_help(interaction: discord.Interaction):
     await interaction.response.send_message(embed=command_help(interaction.guild_id is not None),
                                             ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+
+
+@client.tree.command(name="状態", description="Gemini・DB・予定通知の健康診断（APIテストは5分に1回まで）")
+async def show_health(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    embed = await client.health.report(client)
+    await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
 
 @client.tree.command(name="おみくじ", description="ジョージのおみくじで運試し")
@@ -330,17 +340,26 @@ async def on_message(message):
             await message.channel.send(result)
         else:
             text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
+            attachments = tuple(getattr(message, "attachments", ()))
             key = (message.channel.id, message.author.id)
             try:
                 if text.lower() in ("reset", "リセット"):
                     client.george_chat.reset(key)
                     answer = "会話をリセットしたぜ。"
-                elif not text:
+                elif not text and not attachments:
                     answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /progress、会話のリセットは「リセット」だぜ。"
                 else:
                     async with message.channel.typing():
-                        notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if message.guild and client.memories.url else []
-                        answer = await client.george_chat.reply(key, text, notes, reply_to=target.content if target is not None else "")
+                        bundle = await load_images([ImageSource(item, f"今回の発言の添付画像{index + 1}") for index, item in enumerate(attachments)])
+                        if attachments and not bundle.images and not text:
+                            answer = "\n".join(bundle.notices)
+                        else:
+                            notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if message.guild and client.memories.url else []
+                            image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if attachments else {}
+                            answer = await client.george_chat.reply(key, text or "添付画像について一言お願い。", notes,
+                                                                   reply_to=target.content if target is not None else "", **image_options)
+                            if bundle.notices:
+                                answer += "\n※" + " ".join(bundle.notices)
             except MemoryUnavailable as exc:
                 answer = str(exc)
             except ChatUnavailable:
@@ -359,14 +378,22 @@ async def on_message(message):
     if message.guild is None:
         return
     directed = bool(message.mentions or message.role_mentions or message.mention_everyone or message.reference)
-    state = client.ambient.observe(message.channel.id, message.author.id, message.content, directed=directed)
+    state = client.ambient.observe(message.channel.id, message.author.id, message.content, directed=directed,
+                                   attachments=tuple(getattr(message, "attachments", ())))
     if state is None or client.george_chat.client is None or random.random() >= PARTICIPATION_CHANCE:
         return
     client.ambient.reserve(state)
     snapshot = list(state.messages)
     try:
+        sources = ambient_image_sources(snapshot)
+        bundle = await load_images(sources)
+        if sources and not bundle.images:
+            return
+        if not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
+            return
         notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if client.memories.url else []
-        answer = await client.george_chat.ambient_reply(snapshot, notes)
+        image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if sources else {}
+        answer = await client.george_chat.ambient_reply(snapshot, notes, **image_options)
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())

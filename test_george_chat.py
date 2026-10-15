@@ -80,6 +80,26 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("ロザリーについての返事", contents[0].parts[0].text)
         self.assertNotIn("別の人の話", contents[0].parts[0].text)
 
+    async def test_images_only_in_current_request_not_history(self):
+        from image_inputs import LoadedImage
+        image = LoadedImage(b"test-image", "image/png", "今回の画像1")
+        await self.chat.reply((1, 1), "これに一言", images=[image])
+        contents = self.generate.call_args.kwargs["contents"]
+        self.assertEqual(contents[-1].parts[-1].inline_data.data, b"test-image")
+        self.assertTrue(all(part.inline_data is None for entry in self.chat.sessions[(1, 1)].history for part in entry.parts))
+        await self.chat.reply((1, 1), "さっきの話")
+        self.assertTrue(all(part.inline_data is None for entry in self.generate.call_args.kwargs["contents"] for part in entry.parts))
+
+    async def test_ambient_image_label_matches_the_speaker(self):
+        from image_inputs import LoadedImage
+        image = LoadedImage(b"test-image", "image/png", "発言1・参加者1の添付画像1")
+        self.generate.return_value = SimpleNamespace(text="いい寝相じゃねえか！")
+        await self.chat.ambient_reply([(1, 100, "猫の画像", (object(),)), (2, 200, "かわいい", ())], images=[image])
+        parts = self.generate.call_args.kwargs["contents"].parts
+        self.assertIn("参加者1", parts[0].text)
+        self.assertEqual(parts[1].text, image.label)
+        self.assertEqual(parts[2].inline_data.data, b"test-image")
+
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！","lucky_item":"赤いハンカチ"}')

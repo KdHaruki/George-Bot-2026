@@ -33,6 +33,10 @@ class MemoryStore:
         with self.connect() as connection:
             return connection.execute("SELECT title, content FROM george_memories WHERE scope_id=%s AND owner_id=%s ORDER BY title", (scope_id, owner_id)).fetchall()
 
+    def ping(self):
+        with self.connect() as connection:
+            return connection.execute("SELECT 1").fetchone()[0] == 1
+
     def save(self, scope_id, owner_id, title, content):
         title, content = title.strip(), content.strip()
         if not 1 <= len(title) <= 40 or not 1 <= len(content) <= 300:
