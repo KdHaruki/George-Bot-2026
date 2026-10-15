@@ -61,5 +61,15 @@ class HealthCheck:
         status += "\n※各チャンネルへの実際の通知到達は未検証"
         embed.add_field(name="予定通知", value=status, inline=False)
         embed.add_field(name="短時間タイマー", value=f"このBot全体で稼働中：{len(bot.timers.tasks)}件", inline=False)
+        seasonal = getattr(bot, "seasonal", None)
+        if seasonal is not None:
+            enabled = bool(seasonal.store.url)
+            running = seasonal.task is not None and not seasonal.task.done()
+            text = "未設定：DATABASE_URLが必要" if not enabled else ("監視中：投稿先の指定は /季節通知 設定" if running else "監視タスク停止")
+            if seasonal.calendar.refresh_failed:
+                text += "\n祝日データの更新失敗（利用できる保存済みデータで継続）"
+            if seasonal.last_delivery_failed or seasonal.last_check_ok is False:
+                text += "\n直近の確認・送信に失敗あり（ログを確認）"
+            embed.add_field(name="季節通知（日本時間10:00）", value=text, inline=False)
         embed.set_footer(text="Gemini接続テストは利用枠を消費します。会話本文・登録記憶はテストに送りません。")
         return embed

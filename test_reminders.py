@@ -2,11 +2,53 @@ import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, MagicMock, patch
-from reminders import parse_schedule, ReminderScheduler, ReminderStore, JST
+from reminders import parse_schedule, ReminderScheduler, ReminderStore, JST, next_occurrence
 import sys
 
 
 class ScheduleTests(unittest.TestCase):
+    def test_daily_and_weekly_skip_missed_runs_at_same_local_time(self):
+        first = datetime(2026, 10, 16, 21, tzinfo=JST)
+        now = datetime(2026, 10, 20, 22, tzinfo=JST)
+        self.assertEqual(next_occurrence(first, "daily", now=now).astimezone(JST), datetime(2026, 10, 21, 21, tzinfo=JST))
+        self.assertEqual(next_occurrence(first, "weekly", now=now).astimezone(JST), datetime(2026, 10, 23, 21, tzinfo=JST))
+        self.assertIsNone(next_occurrence(first, "none", now=now))
+
+    def test_month_end_does_not_drift_and_handles_leap_year(self):
+        january = datetime(2027, 1, 31, 21, tzinfo=JST)
+        february = next_occurrence(january, "monthly", 31, now=january)
+        self.assertEqual(february.astimezone(JST), datetime(2027, 2, 28, 21, tzinfo=JST))
+        march = next_occurrence(february, "monthly", 31, now=february)
+        self.assertEqual(march.astimezone(JST), datetime(2027, 3, 31, 21, tzinfo=JST))
+        leap = datetime(2028, 1, 31, 21, tzinfo=JST)
+        self.assertEqual(next_occurrence(leap, "monthly", 31, now=leap).astimezone(JST).day, 29)
+
+    def test_long_downtime_skips_to_future_month_and_year(self):
+        first = datetime(2026, 12, 31, 21, tzinfo=JST)
+        now = datetime(2028, 2, 29, 22, tzinfo=JST)
+        self.assertEqual(next_occurrence(first, "monthly", 31, now=now).astimezone(JST), datetime(2028, 3, 31, 21, tzinfo=JST))
+
+    def test_repeat_completion_reschedules_and_single_completion_finishes(self):
+        connection = MagicMock()
+        connection.__enter__.return_value = connection
+        due = datetime(2026, 10, 16, 21, tzinfo=JST)
+        next_due = datetime(2026, 10, 17, 21, tzinfo=JST)
+        with patch.dict(sys.modules, {"psycopg": SimpleNamespace(connect=Mock(return_value=connection))}):
+            store = ReminderStore("postgresql://test-only")
+            connection.execute.return_value.fetchone.return_value = (due, "daily", 16)
+            with patch("reminders.next_occurrence", return_value=next_due):
+                store.finish(42, True)
+            self.assertIn("status='pending'", connection.execute.call_args.args[0])
+            self.assertIn("attempts=0", connection.execute.call_args.args[0])
+            self.assertEqual(connection.execute.call_args.args[1], (next_due, 42))
+            connection.execute.return_value.fetchone.return_value = (due, "none", 16)
+            store.finish(42, True)
+            self.assertIn("status='sent'", connection.execute.call_args.args[0])
+            connection.execute.return_value.fetchone.return_value = None
+            with patch("reminders.next_occurrence") as next_time:
+                store.finish(42, True)
+                next_time.assert_not_called()
+
     def test_database_scope_and_durable_job_claim(self):
         connection = MagicMock()
         connection.__enter__.return_value = connection

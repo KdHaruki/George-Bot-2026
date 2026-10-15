@@ -111,6 +111,16 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await self.chat.fortune_details("凶")
 
+    async def test_seasonal_greeting_uses_only_event_names(self):
+        await self.chat.reply((1, 1), "個人の会話")
+        self.generate.return_value = SimpleNamespace(text="今日はハロウィンだぜ！")
+        self.assertEqual(await self.chat.seasonal_comment(["ハロウィン"]), "今日はハロウィンだぜ！")
+        self.assertNotIn("個人の会話", self.generate.call_args.kwargs["contents"])
+        self.assertEqual(len(self.chat.sessions[(1, 1)].history), 2)
+        self.generate.return_value = SimpleNamespace(text="")
+        with self.assertRaises(ValueError):
+            await self.chat.seasonal_comment(["元日"])
+
     async def test_registered_subject_is_grounded_on_followup(self):
         await self.chat.reply((1, 1), "ロザリーについて教えて")
         self.assertIn('"progressName": "ロザリー"', self.generate.call_args.kwargs["config"].system_instruction)

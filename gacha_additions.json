@@ -1,0 +1,266 @@
+[
+  {
+    "character": "イーディン",
+    "name": "イーディン",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "魔神の追撃",
+    "source": "https://ange.webcraft.work/ext/single.php?id=135"
+  },
+  {
+    "character": "コードΩ77ステラ",
+    "name": "コードΩ77ステラ",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "体系／無限演算",
+    "source": "https://ange.webcraft.work/ext/single.php?id=136"
+  },
+  {
+    "character": "エウレカ",
+    "name": "エウレカ",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "極限演算／助勢",
+    "source": "https://ange.webcraft.work/ext/single.php?id=699"
+  },
+  {
+    "character": "彩城天音",
+    "name": "彩城天音【3周年】",
+    "rarity": "UR",
+    "cost": 14,
+    "skill": "新たな繋がり",
+    "source": "https://ange.webcraft.work/ext/single.php?id=164"
+  },
+  {
+    "character": "アリス",
+    "name": "アリス",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "魔王の追撃",
+    "source": "https://ange.webcraft.work/ext/single.php?id=654"
+  },
+  {
+    "character": "コードΩ72レイン",
+    "name": "コードΩ72レイン",
+    "rarity": "SR",
+    "cost": 13,
+    "skill": "指定座標爆撃ver.3",
+    "source": "https://ange.webcraft.work/ext/single.php?id=349"
+  },
+  {
+    "character": "レモン・マッドベア",
+    "name": "レモン・マッドベア",
+    "rarity": "SR",
+    "cost": 13,
+    "skill": "大術式／沈黙・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=415"
+  },
+  {
+    "character": "コードΣ81ティエラ",
+    "name": "コードΣ８１ティエラ",
+    "rarity": "SR",
+    "cost": 13,
+    "skill": "消えゆく烈火・赤",
+    "source": "https://ange.webcraft.work/ext/single.php?id=427"
+  },
+  {
+    "character": "ナイア・ラピュセア",
+    "name": "ナイア・ラピュセア",
+    "rarity": "SR",
+    "cost": 12,
+    "skill": "追撃の戦士",
+    "source": "https://ange.webcraft.work/ext/single.php?id=429"
+  },
+  {
+    "character": "マコロン・マリネール",
+    "name": "マコロン・マリネール",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "八芒星陣",
+    "source": "https://ange.webcraft.work/ext/single.php?id=751"
+  },
+  {
+    "character": "ロゼ・マトリクス",
+    "name": "ロゼ・マトリクス",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "絶対感染／睡眠・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=452"
+  },
+  {
+    "character": "コードΣ14スラー",
+    "name": "コードΣ１４スラー",
+    "rarity": "SR",
+    "cost": 13,
+    "skill": "轟く爆撃act.3",
+    "source": "https://ange.webcraft.work/ext/single.php?id=453"
+  },
+  {
+    "character": "ミルル",
+    "name": "ミルル",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "研ぎ澄まされる閃火",
+    "source": "https://ange.webcraft.work/ext/single.php?id=767"
+  },
+  {
+    "character": "パインパイン",
+    "name": "パインパイン",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "奇蹟の葬送曲・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=489"
+  },
+  {
+    "character": "ハルプ・エルトシュヴァン",
+    "name": "ハルプ・エルトシュヴァン",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "絶対感染／麻痺・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=560"
+  },
+  {
+    "character": "アイリーン",
+    "name": "アイリーン",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "六芒星陣",
+    "source": "https://ange.webcraft.work/ext/single.php?id=510"
+  },
+  {
+    "character": "ユラ",
+    "name": "ユラ",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "碧紺の方舟",
+    "source": "https://ange.webcraft.work/ext/single.php?id=511"
+  },
+  {
+    "character": "リーネ・アゾット",
+    "name": "リーネ・アゾット",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "五竜天檄／沈黙",
+    "source": "https://ange.webcraft.work/ext/single.php?id=727"
+  },
+  {
+    "character": "クララ",
+    "name": "クララ",
+    "rarity": "SR",
+    "cost": 12,
+    "skill": "希望・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=524"
+  },
+  {
+    "character": "久遠すがさ",
+    "name": "久遠すがさ",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "不死の体／反抗の狼煙",
+    "source": "https://ange.webcraft.work/ext/single.php?id=698"
+  },
+  {
+    "character": "ウルリカ",
+    "name": "ウルリカ",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "緑結晶の鼓吹",
+    "source": "https://ange.webcraft.work/ext/single.php?id=757"
+  },
+  {
+    "character": "シオン・パルティ",
+    "name": "シオン・パルティ",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "奇蹟の鎮魂歌・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=655"
+  },
+  {
+    "character": "コードΣ30ピコ",
+    "name": "コードΣ３０ピコ【大人】",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "無力化障壁ver.3",
+    "source": "https://ange.webcraft.work/ext/single.php?id=609"
+  },
+  {
+    "character": "シーラム999",
+    "name": "シーラム９９９",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "慈愛・白",
+    "source": "https://ange.webcraft.work/ext/single.php?id=749"
+  },
+  {
+    "character": "空知青葉",
+    "name": "空知青葉",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "万花繚乱",
+    "source": "https://ange.webcraft.work/ext/single.php?id=639"
+  },
+  {
+    "character": "リネット",
+    "name": "リネット",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "天翔・黒",
+    "source": "https://ange.webcraft.work/ext/single.php?id=686"
+  },
+  {
+    "character": "マリル",
+    "name": "マリル",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "連鎖／勇気",
+    "source": "https://ange.webcraft.work/ext/single.php?id=687"
+  },
+  {
+    "character": "オルガ",
+    "name": "オルガ",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "反転術式／愛",
+    "source": "https://ange.webcraft.work/ext/single.php?id=688"
+  },
+  {
+    "character": "コードΩ43トリノ",
+    "name": "コードΩ43トリノ",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "極光・白",
+    "source": "https://ange.webcraft.work/ext/single.php?id=772"
+  },
+  {
+    "character": "ガブリエラ",
+    "name": "ガブリエラ",
+    "rarity": "UR",
+    "cost": 16,
+    "skill": "反転術式／覇気",
+    "source": "https://ange.webcraft.work/ext/single.php?id=703"
+  },
+  {
+    "character": "クリミ・ナル",
+    "name": "クリミ・ナル",
+    "rarity": "UR",
+    "cost": 17,
+    "skill": "夢想・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=719"
+  },
+  {
+    "character": "ノヴァ・ノストラ",
+    "name": "ノヴァ・ノストラ",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "魔人の追撃",
+    "source": "https://ange.webcraft.work/ext/single.php?id=720"
+  },
+  {
+    "character": "カポネ・プリン",
+    "name": "カポネ・プリン",
+    "rarity": "UR",
+    "cost": 15,
+    "skill": "絶対感染／沈黙・全",
+    "source": "https://ange.webcraft.work/ext/single.php?id=773"
+  }
+]

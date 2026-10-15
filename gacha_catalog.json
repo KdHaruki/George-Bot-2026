@@ -1,0 +1,4869 @@
+{
+  "schema": 1,
+  "games": {
+    "vierge": {
+      "sources": [
+        "https://ange.gamerch.com/%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85UR",
+        "https://ange.gamerch.com/%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85SR",
+        "https://ange.gamerch.com/%E2%98%85%E2%98%85%E2%98%85%E2%98%85HR",
+        "https://ange.gamerch.com/%E2%98%85%E2%98%85%E2%98%85R",
+        "https://ange.webcraft.work/ext/",
+        "https://ange.webcraft.work/q_a_begginer/",
+        "https://www.gamer.ne.jp/news/201903010060/",
+        "https://www.4gamer.net/games/234/G023460/20200217084/",
+        "https://buhitter.com/search?offset=20&q=ange_gb"
+      ],
+      "note": "公開攻略表で確認できたカードを集めたBot用プール。イベントカードを含むため、当時のゴールドガチャの収録内容そのものではありません。カード別の割合は同レアリティ内で均等です。",
+      "missing_characters": [
+        "久遠空",
+        "ラフィリア・リント",
+        "ヒメガミノミコト",
+        "シンシア",
+        "ココ=コルフィン",
+        "ナクル・クルルシファー"
+      ],
+      "cards": [
+        {
+          "id": "vierge-53ea68de56bcde2f",
+          "character": "東条遥",
+          "name": "東条遥",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "愛"
+        },
+        {
+          "id": "vierge-5034d4442d247936",
+          "character": "東条遥",
+          "name": "東条遥",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "覇気・青"
+        },
+        {
+          "id": "vierge-63454ae215443b6e",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "引き継がれる夢"
+        },
+        {
+          "id": "vierge-404153f6ce66690f",
+          "character": "日向美海",
+          "name": "日向美海【水着】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "三恋乱舞"
+        },
+        {
+          "id": "vierge-88ef0253ca9c1e9b",
+          "character": "日向美海",
+          "name": "日向美海【サンタ】",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "追撃／恋"
+        },
+        {
+          "id": "vierge-a242c3c8cc0fbd44",
+          "character": "天井苺",
+          "name": "天井苺",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "二恋乱舞"
+        },
+        {
+          "id": "vierge-61b7bb7ccb91764c",
+          "character": "新田由美",
+          "name": "新田由美【サンタ】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "追撃／破"
+        },
+        {
+          "id": "vierge-4c77312d627c0f53",
+          "character": "新田由美",
+          "name": "新田由美【振袖】",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "三恋乱舞"
+        },
+        {
+          "id": "vierge-a1f95f20931d29ee",
+          "character": "御影葵",
+          "name": "御影葵",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "四連斬舞"
+        },
+        {
+          "id": "vierge-4b32293a423c4f9f",
+          "character": "千尋",
+          "name": "千尋【振袖】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "奇蹟の鎮魂歌・全"
+        },
+        {
+          "id": "vierge-8ed862a5bcca1ede",
+          "character": "千尋",
+          "name": "千尋【2周年】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "みんなとの絆"
+        },
+        {
+          "id": "vierge-fb17e44d5f9d566e",
+          "character": "千尋",
+          "name": "千尋",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "聖域・青"
+        },
+        {
+          "id": "vierge-c3c8934df1b270c1",
+          "character": "椎名あずさ",
+          "name": "椎名あずさ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "幻影回避"
+        },
+        {
+          "id": "vierge-17c0473e2f36132b",
+          "character": "高峰さくら",
+          "name": "高峰さくら",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "三恋乱舞"
+        },
+        {
+          "id": "vierge-c1af6bcba0b7b8a1",
+          "character": "那月琉花",
+          "name": "那月琉花",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-5655741debb02ef4",
+          "character": "瀬尾アスカ",
+          "name": "瀬尾アスカ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "四連斬舞"
+        },
+        {
+          "id": "vierge-0545a10385e39d70",
+          "character": "鶴谷由唯",
+          "name": "鶴谷由唯",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "追撃／恋"
+        },
+        {
+          "id": "vierge-7aa678425ccb6d32",
+          "character": "穂住みすか",
+          "name": "穂住みすか",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "奇蹟の鎮魂歌・全"
+        },
+        {
+          "id": "vierge-ff2d4e5e83a9808c",
+          "character": "遠薙深雪",
+          "name": "遠薙深雪",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-af0e97c30b319d86",
+          "character": "小鳥遊希美",
+          "name": "小鳥遊希美",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "勇気・青"
+        },
+        {
+          "id": "vierge-e2e6691b32bfa1c3",
+          "character": "月ノ宮赫夜",
+          "name": "月ノ宮赫夜",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "幻影回避"
+        },
+        {
+          "id": "vierge-5d28ad5643e4a9bb",
+          "character": "美伽・ブレイズダリク",
+          "name": "美伽・ブレイズダリク",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "天衣無縫"
+        },
+        {
+          "id": "vierge-e2a72c81fa477195",
+          "character": "東条悠",
+          "name": "東条悠",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "閃光・青"
+        },
+        {
+          "id": "vierge-274b901943e83541",
+          "character": "鳴海成未",
+          "name": "鳴海成未",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "勇気・青"
+        },
+        {
+          "id": "vierge-97751184075f70c2",
+          "character": "テオドーチェ",
+          "name": "テオドーチェ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "覇気・黒"
+        },
+        {
+          "id": "vierge-70dbb909cae6e267",
+          "character": "テオドーチェ",
+          "name": "テオドーチェ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "勇気・黒"
+        },
+        {
+          "id": "vierge-d61924732dd8150c",
+          "character": "マリオン・マリネール",
+          "name": "マリオン・マリネール",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "魔方陣"
+        },
+        {
+          "id": "vierge-d2ec846229841f68",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ【水着】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "宇宙生成"
+        },
+        {
+          "id": "vierge-a0b59505f123b659",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "魔方陣"
+        },
+        {
+          "id": "vierge-537caec269465f71",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ【サンタ】",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "天魔の助勢"
+        },
+        {
+          "id": "vierge-45191588455ec4ee",
+          "character": "アビー",
+          "name": "アビー",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "最大術式／睡眠・全"
+        },
+        {
+          "id": "vierge-91ccfdadf56da525",
+          "character": "メルビナ",
+          "name": "メルビナ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "暗黒空間"
+        },
+        {
+          "id": "vierge-e885b74af50bb9fa",
+          "character": "クラリッサ",
+          "name": "クラリッサ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-94d717fe69d40f42",
+          "character": "ロザリー",
+          "name": "ロザリー【サンタ】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-e2410ab5a8c8833f",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "黄金の夜明け"
+        },
+        {
+          "id": "vierge-1ace1ad000600c4e",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "五芒星陣"
+        },
+        {
+          "id": "vierge-a7e8a1365af809b0",
+          "character": "シャロン・レトルト",
+          "name": "シャロン・レトルト",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "最大術式／不死の体"
+        },
+        {
+          "id": "vierge-498d89daea9aebcf",
+          "character": "カサンドラ",
+          "name": "カサンドラ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "反転術式／結界"
+        },
+        {
+          "id": "vierge-4981d5851a1749c2",
+          "character": "アルスメル",
+          "name": "アルスメル",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "黄昏を待つ"
+        },
+        {
+          "id": "vierge-2bae46ef73e9727b",
+          "character": "クルキアータ",
+          "name": "クルキアータ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "最大術式／麻痺・全"
+        },
+        {
+          "id": "vierge-39fe659a61ff11ae",
+          "character": "ラグナ",
+          "name": "ラグナ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "五芒星陣"
+        },
+        {
+          "id": "vierge-7abd228a921c146b",
+          "character": "クレア・プロスペキア",
+          "name": "クレア・プロスペキア",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "黄昏を待つ"
+        },
+        {
+          "id": "vierge-24589f1296574275",
+          "character": "チェルノ・チェリッシュ",
+          "name": "チェルノ・チェリッシュ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "勇気・黒"
+        },
+        {
+          "id": "vierge-910bc5222c3eea96",
+          "character": "ミルドレッド",
+          "name": "ミルドレッド",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "天魔の助勢"
+        },
+        {
+          "id": "vierge-033a764107b0e156",
+          "character": "クラリス・エーテルライト",
+          "name": "クラリス・エーデルライト",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "幻想／神剣再現・赤"
+        },
+        {
+          "id": "vierge-8e38240d966f4ed2",
+          "character": "クラリス・エーテルライト",
+          "name": "クラリス・エーデルライト",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "幻想／神剣再現・白"
+        },
+        {
+          "id": "vierge-62f77f18a9034639",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "流星・全"
+        },
+        {
+          "id": "vierge-149118e05e393ee7",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-b6607df1b914408d",
+          "character": "レミエル",
+          "name": "レミエル",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "結界・全"
+        },
+        {
+          "id": "vierge-aef1785f2561badc",
+          "character": "レミエル",
+          "name": "レミエル【制服】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "最後の審判"
+        },
+        {
+          "id": "vierge-e9a99570c0955127",
+          "character": "レミエル",
+          "name": "レミエル【サンタ】",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "背水の方舟"
+        },
+        {
+          "id": "vierge-622641ca15c6fcdb",
+          "character": "シャティー",
+          "name": "シャティー",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "勇気・全"
+        },
+        {
+          "id": "vierge-a810d1958594b69c",
+          "character": "シャム",
+          "name": "シャム【サンタ】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "奇蹟の葬送曲・全"
+        },
+        {
+          "id": "vierge-e95518999e7b28ab",
+          "character": "シャム",
+          "name": "シャム",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "最大挑発"
+        },
+        {
+          "id": "vierge-dd265f5cffd515f6",
+          "character": "ルビー",
+          "name": "ルビー",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "勇気・赤"
+        },
+        {
+          "id": "vierge-cd6599803c16e744",
+          "character": "ルプール",
+          "name": "ルプール",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "世界樹の助勢"
+        },
+        {
+          "id": "vierge-8a539c30abe74f82",
+          "character": "シエン",
+          "name": "シエン",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "奇蹟の葬送曲・全"
+        },
+        {
+          "id": "vierge-cf03da7ab8a8674c",
+          "character": "ミシス",
+          "name": "ミシス",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "漆黒の方舟"
+        },
+        {
+          "id": "vierge-e9e584adb2526429",
+          "character": "ミシス",
+          "name": "ミシス【水着】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "幻想／聖弓再現・全"
+        },
+        {
+          "id": "vierge-994ab7609837827e",
+          "character": "フェルノ・ガーディーヴァ",
+          "name": "フェルノ・ガーディーヴァ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "幻想／聖弓再現・全"
+        },
+        {
+          "id": "vierge-1a37479b85bdcdd9",
+          "character": "エクスシア",
+          "name": "エクスシア",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "引き継がれる夢"
+        },
+        {
+          "id": "vierge-6e46f57cea9b95fc",
+          "character": "エクスシア",
+          "name": "エクスシア",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "幻想／神槍再現・全"
+        },
+        {
+          "id": "vierge-c96b2d070ef38c49",
+          "character": "ルル・クレイス",
+          "name": "ルル・クレイス",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-737e3ca30a32a37a",
+          "character": "キヌエ・カンナミラ",
+          "name": "キヌエ・カンナミラ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "幻想／神獣再現III"
+        },
+        {
+          "id": "vierge-9a0c8bdf08b0e401",
+          "character": "ノルン・ラプラシア",
+          "name": "ノルン・ラプラシア",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "受け継がれる夢"
+        },
+        {
+          "id": "vierge-289c41247f87d17c",
+          "character": "アクエリア",
+          "name": "アクエリア",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "希望・白"
+        },
+        {
+          "id": "vierge-b96a2b05db39dff6",
+          "character": "アクエリア",
+          "name": "アクエリア",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "勇気・白"
+        },
+        {
+          "id": "vierge-908ee61c720e3a04",
+          "character": "コードΩ46セニア",
+          "name": "コードΩ46セニア",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "愛"
+        },
+        {
+          "id": "vierge-8420331efb50eadf",
+          "character": "コードΩラウラ",
+          "name": "コードΩラウラ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "最大装填／麻痺"
+        },
+        {
+          "id": "vierge-0dac76452e2b08c9",
+          "character": "コードΩラウラ",
+          "name": "コードΩラウラ【水着】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-9bd19ab99107b147",
+          "character": "コードΩ33カレン",
+          "name": "コードΩ33カレン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "聖域・白"
+        },
+        {
+          "id": "vierge-6b3c22c76463784b",
+          "character": "コードΩ33カレン",
+          "name": "コードΩ33カレン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "引き継がれる夢"
+        },
+        {
+          "id": "vierge-6d7b1792ef2a31e2",
+          "character": "コードΣ43メルト",
+          "name": "コードΣ43メルト",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "覚醒体系"
+        },
+        {
+          "id": "vierge-ba712feac3fe1e31",
+          "character": "タイプX＝01アン",
+          "name": "タイプX＝01アン",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "奇蹟の歌声・全"
+        },
+        {
+          "id": "vierge-95023b856e1d1d8f",
+          "character": "コードΩ00ユーフィリア",
+          "name": "ユーフィリア【サンタ】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "受け継がれる夢"
+        },
+        {
+          "id": "vierge-15dc40a67c92e881",
+          "character": "コードΩ00ユーフィリア",
+          "name": "コードΩ00ユーフィリア",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "覚醒体系"
+        },
+        {
+          "id": "vierge-4cb9c149f1f2a985",
+          "character": "コードΩ00ユーフィリア",
+          "name": "ユーフィリア【振袖】",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "勇気・白"
+        },
+        {
+          "id": "vierge-ef01f090e49371e4",
+          "character": "コードΣ61エヴァ",
+          "name": "コードΣ61エヴァ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "指定座標爆撃ver.4"
+        },
+        {
+          "id": "vierge-2e7705d2c4b18879",
+          "character": "リーナ＝リナーシタ",
+          "name": "リーナ＝リナーシタ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "最大装填／睡眠"
+        },
+        {
+          "id": "vierge-d2aba9dc1c44736c",
+          "character": "ヴェノム666",
+          "name": "ヴェノム666",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "指定座標爆撃ver.4"
+        },
+        {
+          "id": "vierge-dc987c1f998109c8",
+          "character": "ヴェノム666",
+          "name": "ヴェノム666【サンタ】",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "無力化障壁ver.2"
+        },
+        {
+          "id": "vierge-6384a582603c8426",
+          "character": "コードΣ46アリア",
+          "name": "コードΣ46アリア",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "機械の叛逆"
+        },
+        {
+          "id": "vierge-955138cae061f9c9",
+          "character": "コードΣ40シノン",
+          "name": "コードΣ40シノン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "指定座標爆撃ver.5"
+        },
+        {
+          "id": "vierge-1cce9fa8eeb4eaa6",
+          "character": "セナ・ユニヴェール",
+          "name": "セナ・ユニヴェール",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "連々双々"
+        },
+        {
+          "id": "vierge-c52ff2a6937ee84b",
+          "character": "セナ・ユニヴェール",
+          "name": "セナ・ユニヴェール",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "勇気・緑"
+        },
+        {
+          "id": "vierge-5894a06fae7c5ff8",
+          "character": "セナ・ユニヴェール",
+          "name": "セナ【水着】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "四連弾倉"
+        },
+        {
+          "id": "vierge-0ceab1f8a0941e52",
+          "character": "セナ・ユニヴェール",
+          "name": "セナ・ユニヴェール",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "覇気・緑"
+        },
+        {
+          "id": "vierge-d21eff6d5f9b4188",
+          "character": "アインス・エクスアウラ",
+          "name": "アインス・エクスアウラ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "追撃の騎士"
+        },
+        {
+          "id": "vierge-27e63c190d59091b",
+          "character": "アインス・エクスアウラ",
+          "name": "アインス・エクスアウラ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-95882dafcb120263",
+          "character": "シルト・リーヴェリンゲン",
+          "name": "シルト・リーヴェリンゲン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "天を舞う星屑"
+        },
+        {
+          "id": "vierge-b2873f37cfef3ca5",
+          "character": "フィーリア・グレンハルト",
+          "name": "フィーリア・グレンハルト",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "理を覆す者"
+        },
+        {
+          "id": "vierge-7159e3bf17478a0d",
+          "character": "アゲハ・サナギ",
+          "name": "アゲハ・サナギ",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "奇跡の旋律・全"
+        },
+        {
+          "id": "vierge-12da2944f2a555ef",
+          "character": "スレイ・ティルダイン",
+          "name": "スレイ・ティルダイン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "吸収／絶対君主"
+        },
+        {
+          "id": "vierge-590a3f6d290d10a6",
+          "character": "ゼファー",
+          "name": "ゼファー",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "閃光・緑"
+        },
+        {
+          "id": "vierge-a80d736ca7bb2b3b",
+          "character": "ルルーナ・ゼンディア",
+          "name": "ルルーナ【サンタ】",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-fee584605dde0188",
+          "character": "ルルーナ・ゼンディア",
+          "name": "ルルーナ・ゼンディア",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "連鎖する三叉戟"
+        },
+        {
+          "id": "vierge-1b6a4bac9af17470",
+          "character": "ユニ・ジェミナス",
+          "name": "ユニ・ジェミナス",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "轟く爆撃act.4"
+        },
+        {
+          "id": "vierge-48550bc4241044d5",
+          "character": "ナツナ・トオナギ",
+          "name": "ナツナ・トオナギ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "再現者／聖弓創造・全"
+        },
+        {
+          "id": "vierge-9151c27ff8cc8d68",
+          "character": "東条遥",
+          "name": "東条遥",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "二連破舞"
+        },
+        {
+          "id": "vierge-6c4753bafb10862e",
+          "character": "東条遥",
+          "name": "東条遥",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "追撃／破"
+        },
+        {
+          "id": "vierge-af7374f3d720f233",
+          "character": "東条遥",
+          "name": "東条遥【水着】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "三連斬舞"
+        },
+        {
+          "id": "vierge-7b732c8dc83dd476",
+          "character": "東条遥",
+          "name": "東条遥【1周年】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "みんなと一緒なら！"
+        },
+        {
+          "id": "vierge-0398862a5b7a6a46",
+          "character": "東条遥",
+          "name": "東条遥",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "勇気"
+        },
+        {
+          "id": "vierge-a5404115a443fb24",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "天真爛漫"
+        },
+        {
+          "id": "vierge-422c1b46d18c3584",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "絶世なる一閃"
+        },
+        {
+          "id": "vierge-7efb5130171034d9",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "希望"
+        },
+        {
+          "id": "vierge-fe7e9ca9478e24ef",
+          "character": "岸部沙織",
+          "name": "岸部沙織",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "神秘の旋律・全"
+        },
+        {
+          "id": "vierge-f8c54e8c79256bf0",
+          "character": "岸部沙織",
+          "name": "岸部沙織",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "追撃／破"
+        },
+        {
+          "id": "vierge-d114439ecdddc7f6",
+          "character": "琴吹文",
+          "name": "琴吹文",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "麻痺斬舞"
+        },
+        {
+          "id": "vierge-5c34ec1f4f66b8ca",
+          "character": "音羽ツバサ",
+          "name": "音羽ツバサ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "光速回避"
+        },
+        {
+          "id": "vierge-5b08e7d64165b564",
+          "character": "音羽ツバサ",
+          "name": "音羽ツバサ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "希望・青"
+        },
+        {
+          "id": "vierge-68671ee9e2efb3a0",
+          "character": "志藤凛花",
+          "name": "志藤凛花",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "反撃攻勢"
+        },
+        {
+          "id": "vierge-35bd8e7ea0dbe189",
+          "character": "土屋原はねる",
+          "name": "土屋原はねる",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "天真爛漫"
+        },
+        {
+          "id": "vierge-eed0626fb2e288b9",
+          "character": "天井苺",
+          "name": "天井苺",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "希望"
+        },
+        {
+          "id": "vierge-9a4e9941a498e403",
+          "character": "天井苺",
+          "name": "天井苺【水着】",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "毒性斬舞"
+        },
+        {
+          "id": "vierge-6b3e9f7fba38cef2",
+          "character": "宗像睦心",
+          "name": "宗像睦心【水着】",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "消えゆく烈火・白"
+        },
+        {
+          "id": "vierge-40c9b70af1ef1d32",
+          "character": "城ケ崎愛奈",
+          "name": "城ヶ崎愛奈",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "睡眠斬舞"
+        },
+        {
+          "id": "vierge-c2605088c6ed2f2e",
+          "character": "新田由美",
+          "name": "新田由美",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "三連斬舞"
+        },
+        {
+          "id": "vierge-7943faac68a0264a",
+          "character": "新田由美",
+          "name": "新田由美",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "麻痺斬舞"
+        },
+        {
+          "id": "vierge-032ef81637a7f8bd",
+          "character": "新田由美",
+          "name": "新田由美【メイド】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "五連輪舞曲"
+        },
+        {
+          "id": "vierge-240103d4a7e5afd0",
+          "character": "御影葵",
+          "name": "御影葵",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "追撃／斬"
+        },
+        {
+          "id": "vierge-37205fe0b000872a",
+          "character": "御影葵",
+          "name": "御影葵",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "覇気"
+        },
+        {
+          "id": "vierge-92816421603a4dd6",
+          "character": "千尋",
+          "name": "千尋【水着】",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "流星・青"
+        },
+        {
+          "id": "vierge-c80fa0930a34a567",
+          "character": "神薙千鳥",
+          "name": "神薙千鳥",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "受け継がれる願い"
+        },
+        {
+          "id": "vierge-5f87e0f5a1d749f1",
+          "character": "カトリーヌ・オベール",
+          "name": "カトリーヌ・オベール",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "反撃攻勢"
+        },
+        {
+          "id": "vierge-1476d994e1b32840",
+          "character": "沖田奈央",
+          "name": "沖田奈央",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "消えゆく流星・白"
+        },
+        {
+          "id": "vierge-281ddfcc9b623f75",
+          "character": "椎名あずさ",
+          "name": "椎名あずさ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "逆襲攻勢"
+        },
+        {
+          "id": "vierge-e78428abc6ec258e",
+          "character": "高峰さくら",
+          "name": "高峰さくら",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "勇気"
+        },
+        {
+          "id": "vierge-a8419e5dbc16ce0f",
+          "character": "風見餡子",
+          "name": "風見餡子",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "消えゆく結界・白"
+        },
+        {
+          "id": "vierge-4060ede176572886",
+          "character": "真田玲香",
+          "name": "真田玲香",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "超攻撃特化"
+        },
+        {
+          "id": "vierge-682762e1e140bcfb",
+          "character": "葛西京子",
+          "name": "葛西京子",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "沈黙斬舞"
+        },
+        {
+          "id": "vierge-3fd1add07c1442b4",
+          "character": "那月琉花",
+          "name": "那月琉花",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "引き継がれる願い"
+        },
+        {
+          "id": "vierge-6cdde4a2885a2152",
+          "character": "瀬尾アスカ",
+          "name": "瀬尾アスカ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "光速回避"
+        },
+        {
+          "id": "vierge-9494dab963ac580e",
+          "character": "鶴谷由唯",
+          "name": "鶴谷由唯",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "睡眠斬舞"
+        },
+        {
+          "id": "vierge-8a19dd82fafe18c2",
+          "character": "穂住みすか",
+          "name": "穂住みすか",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "烈火・青"
+        },
+        {
+          "id": "vierge-193bb1147a8ec508",
+          "character": "花城樹里",
+          "name": "花城樹里【水着】",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "睡眠斬舞"
+        },
+        {
+          "id": "vierge-dba1ce4c8d79b42f",
+          "character": "遠薙深雪",
+          "name": "遠薙深雪",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "三連斬舞"
+        },
+        {
+          "id": "vierge-79bc94aed88e882b",
+          "character": "小鳥遊希美",
+          "name": "小鳥遊希美",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "追撃／斬"
+        },
+        {
+          "id": "vierge-0c484a07b3dfd6c3",
+          "character": "風魔忍",
+          "name": "風魔忍",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "絶世なる一閃"
+        },
+        {
+          "id": "vierge-d3e4eb3ad9ca0dc5",
+          "character": "清川咲",
+          "name": "清川咲",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大挑発"
+        },
+        {
+          "id": "vierge-a6e420697f425e5a",
+          "character": "志藤麗花",
+          "name": "志藤麗花",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "三連斬舞"
+        },
+        {
+          "id": "vierge-c0c7fb8e301290ed",
+          "character": "美伽・ブレイズダリク",
+          "name": "美伽・ブレイズダリク",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "麻痺斬舞"
+        },
+        {
+          "id": "vierge-f0ea12de08180af0",
+          "character": "蒼月紗夜",
+          "name": "蒼月紗夜",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "二連破舞"
+        },
+        {
+          "id": "vierge-c992e58f015b1e2e",
+          "character": "千尋",
+          "name": "千尋【ファントム】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "五連輪舞曲"
+        },
+        {
+          "id": "vierge-5ec66d31fd626ee3",
+          "character": "テオドーチェ",
+          "name": "テオドーチェ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "天隕石"
+        },
+        {
+          "id": "vierge-94bbe9c6214fb1b7",
+          "character": "テオドーチェ",
+          "name": "テオドーチェ【水着】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "超攻撃特化"
+        },
+        {
+          "id": "vierge-0979fdd4018968cc",
+          "character": "マリオン・マリネール",
+          "name": "マリオン・マリネール",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "消えゆく烈火・青"
+        },
+        {
+          "id": "vierge-f923456bad8bb5f1",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "黒魔女の一閃"
+        },
+        {
+          "id": "vierge-b1af480928ad0a55",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "薔薇十字の一閃"
+        },
+        {
+          "id": "vierge-a92148215a961c09",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "反転術式／情熱"
+        },
+        {
+          "id": "vierge-15f24d275cd0c26e",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "超攻撃特化"
+        },
+        {
+          "id": "vierge-f85886be06b8197d",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "結界・黒"
+        },
+        {
+          "id": "vierge-173a3f1f4664285b",
+          "character": "アビー",
+          "name": "アビー",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "超彗星"
+        },
+        {
+          "id": "vierge-3bb4332122ce7bec",
+          "character": "アビー",
+          "name": "アビー",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／不死の体"
+        },
+        {
+          "id": "vierge-104b0a6f314c8e6c",
+          "character": "セレスティア",
+          "name": "セレスティア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "反転術式／鉄壁"
+        },
+        {
+          "id": "vierge-a1470d10c1a58805",
+          "character": "セレスティア",
+          "name": "セレスティア【浴衣】",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "大術式／毒性・全"
+        },
+        {
+          "id": "vierge-2861fcd79409ade9",
+          "character": "フランボワーズ",
+          "name": "フランボワーズ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "結界・黒"
+        },
+        {
+          "id": "vierge-5fecb1864acb13d9",
+          "character": "サーシャ",
+          "name": "サーシャ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "暁を待つ"
+        },
+        {
+          "id": "vierge-1b1fd0045bd15d9b",
+          "character": "メルビナ",
+          "name": "メルビナ【水着】",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "烈火・黒"
+        },
+        {
+          "id": "vierge-dfcb3147c26d1741",
+          "character": "リア・モリアーティ",
+          "name": "リア・モリアーティ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "大術式／不死の体"
+        },
+        {
+          "id": "vierge-a220fe7b1c5838b0",
+          "character": "キャビィ・ネットハウス",
+          "name": "キャビィ・ネットハウス",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "術式／睡眠・全"
+        },
+        {
+          "id": "vierge-f1a626f79f5d2ff4",
+          "character": "ローズマリー",
+          "name": "ローズマリー",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "大術式／沈黙・全"
+        },
+        {
+          "id": "vierge-25583588b40efb9b",
+          "character": "イレーネス",
+          "name": "イレーネス",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "絶世なる一閃"
+        },
+        {
+          "id": "vierge-8070210966405c72",
+          "character": "イレーネス",
+          "name": "イレーネス",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／麻痺・全"
+        },
+        {
+          "id": "vierge-672ca20c76d888cd",
+          "character": "クラリッサ",
+          "name": "クラリッサ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "烈火・黒"
+        },
+        {
+          "id": "vierge-593f1d86aee06f72",
+          "character": "オリヴィア",
+          "name": "オリヴィア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "大術式／不死の体"
+        },
+        {
+          "id": "vierge-f938f60863d15555",
+          "character": "ユノ・フォルティシモ",
+          "name": "ユノ・フォルティシモ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／睡眠・全"
+        },
+        {
+          "id": "vierge-401d3be37faae75f",
+          "character": "ユノ・フォルティシモ",
+          "name": "ユノ・フォルティシモ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "大術式／不死の体"
+        },
+        {
+          "id": "vierge-5d37fc57d71f334c",
+          "character": "ネーブル",
+          "name": "ネーブル",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "烈火・黒"
+        },
+        {
+          "id": "vierge-b7769a8345f68c40",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／麻痺・全"
+        },
+        {
+          "id": "vierge-bc7815e188c32d99",
+          "character": "プリシラ",
+          "name": "プリシラ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "反転術式／鉄壁"
+        },
+        {
+          "id": "vierge-ce3ffa486d61eb5a",
+          "character": "ウェンディ",
+          "name": "ウェンディ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "終焉の一閃"
+        },
+        {
+          "id": "vierge-a306e9143240fbd1",
+          "character": "ウェンディ",
+          "name": "ウェンディ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "超彗星"
+        },
+        {
+          "id": "vierge-5081545471c80483",
+          "character": "サンドリア",
+          "name": "サンドリア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "背水の陣／煌"
+        },
+        {
+          "id": "vierge-f26a15c6817c2a62",
+          "character": "サンドリア",
+          "name": "サンドリア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／沈黙・全"
+        },
+        {
+          "id": "vierge-a799185ead4ebbb2",
+          "character": "シャロン・レトルト",
+          "name": "シャロン・レトルト",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／不死の体"
+        },
+        {
+          "id": "vierge-01763e1b61bb949c",
+          "character": "エルザ",
+          "name": "エルザ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "黒魔女の一閃"
+        },
+        {
+          "id": "vierge-3a02cc1d0a0c663c",
+          "character": "シャルロット",
+          "name": "シャルロット",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "反転術式／情熱"
+        },
+        {
+          "id": "vierge-8c6c6c1908f768a6",
+          "character": "マリー",
+          "name": "マリー",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "終焉の一閃"
+        },
+        {
+          "id": "vierge-fd904ddebb00463f",
+          "character": "カサンドラ",
+          "name": "カサンドラ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "背水の陣／煌"
+        },
+        {
+          "id": "vierge-d3e58a01d0204339",
+          "character": "アルスメル",
+          "name": "アルスメル",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "薔薇十字の一閃"
+        },
+        {
+          "id": "vierge-acb0e7524d96f875",
+          "character": "クルキアータ",
+          "name": "クルキアータ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／睡眠・全"
+        },
+        {
+          "id": "vierge-ce90cc133af77474",
+          "character": "クレア・プロスペキア",
+          "name": "クレア・プロスペキア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "大術式／沈黙・全"
+        },
+        {
+          "id": "vierge-45463fb80ee4ed9a",
+          "character": "リュミエール",
+          "name": "リュミエール",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "薔薇十字の一閃"
+        },
+        {
+          "id": "vierge-2227af0b9d917f90",
+          "character": "ミルドレッド",
+          "name": "ミルドレッド",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "背水の陣／煌"
+        },
+        {
+          "id": "vierge-48ddfa6fd1cf42bb",
+          "character": "アルマリア",
+          "name": "アルマリア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "引き継がれる願い"
+        },
+        {
+          "id": "vierge-7f3b259ddc407772",
+          "character": "クラリス・エーテルライト",
+          "name": "クラリス・エーデルライト",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "幻想／魔剣再現・全"
+        },
+        {
+          "id": "vierge-11b54d590457b844",
+          "character": "クラリス・エーテルライト",
+          "name": "クラリス【水着】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "絶世なる一閃"
+        },
+        {
+          "id": "vierge-1e7ff4d0fe97023d",
+          "character": "キヌエ・カンナミラ",
+          "name": "キヌエ・カンナミラ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "絶世なる一閃"
+        },
+        {
+          "id": "vierge-0ffe58a8214f0dcc",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "鉄壁・全"
+        },
+        {
+          "id": "vierge-2695303ffcb41aa4",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "聖域"
+        },
+        {
+          "id": "vierge-46ff7df1fa23b324",
+          "character": "フローリア",
+          "name": "フローリア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "情熱・全"
+        },
+        {
+          "id": "vierge-87d600e1a9e7d34c",
+          "character": "フローリア",
+          "name": "フローリア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "運命の助勢"
+        },
+        {
+          "id": "vierge-a7a28791814a5d2f",
+          "character": "ヴァレリア",
+          "name": "ヴァレリア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "幻想／聖剣再現・青"
+        },
+        {
+          "id": "vierge-d3e75442d5157a15",
+          "character": "ヴィヴィ",
+          "name": "ヴィヴィ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "疾風・全"
+        },
+        {
+          "id": "vierge-90ea563f14f8f54b",
+          "character": "ディアンナ",
+          "name": "ディアンナ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "終焉の一閃"
+        },
+        {
+          "id": "vierge-12ccde8c14faffdb",
+          "character": "ライム・キャットハンズ",
+          "name": "ライム・キャットハンズ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "流星・赤"
+        },
+        {
+          "id": "vierge-d8f95c2035a3ed27",
+          "character": "オルトリン",
+          "name": "オルトリン",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "終焉の一閃"
+        },
+        {
+          "id": "vierge-b32b175c215b8fab",
+          "character": "オルトリン",
+          "name": "オルトリン",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "情熱・全"
+        },
+        {
+          "id": "vierge-19a193156d296ef1",
+          "character": "イリア",
+          "name": "イリア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "烈火・赤"
+        },
+        {
+          "id": "vierge-3b82210fb087c57b",
+          "character": "イリア",
+          "name": "イリア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "祝福"
+        },
+        {
+          "id": "vierge-c042b893a6091fc0",
+          "character": "アルメトロ",
+          "name": "アルメトロ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "幻想／聖剣再現・赤"
+        },
+        {
+          "id": "vierge-154d059170b299ce",
+          "character": "レミエル",
+          "name": "レミエル",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "神秘の歌声・全"
+        },
+        {
+          "id": "vierge-a6908c86c7da4f5e",
+          "character": "レミエル",
+          "name": "レミエル【制服】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "運命の助勢"
+        },
+        {
+          "id": "vierge-b35408ab2bd45fe7",
+          "character": "グラディーサ",
+          "name": "グラディーサ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "絶世なる一閃"
+        },
+        {
+          "id": "vierge-5d0e5c987ce65baf",
+          "character": "シャティー",
+          "name": "シャティー",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "終焉の一閃"
+        },
+        {
+          "id": "vierge-1a8e893d8ef4c6b8",
+          "character": "ミモザ",
+          "name": "ミモザ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "幻想／聖剣再現・白"
+        },
+        {
+          "id": "vierge-f3e15fb8e9a7a4fe",
+          "character": "ミモザ",
+          "name": "ミモザ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "幻想／聖剣再現・青"
+        },
+        {
+          "id": "vierge-d6ff7c8a1893c095",
+          "character": "アーシア",
+          "name": "アーシア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "幻想／聖剣再現・黒"
+        },
+        {
+          "id": "vierge-365099c72ed06f5a",
+          "character": "アーシア",
+          "name": "アーシア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大挑発"
+        },
+        {
+          "id": "vierge-1da55c9ab0782f5e",
+          "character": "セルフィ―",
+          "name": "セルフィー",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "絶世なる一閃"
+        },
+        {
+          "id": "vierge-5098cea30edcb0a0",
+          "character": "ケイト",
+          "name": "ケイト",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "神秘の葬送曲・全"
+        },
+        {
+          "id": "vierge-9828dee6b1f7024b",
+          "character": "エミリア",
+          "name": "エミリア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "背水の守護者"
+        },
+        {
+          "id": "vierge-ad8fba761778d068",
+          "character": "シャム",
+          "name": "シャム",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "消えゆく希望・黒"
+        },
+        {
+          "id": "vierge-9bc9ba6f77ce6dcd",
+          "character": "シャム",
+          "name": "シャム【水着】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "幻想／聖馬再現 II"
+        },
+        {
+          "id": "vierge-66af595fd0839a7d",
+          "character": "ルビー",
+          "name": "ルビー",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "少女の歌声・全"
+        },
+        {
+          "id": "vierge-14b30daeba6213d8",
+          "character": "ルビー",
+          "name": "ルビー【水着】",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "無限の一閃"
+        },
+        {
+          "id": "vierge-80fe10ddb43b997d",
+          "character": "ルプール",
+          "name": "ルプール",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "大挑発"
+        },
+        {
+          "id": "vierge-ed76d4a1c7ead90b",
+          "character": "ルプール",
+          "name": "ルプール",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "受け継がれる願い"
+        },
+        {
+          "id": "vierge-7c128d3dd0092c4a",
+          "character": "シエン",
+          "name": "シエン",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "烈火・赤"
+        },
+        {
+          "id": "vierge-548a9ea492a48aa2",
+          "character": "シエン",
+          "name": "シエン",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "幻想／聖剣再現・白"
+        },
+        {
+          "id": "vierge-ae03a6b0d35d2d8a",
+          "character": "ミシス",
+          "name": "ミシス",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "烈火・全"
+        },
+        {
+          "id": "vierge-514cac2c6e595da4",
+          "character": "ミシス",
+          "name": "ミシス",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "幻想／魔獣再現III"
+        },
+        {
+          "id": "vierge-dbcaa397a96ef11e",
+          "character": "プルエーコ",
+          "name": "プルエーコ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "消えゆく烈火・黒"
+        },
+        {
+          "id": "vierge-7d7e7a5d8c144806",
+          "character": "フェルノ・ガーディーヴァ",
+          "name": "フェルノ・ガーディーヴァ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "幻想／聖剣再現・緑"
+        },
+        {
+          "id": "vierge-bb97a5bb7a7c0b23",
+          "character": "エクスシア",
+          "name": "エクスシア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "流星・赤"
+        },
+        {
+          "id": "vierge-82f4883519225fb9",
+          "character": "フィリエル",
+          "name": "フィリエル",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "運命の助勢"
+        },
+        {
+          "id": "vierge-a696f659f6008c74",
+          "character": "ルル・クレイス",
+          "name": "ルル・クレイス",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "祝福"
+        },
+        {
+          "id": "vierge-83e6c8a934f69e68",
+          "character": "ノルン・ラプラシア",
+          "name": "ノルン・ラプラシア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "背水の守護者"
+        },
+        {
+          "id": "vierge-041ef06d5b69372a",
+          "character": "エルエル",
+          "name": "エルエル",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "幻想／聖馬再現 II"
+        },
+        {
+          "id": "vierge-caaa11652d8cae39",
+          "character": "東条遥",
+          "name": "東条遥",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "受け継がれる想い"
+        },
+        {
+          "id": "vierge-40ee594dbd82b6ce",
+          "character": "安藤環",
+          "name": "安堂環",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "情熱・青"
+        },
+        {
+          "id": "vierge-04cd1b3907774550",
+          "character": "安藤環",
+          "name": "安堂環",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "二連斬舞"
+        },
+        {
+          "id": "vierge-d072cf30db7c44a2",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "消えゆく情熱・白"
+        },
+        {
+          "id": "vierge-a0356352fe0754df",
+          "character": "日向美海",
+          "name": "日向美海【水着】",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "睡眠強襲"
+        },
+        {
+          "id": "vierge-c94f8e11e837676a",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "疾風・青"
+        },
+        {
+          "id": "vierge-aae42c1b749fc113",
+          "character": "岸部沙織",
+          "name": "岸部沙織",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "睡眠強襲"
+        },
+        {
+          "id": "vierge-8dca171e408d91a2",
+          "character": "岸部沙織",
+          "name": "岸部沙織",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "高速回避"
+        },
+        {
+          "id": "vierge-7df0ed73d9520b74",
+          "character": "琴吹文",
+          "name": "琴吹文",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "沈黙強襲"
+        },
+        {
+          "id": "vierge-6b10f898654c0c55",
+          "character": "志藤凛花",
+          "name": "志藤凛花",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "鉄壁・青"
+        },
+        {
+          "id": "vierge-881fd0f241053a6a",
+          "character": "土屋原はねる",
+          "name": "土屋原はねる",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "高速回避"
+        },
+        {
+          "id": "vierge-affc894762280504",
+          "character": "ユリヤ",
+          "name": "ユリヤ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "あふれる可能性"
+        },
+        {
+          "id": "vierge-ae9ea1c9f40fb807",
+          "character": "天井苺",
+          "name": "天井苺",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "二連斬舞"
+        },
+        {
+          "id": "vierge-a0b95c2bbba1ad6c",
+          "character": "天井苺",
+          "name": "天井苺",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "高速回避"
+        },
+        {
+          "id": "vierge-54de7c14b4fec78e",
+          "character": "宗像睦心",
+          "name": "宗像睦心",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "疾風・青"
+        },
+        {
+          "id": "vierge-82336a781a54da31",
+          "character": "城ケ崎愛奈",
+          "name": "城ヶ崎愛奈",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく疾風・白"
+        },
+        {
+          "id": "vierge-645fd8ed5688b91c",
+          "character": "城ケ崎愛奈",
+          "name": "城ヶ崎愛奈",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "麻痺強襲"
+        },
+        {
+          "id": "vierge-1109cb0a968cd37e",
+          "character": "新田由美",
+          "name": "新田由美",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "仁王立ち／純"
+        },
+        {
+          "id": "vierge-e4578713a8bfd074",
+          "character": "新田由美",
+          "name": "新田由美",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく鉄壁・白"
+        },
+        {
+          "id": "vierge-09e802b1db594ce3",
+          "character": "進藤夏希",
+          "name": "進藤夏希",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "あふれる可能性"
+        },
+        {
+          "id": "vierge-ba218135cedcb07b",
+          "character": "進藤夏希",
+          "name": "進藤夏希",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "攻撃特化"
+        },
+        {
+          "id": "vierge-9ea8b06f99ca903a",
+          "character": "御影葵",
+          "name": "御影葵",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-c6cf68a77e421710",
+          "character": "御影葵",
+          "name": "御影葵",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-09fbf5e04ce80d08",
+          "character": "千尋",
+          "name": "千尋",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "流星"
+        },
+        {
+          "id": "vierge-c879838ec35d9a40",
+          "character": "カトリーヌ・オベール",
+          "name": "カトリーヌ・オベール",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "烈火"
+        },
+        {
+          "id": "vierge-8387c83a74de00f0",
+          "character": "沖田奈央",
+          "name": "沖田奈央",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "引き継がれる想い"
+        },
+        {
+          "id": "vierge-08848d2dc6ad2d34",
+          "character": "沖田奈央",
+          "name": "沖田奈央",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "高速回避"
+        },
+        {
+          "id": "vierge-6466dd45aeb23b4d",
+          "character": "椎名あずさ",
+          "name": "椎名あずさ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "二連斬舞"
+        },
+        {
+          "id": "vierge-23a5d3c46a8e64f6",
+          "character": "椎名あずさ",
+          "name": "椎名あずさ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "異能封印／睡眠"
+        },
+        {
+          "id": "vierge-710d7c150bcbb179",
+          "character": "真田玲香",
+          "name": "真田玲香",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "引き継がれる想い"
+        },
+        {
+          "id": "vierge-ed0dca6669f4db5e",
+          "character": "葛西京子",
+          "name": "葛西京子",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "麻痺強襲"
+        },
+        {
+          "id": "vierge-78f2f58d3047c90f",
+          "character": "那月琉花",
+          "name": "那月琉花",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "沈黙強襲"
+        },
+        {
+          "id": "vierge-86d0a77e266636ff",
+          "character": "瀬尾アスカ",
+          "name": "瀬尾アスカ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "麻痺強襲"
+        },
+        {
+          "id": "vierge-8d2c8f2eb6a279b0",
+          "character": "鶴谷由唯",
+          "name": "鶴谷由唯",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "毒性強襲"
+        },
+        {
+          "id": "vierge-7c3a4361ea913a00",
+          "character": "鶴谷由唯",
+          "name": "鶴谷由唯",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "神秘の歌声"
+        },
+        {
+          "id": "vierge-cdb796ab635d798c",
+          "character": "花城樹里",
+          "name": "花城樹里",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "あふれる可能性"
+        },
+        {
+          "id": "vierge-b2430eaa411367ce",
+          "character": "遠薙深雪",
+          "name": "遠薙深雪",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく鉄壁・白"
+        },
+        {
+          "id": "vierge-e410385d2454a1e2",
+          "character": "小鳥遊希美",
+          "name": "小鳥遊希美",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "少女の歌声・全"
+        },
+        {
+          "id": "vierge-0f7f8bf379618688",
+          "character": "山吹いぶき",
+          "name": "山吹いぶき",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく疾風・白"
+        },
+        {
+          "id": "vierge-6470328afcf2b872",
+          "character": "清川咲",
+          "name": "清川咲",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "受け継がれる想い"
+        },
+        {
+          "id": "vierge-49dcc279614764b0",
+          "character": "志藤麗花",
+          "name": "志藤麗花",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "二連斬舞"
+        },
+        {
+          "id": "vierge-a004d3a31e4fc090",
+          "character": "美伽・ブレイズダリク",
+          "name": "美伽・ブレイズダリク",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく情熱・白"
+        },
+        {
+          "id": "vierge-69bbf9e11da81e3f",
+          "character": "テオドーチェ",
+          "name": "テオドーチェ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "背水の陣／勇"
+        },
+        {
+          "id": "vierge-40c105602cce7b71",
+          "character": "マリオン・マリネール",
+          "name": "マリオン・マリネール",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "術式／麻痺・全"
+        },
+        {
+          "id": "vierge-d02e03f850ce3e5a",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "流星群"
+        },
+        {
+          "id": "vierge-799fd60bb511a1b7",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ【水着】",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "術式／沈黙・全"
+        },
+        {
+          "id": "vierge-a9ee4420dfe21a0c",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく鉄壁・青"
+        },
+        {
+          "id": "vierge-a0c01d659767b2b7",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-9721b8047042f372",
+          "character": "アビー",
+          "name": "アビー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "引き継がれる想い"
+        },
+        {
+          "id": "vierge-bd9f4f61e6246522",
+          "character": "セレスティア",
+          "name": "セレスティア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "術式／不死の体"
+        },
+        {
+          "id": "vierge-2c758a1e8e025439",
+          "character": "フランボワーズ",
+          "name": "フランボワーズ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "術式／麻痺・全"
+        },
+        {
+          "id": "vierge-375996109189c76a",
+          "character": "ケイ",
+          "name": "ケイ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "疾風・黒"
+        },
+        {
+          "id": "vierge-f9e36eb6252bdfd5",
+          "character": "サーシャ",
+          "name": "サーシャ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "術式／不死の体"
+        },
+        {
+          "id": "vierge-ff501f4e6eb81c93",
+          "character": "メルビナ",
+          "name": "メルビナ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "攻撃特化"
+        },
+        {
+          "id": "vierge-9369b70b6e6a3ece",
+          "character": "メルビナ",
+          "name": "メルビナ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "鉄壁・黒"
+        },
+        {
+          "id": "vierge-576ba075254a8e67",
+          "character": "リア・モリアーティ",
+          "name": "リア・モリアーティ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく情熱・青"
+        },
+        {
+          "id": "vierge-236119a078e49d8c",
+          "character": "キャビィ・ネットハウス",
+          "name": "キャビィ・ネットハウス",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-76681ec962215f1c",
+          "character": "レ・ウィズ・キャロル",
+          "name": "レ・ウィズ・キャロル",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "鉄壁・黒"
+        },
+        {
+          "id": "vierge-0139c3e291e28203",
+          "character": "ローズマリー",
+          "name": "ローズマリー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "術式／沈黙・全"
+        },
+        {
+          "id": "vierge-27c4791aa6543205",
+          "character": "イレーネス",
+          "name": "イレーネス",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "情熱・黒"
+        },
+        {
+          "id": "vierge-8c2b3c9fbc448289",
+          "character": "クラリッサ",
+          "name": "クラリッサ【水着】",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "烈火"
+        },
+        {
+          "id": "vierge-2c3b00c18c31bcd9",
+          "character": "クラリッサ",
+          "name": "クラリッサ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "情熱・黒"
+        },
+        {
+          "id": "vierge-df69a6a62272c533",
+          "character": "オリヴィア",
+          "name": "オリヴィア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "異能封印／沈黙"
+        },
+        {
+          "id": "vierge-3cf31dbf81b1b982",
+          "character": "ユノ・フォルティシモ",
+          "name": "ユノ・フォルティシモ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "一点突破／白銀"
+        },
+        {
+          "id": "vierge-7fd6d33ca5dcf42f",
+          "character": "ユノ・フォルティシモ",
+          "name": "ユノ・フォルティシモ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "少女の旋律・全"
+        },
+        {
+          "id": "vierge-b6fd999fa80c4d85",
+          "character": "ネーブル",
+          "name": "ネーブル",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "少女の葬送曲・全"
+        },
+        {
+          "id": "vierge-79edd8220c731dde",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "神秘の歌声"
+        },
+        {
+          "id": "vierge-3f7677c903ee7b0a",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "情熱・黒"
+        },
+        {
+          "id": "vierge-997d609d0bf4d3f1",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "術式／睡眠・全"
+        },
+        {
+          "id": "vierge-1ab92b74c21e30f6",
+          "character": "プリシラ",
+          "name": "プリシラ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "一点突破／紅蓮"
+        },
+        {
+          "id": "vierge-27783888075f7ae5",
+          "character": "クロロ",
+          "name": "クロロ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "あふれる可能性"
+        },
+        {
+          "id": "vierge-9e96e08b813dcb1f",
+          "character": "マーブル",
+          "name": "マーブル",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "少女の鎮魂曲・全"
+        },
+        {
+          "id": "vierge-057d64b619885c38",
+          "character": "ウェンディ",
+          "name": "ウェンディ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "流星群"
+        },
+        {
+          "id": "vierge-6b509ce80f2656fe",
+          "character": "サンドリア",
+          "name": "サンドリア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく疾風・青"
+        },
+        {
+          "id": "vierge-cd970af6b8af60c2",
+          "character": "エルザ",
+          "name": "エルザ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "術式／毒性・全"
+        },
+        {
+          "id": "vierge-a45790905189d8e2",
+          "character": "シャルロット",
+          "name": "シャルロット",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "一点突破／白銀"
+        },
+        {
+          "id": "vierge-a552471272cef265",
+          "character": "マリー",
+          "name": "マリー",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-612b50ae30b61559",
+          "character": "クルキアータ",
+          "name": "クルキアータ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-0e1abe9aed694607",
+          "character": "ラグナ",
+          "name": "ラグナ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "引き継がれる想い"
+        },
+        {
+          "id": "vierge-923f3703ad9e3371",
+          "character": "クレア・プロスペキア",
+          "name": "クレア・プロスペキア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "情熱・黒"
+        },
+        {
+          "id": "vierge-fc7bfef5c139ba65",
+          "character": "リュミエール",
+          "name": "リュミエール",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "背水の陣／勇"
+        },
+        {
+          "id": "vierge-73226e9114f0905f",
+          "character": "ミルドレッド",
+          "name": "ミルドレッド",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "術式／麻痺・全"
+        },
+        {
+          "id": "vierge-3b5e95834af454fe",
+          "character": "クラリス・エーテルライト",
+          "name": "クラリス・エーデルライト",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-2b1fc0c3cce33f9f",
+          "character": "キヌエ・カンナミラ",
+          "name": "キヌエ・カンナミラ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "精霊の助勢"
+        },
+        {
+          "id": "vierge-bba903de6443b3a0",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "少女の旋律・全"
+        },
+        {
+          "id": "vierge-01b350bc49dbfae3",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "少女の歌声・全"
+        },
+        {
+          "id": "vierge-f2355daa7b296673",
+          "character": "フローリア",
+          "name": "フローリア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "精霊の助勢"
+        },
+        {
+          "id": "vierge-55ec1e6c4e11bbaf",
+          "character": "ヴィヴィ",
+          "name": "ヴィヴィ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "紺碧の守護者"
+        },
+        {
+          "id": "vierge-3bbbd875c7962a85",
+          "character": "アンジェラ",
+          "name": "アンジェラ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく鉄壁・黒"
+        },
+        {
+          "id": "vierge-c577e9cc2157ec15",
+          "character": "セシディット",
+          "name": "セシディット",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "幻想／魔剣再現・青"
+        },
+        {
+          "id": "vierge-2ac62b83b2bf5be5",
+          "character": "ディアンナ",
+          "name": "ディアンナ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "最後の一閃"
+        },
+        {
+          "id": "vierge-d05ec08e02f8db11",
+          "character": "サルタビア",
+          "name": "サルタビア",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "幻想／魔剣再現・黒"
+        },
+        {
+          "id": "vierge-82b1a2174b7cc423",
+          "character": "ライム・キャットハンズ",
+          "name": "ライム・キャットハンズ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "疾風・赤"
+        },
+        {
+          "id": "vierge-6bb632967baecce0",
+          "character": "オルトリン",
+          "name": "オルトリン",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく情熱・黒"
+        },
+        {
+          "id": "vierge-16eae941bb8633d4",
+          "character": "オルトリン",
+          "name": "オルトリン",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "精霊の助勢"
+        },
+        {
+          "id": "vierge-1db2b041868a7cb3",
+          "character": "イリア",
+          "name": "イリア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "情熱・赤"
+        },
+        {
+          "id": "vierge-c437178ff0476055",
+          "character": "アルメトロ",
+          "name": "アルメトロ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "幻想／魔剣再現・白"
+        },
+        {
+          "id": "vierge-42e17304966499dd",
+          "character": "レミエル",
+          "name": "レミエル",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "あふれる可能性"
+        },
+        {
+          "id": "vierge-3f29e1c8974c8251",
+          "character": "レミエル",
+          "name": "レミエル",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-a60f48242f1b9d91",
+          "character": "レミエル",
+          "name": "レミエル",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "疾風・赤"
+        },
+        {
+          "id": "vierge-290b248a5fe3be98",
+          "character": "グラディーサ",
+          "name": "グラディーサ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "漆黒の守護者"
+        },
+        {
+          "id": "vierge-3bd5951cf4bc01e3",
+          "character": "フォーレンティーナ",
+          "name": "フォーレンティーナ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "守護・全"
+        },
+        {
+          "id": "vierge-33d21e88bbfe2f35",
+          "character": "シャティー",
+          "name": "シャティー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "漆黒の守護者"
+        },
+        {
+          "id": "vierge-04d568345749353b",
+          "character": "シャティー",
+          "name": "シャティー",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "紺碧の守護者"
+        },
+        {
+          "id": "vierge-0a9a5513f3e5e042",
+          "character": "シャティー",
+          "name": "シャティー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "幻想／魔剣再現・緑"
+        },
+        {
+          "id": "vierge-cfa98c3e230174c6",
+          "character": "ミモザ",
+          "name": "ミモザ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "神秘の旋律"
+        },
+        {
+          "id": "vierge-7fcb20c252d25063",
+          "character": "アーシア",
+          "name": "アーシア【水着】",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "幻想／魔剣再現・赤"
+        },
+        {
+          "id": "vierge-f3cc95f9231452e0",
+          "character": "アーシア",
+          "name": "アーシア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "疾風・赤"
+        },
+        {
+          "id": "vierge-41ea67152837a608",
+          "character": "セルフィ―",
+          "name": "セルフィー",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-a5b94edd54f63c8d",
+          "character": "ケイト",
+          "name": "ケイト",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "神秘の葬送曲"
+        },
+        {
+          "id": "vierge-426892b962841583",
+          "character": "エミリア",
+          "name": "エミリア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "幻想／聖剣再現"
+        },
+        {
+          "id": "vierge-9a2b4f9be127476e",
+          "character": "シャム",
+          "name": "シャム",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "最後の一閃"
+        },
+        {
+          "id": "vierge-bc29dbe123ca1b3f",
+          "character": "ルビー",
+          "name": "ルビー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "神秘の歌声"
+        },
+        {
+          "id": "vierge-241b38f40e1be000",
+          "character": "ルビー",
+          "name": "ルビー",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "受け継がれる想い"
+        },
+        {
+          "id": "vierge-e88613aeea7a03e2",
+          "character": "ルビー",
+          "name": "ルビー",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "幻想／魔剣再現・白"
+        },
+        {
+          "id": "vierge-b1c0c9b40cf4d650",
+          "character": "ルフェ",
+          "name": "ルフェ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "鉄壁・赤"
+        },
+        {
+          "id": "vierge-4af7925895c79931",
+          "character": "ルプール",
+          "name": "ルプール",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "情熱・赤"
+        },
+        {
+          "id": "vierge-1eb28ad0810e9e80",
+          "character": "ルプール",
+          "name": "ルプール【水着】",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "守護・全"
+        },
+        {
+          "id": "vierge-f26d45d5fb70380d",
+          "character": "ミシス",
+          "name": "ミシス",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "仁王立ち／純"
+        },
+        {
+          "id": "vierge-d4beb69f13ccd921",
+          "character": "プルエーコ",
+          "name": "プルエーコ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "少女の旋律・全"
+        },
+        {
+          "id": "vierge-10a7182e2fc12503",
+          "character": "フェルノ・ガーディーヴァ",
+          "name": "フェルノ・ガーディーヴァ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "引き継がれる想い"
+        },
+        {
+          "id": "vierge-64b42a0c36206159",
+          "character": "アマノリリス",
+          "name": "アマノリリス",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく疾風・黒"
+        },
+        {
+          "id": "vierge-34ec06a28838f75b",
+          "character": "シェイミー",
+          "name": "シェイミー",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "情熱・赤"
+        },
+        {
+          "id": "vierge-05d172ff11490fbc",
+          "character": "エクスシア",
+          "name": "エクスシア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "精霊の助勢"
+        },
+        {
+          "id": "vierge-ecd53c9b73c1f028",
+          "character": "フィリエル",
+          "name": "フィリエル",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "幻想／魔馬再現II"
+        },
+        {
+          "id": "vierge-534b1d4de6dadfc0",
+          "character": "アクエリア",
+          "name": "アクエリア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "指定座標爆撃ver.1"
+        },
+        {
+          "id": "vierge-92e5329e23be1ef4",
+          "character": "レイナ・メサ",
+          "name": "レイナ・メサ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "攻撃予測体系"
+        },
+        {
+          "id": "vierge-a5af57ac4eb8edf3",
+          "character": "コードΩ46セニア",
+          "name": "コードΩ46セニア",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "装填／睡眠"
+        },
+        {
+          "id": "vierge-ac0cfd38eb6a4429",
+          "character": "エルセア＝エコルダ",
+          "name": "エルセア＝エコルダ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "情熱・白"
+        },
+        {
+          "id": "vierge-687a84beac4eea47",
+          "character": "エルセア＝エコルダ",
+          "name": "エルセア【水着】",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく鉄壁・赤"
+        },
+        {
+          "id": "vierge-26775e83ccd1a112",
+          "character": "コード＝204ケイティ",
+          "name": "コード＝204ケイティ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく疾風・赤"
+        },
+        {
+          "id": "vierge-867c342e7290acc5",
+          "character": "コードΣチカル",
+          "name": "コードΣチカル",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "指定座標爆撃ver.1"
+        },
+        {
+          "id": "vierge-99e8286c07b07d11",
+          "character": "コードΩラウラ",
+          "name": "コードΩラウラ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "装填／毒性"
+        },
+        {
+          "id": "vierge-9cd8569aff8d52f3",
+          "character": "コードΩラウラ",
+          "name": "コードΩラウラ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "一点突破／紺碧"
+        },
+        {
+          "id": "vierge-b5af5dfc654f6388",
+          "character": "コードΩ31オリガ",
+          "name": "コードΩ31オリガ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "攻撃予測体系"
+        },
+        {
+          "id": "vierge-16874dd606b2ffe9",
+          "character": "タイプHU-50ニナ",
+          "name": "タイプHU-50ニナ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "少女の鎮魂歌・全"
+        },
+        {
+          "id": "vierge-2e68e58cb690abc4",
+          "character": "ミティア",
+          "name": "ミティア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "消えゆく情熱・赤"
+        },
+        {
+          "id": "vierge-0fb7df00ba7be763",
+          "character": "コードΩ57ベルン",
+          "name": "コードΩ57ベルン",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "疾風・白"
+        },
+        {
+          "id": "vierge-e1db9d5e94132e9c",
+          "character": "コードΩ64ハーヴェス",
+          "name": "コードΩ64ハーヴェス",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "装填／麻痺"
+        },
+        {
+          "id": "vierge-e98600c350b6b5c6",
+          "character": "コードΩ64ハーヴェス",
+          "name": "コードΩ64ハーヴェス",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "一点突破／紅蓮"
+        },
+        {
+          "id": "vierge-b9c3366a96851ec1",
+          "character": "リーチェ・ホルスタイン",
+          "name": "リーチェ・ホルスタイン",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "結界"
+        },
+        {
+          "id": "vierge-b13c8883b370f975",
+          "character": "コードΩ33カレン",
+          "name": "コードΩ33カレン",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "装填／麻痺"
+        },
+        {
+          "id": "vierge-98ca79c0c3d78b63",
+          "character": "タイプMU-21ナナ",
+          "name": "タイプMU-21ナナ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "装填／沈黙"
+        },
+        {
+          "id": "vierge-5a973f585e95831d",
+          "character": "コードΣ43メルト",
+          "name": "コードΣ43メルト",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "装填／麻痺"
+        },
+        {
+          "id": "vierge-f4da80899f1a5c53",
+          "character": "コードΣ43メルト",
+          "name": "コードΣ43メルト",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "反撃体系"
+        },
+        {
+          "id": "vierge-2016fc9d02b10c70",
+          "character": "サングリア＝カミュ",
+          "name": "サングリア＝カミュ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "鉄壁・白"
+        },
+        {
+          "id": "vierge-ad0cb82f1fa6668d",
+          "character": "コードΣ44メニル",
+          "name": "コードΣ44メニル",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "装填／麻痺"
+        },
+        {
+          "id": "vierge-df68b885b604e081",
+          "character": "レティシア",
+          "name": "レティシア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "攻撃特化"
+        },
+        {
+          "id": "vierge-700ec5e1031451db",
+          "character": "レティシア",
+          "name": "レティシア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "攻撃予測体系"
+        },
+        {
+          "id": "vierge-3cb0f49ced20a384",
+          "character": "コードΩ00ユーフィリア",
+          "name": "コードΩ00ユーフィリア",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "装填／沈黙"
+        },
+        {
+          "id": "vierge-068a8e5f79bab9b0",
+          "character": "システム＝NPゼシカ",
+          "name": "ゼシカ【水着】",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "流星"
+        },
+        {
+          "id": "vierge-35d79613a77f1164",
+          "character": "コードΣ63ミィ",
+          "name": "コードΣ63ミィ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "あふれる可能性"
+        },
+        {
+          "id": "vierge-505f7b1d25b56319",
+          "character": "コードΩ55ペネル",
+          "name": "コードΩ55ペネル",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "指定座標爆撃ver.1"
+        },
+        {
+          "id": "vierge-f7d176812b61a55c",
+          "character": "リーナ＝リナーシタ",
+          "name": "リーナ＝リナーシタ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "一点突破／弱体"
+        },
+        {
+          "id": "vierge-c20f8452e5d216d4",
+          "character": "コードΣ31クレス",
+          "name": "コードΣ31クレス",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "一点突破／紺碧"
+        },
+        {
+          "id": "vierge-2e5ec6a913656799",
+          "character": "セントレイ",
+          "name": "セントレイ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "攻撃予測体系"
+        },
+        {
+          "id": "vierge-95373ca808d388ed",
+          "character": "コードΩ47トト",
+          "name": "コードΩ47トト",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "指定座標爆撃ver.1"
+        },
+        {
+          "id": "vierge-e16e7f940ceb8582",
+          "character": "セナ・ユニヴェール",
+          "name": "セナ・ユニヴェール",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-227bb3d9a93f2272",
+          "character": "ナタク・ヴリューナ",
+          "name": "ナタク・ヴリューナ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "疾風・緑"
+        },
+        {
+          "id": "vierge-36ec74cdd2c207a1",
+          "character": "フィア・ゼルスト",
+          "name": "フィア・ゼルスト",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "吸収／略奪者"
+        },
+        {
+          "id": "vierge-53fd270face8ef38",
+          "character": "ユウヒ・ライクール",
+          "name": "ユウヒ・ライクール",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-782b0ae8b89f2ba1",
+          "character": "ユウヒ・ライクール",
+          "name": "ユウヒ・ライクール",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "轟く爆撃act.1"
+        },
+        {
+          "id": "vierge-9634f8b133469f9c",
+          "character": "リク・エルキュール",
+          "name": "リク・エルキュール",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "全てを躱す者"
+        },
+        {
+          "id": "vierge-5c2aa889dadc08e6",
+          "character": "アインス・エクスアウラ",
+          "name": "アインス【水着】",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "結晶片の助勢"
+        },
+        {
+          "id": "vierge-f86ed5edfe4da399",
+          "character": "アインス・エクスアウラ",
+          "name": "アインス・エクスアウラ",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "全てに叛逆する者"
+        },
+        {
+          "id": "vierge-956e6c1f6984d77c",
+          "character": "ノイン・ワイズメル",
+          "name": "ノイン・ワイズメル",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "睡眠召来"
+        },
+        {
+          "id": "vierge-5aa92c3eb1132af6",
+          "character": "シルト・リーヴェリンゲン",
+          "name": "シルト・リーヴェリンゲン",
+          "rarity": "HR",
+          "cost": 10,
+          "skill": "無垢なる一閃"
+        },
+        {
+          "id": "vierge-386220ff1f059b5a",
+          "character": "フィーリア・グレンハルト",
+          "name": "フィーリア・グレンハルト",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "情熱・緑"
+        },
+        {
+          "id": "vierge-f9f2014bf74c6935",
+          "character": "スレイ・ティルダイン",
+          "name": "スレイ・ティルダイン",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "連なる双刀"
+        },
+        {
+          "id": "vierge-a3f252bb09a6a16b",
+          "character": "ゼファー",
+          "name": "ゼファー",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "麻痺召来"
+        },
+        {
+          "id": "vierge-4a39fea400080d87",
+          "character": "ルルーナ・ゼンディア",
+          "name": "ルルーナ・ゼンディア",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "受け継がれる想い"
+        },
+        {
+          "id": "vierge-8522f65b37f8df31",
+          "character": "ラン・S・グリューネ",
+          "name": "ラン・S・グリューネ",
+          "rarity": "HR",
+          "cost": 9,
+          "skill": "結界"
+        },
+        {
+          "id": "vierge-964e273dbf458314",
+          "character": "東条遥",
+          "name": "東条遥",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／紅蓮"
+        },
+        {
+          "id": "vierge-761a8539e2d2ef50",
+          "character": "安藤環",
+          "name": "安堂環",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-71d738805f0c0e81",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "疾風"
+        },
+        {
+          "id": "vierge-3413f76a1c713311",
+          "character": "日向美海",
+          "name": "日向美海",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／麻痺"
+        },
+        {
+          "id": "vierge-12a8239c4b973788",
+          "character": "岸部沙織",
+          "name": "岸部沙織",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-c6aedd2a41af4dd3",
+          "character": "琴吹文",
+          "name": "琴吹文",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／睡眠"
+        },
+        {
+          "id": "vierge-3b7adb0beda9d60a",
+          "character": "音羽ツバサ",
+          "name": "音羽ツバサ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-7351fccb0c3684bc",
+          "character": "志藤凛花",
+          "name": "志藤凛花",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／挑発"
+        },
+        {
+          "id": "vierge-9c0a21e464a25cbe",
+          "character": "土屋原はねる",
+          "name": "土屋原はねる",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "少女の旋律"
+        },
+        {
+          "id": "vierge-32e57b60bcc4ae4d",
+          "character": "土屋原はねる",
+          "name": "土屋原はねる",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "疾風"
+        },
+        {
+          "id": "vierge-f50dd95af3e83b78",
+          "character": "ユリヤ",
+          "name": "ユリヤ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／漆黒"
+        },
+        {
+          "id": "vierge-7b00b8ddffc32cd4",
+          "character": "宗像睦心",
+          "name": "宗像睦心",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "少女の歌声"
+        },
+        {
+          "id": "vierge-fe14c833a261db91",
+          "character": "新田由美",
+          "name": "新田由美",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "仁王立ち"
+        },
+        {
+          "id": "vierge-72de3e0b37b539c0",
+          "character": "進藤夏希",
+          "name": "進藤夏希",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／弱体"
+        },
+        {
+          "id": "vierge-2de41c51c01011af",
+          "character": "千尋",
+          "name": "千尋",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "守護"
+        },
+        {
+          "id": "vierge-c5548f21a4daf07c",
+          "character": "神薙千鳥",
+          "name": "神薙千鳥",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-abdeb236384e198a",
+          "character": "神薙千鳥",
+          "name": "神薙千鳥",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-3d49ab52fd0793a1",
+          "character": "カトリーヌ・オベール",
+          "name": "カトリーヌ・オベール",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "挑発"
+        },
+        {
+          "id": "vierge-3dc5123c80b5e2fa",
+          "character": "カトリーヌ・オベール",
+          "name": "カトリーヌ【水着】",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／気絶"
+        },
+        {
+          "id": "vierge-48bc48cc76137778",
+          "character": "椎名あずさ",
+          "name": "椎名あずさ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／回避"
+        },
+        {
+          "id": "vierge-40cfe4e397f03208",
+          "character": "椎名あずさ",
+          "name": "椎名あずさ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "背水の陣"
+        },
+        {
+          "id": "vierge-af6166e3107e76d5",
+          "character": "高峰さくら",
+          "name": "高峰さくら",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-b1b18d8639e5945d",
+          "character": "高峰さくら",
+          "name": "高峰さくら",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／白銀"
+        },
+        {
+          "id": "vierge-76534e8ed75cef74",
+          "character": "風見餡子",
+          "name": "風見餡子",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／背水"
+        },
+        {
+          "id": "vierge-725c9b299ba59fc4",
+          "character": "真田玲香",
+          "name": "真田玲香",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "少女の葬送曲"
+        },
+        {
+          "id": "vierge-faaff4d5d1dd621c",
+          "character": "葛西京子",
+          "name": "葛西京子",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／白銀"
+        },
+        {
+          "id": "vierge-5686167d880539c8",
+          "character": "那月琉花",
+          "name": "那月琉花",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／沈黙"
+        },
+        {
+          "id": "vierge-9663387f42806b77",
+          "character": "那月琉花",
+          "name": "那月琉花",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-14fc3d56a48cc9d9",
+          "character": "瀬尾アスカ",
+          "name": "瀬尾アスカ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-1c3bc3d46366a08e",
+          "character": "鶴谷由唯",
+          "name": "鶴谷由唯",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／毒性"
+        },
+        {
+          "id": "vierge-25c947fe431215bf",
+          "character": "鶴谷由唯",
+          "name": "鶴谷由唯",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "疾風"
+        },
+        {
+          "id": "vierge-68df6af9ac9b5c77",
+          "character": "穂住みすか",
+          "name": "穂住みすか",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／背水"
+        },
+        {
+          "id": "vierge-8ba9fef4e0a95cf7",
+          "character": "花城樹里",
+          "name": "花城樹里",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "背水の陣"
+        },
+        {
+          "id": "vierge-05386699f183a153",
+          "character": "花城樹里",
+          "name": "花城樹里",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-eedfcadeabdc06de",
+          "character": "月ノ宮赫夜",
+          "name": "月ノ宮赫夜【水着】",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-db7fb551543e17a3",
+          "character": "風魔忍",
+          "name": "風魔忍",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-25b18a86d1ac999b",
+          "character": "東条悠",
+          "name": "東条悠",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "背水の陣"
+        },
+        {
+          "id": "vierge-76ea2604b1afe7b6",
+          "character": "テオドーチェ",
+          "name": "テオドーチェ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／白銀"
+        },
+        {
+          "id": "vierge-17773e86ff59611e",
+          "character": "マリオン・マリネール",
+          "name": "マリオン・マリネール",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "疾風"
+        },
+        {
+          "id": "vierge-831ecbdef39268de",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "背水の陣"
+        },
+        {
+          "id": "vierge-37e209e9c7d72505",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／睡眠"
+        },
+        {
+          "id": "vierge-32dddbf4e32868f1",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "少女の鎮魂歌"
+        },
+        {
+          "id": "vierge-89ba20c2b4de3a60",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／紺碧"
+        },
+        {
+          "id": "vierge-9156bd4a8cfe470a",
+          "character": "アビー",
+          "name": "アビー",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-e7bea3156426aba5",
+          "character": "フランボワーズ",
+          "name": "フランボワーズ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "少女の葬送曲"
+        },
+        {
+          "id": "vierge-5fefd87eb55b1217",
+          "character": "ケイ",
+          "name": "ケイ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-791110d45d366983",
+          "character": "サーシャ",
+          "name": "サーシャ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-ce2b86d13c57fedd",
+          "character": "メルビナ",
+          "name": "メルビナ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-a06a2839ebd16a62",
+          "character": "リア・モリアーティ",
+          "name": "リア・モリアーティ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／反撃"
+        },
+        {
+          "id": "vierge-eca34b53e71d4add",
+          "character": "クラリッサ",
+          "name": "クラリッサ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／挑発"
+        },
+        {
+          "id": "vierge-b5184fde8122546e",
+          "character": "クラリッサ",
+          "name": "クラリッサ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-c847b794c8a544ec",
+          "character": "オリヴィア",
+          "name": "オリヴィア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "防御特化"
+        },
+        {
+          "id": "vierge-25a2b9ea33b484a9",
+          "character": "オリヴィア",
+          "name": "オリヴィア【水着】",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／回避"
+        },
+        {
+          "id": "vierge-c032367c2d72bef1",
+          "character": "ユノ・フォルティシモ",
+          "name": "ユノ・フォルティシモ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／回避"
+        },
+        {
+          "id": "vierge-f95f781291842a5a",
+          "character": "ユノ・フォルティシモ",
+          "name": "ユノ・フォルティシモ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／気絶"
+        },
+        {
+          "id": "vierge-839116d4b9e1d487",
+          "character": "ユノ・フォルティシモ",
+          "name": "ユノ・フォルティシモ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-4a4c7f4be22c0ebc",
+          "character": "ネーブル",
+          "name": "ネーブル",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／気絶"
+        },
+        {
+          "id": "vierge-4dbcae4301b37548",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-95233197ded5de54",
+          "character": "クロロ",
+          "name": "クロロ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "少女の鎮魂歌"
+        },
+        {
+          "id": "vierge-2c22bb593f7b5e40",
+          "character": "マーブル",
+          "name": "マーブル",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／深緑"
+        },
+        {
+          "id": "vierge-d5a5e0b51fd67c77",
+          "character": "ウェンディ",
+          "name": "ウェンディ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "背水の陣"
+        },
+        {
+          "id": "vierge-c7ff584b25b8c5bb",
+          "character": "サンドリア",
+          "name": "サンドリア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "少女の鎮魂歌"
+        },
+        {
+          "id": "vierge-4d27cae7d76e6696",
+          "character": "シャロン・レトルト",
+          "name": "シャロン・レトルト",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "少女の葬送曲"
+        },
+        {
+          "id": "vierge-e904c8044911f6ac",
+          "character": "シャルロット",
+          "name": "シャルロット",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／麻痺"
+        },
+        {
+          "id": "vierge-592be1e008445064",
+          "character": "カサンドラ",
+          "name": "カサンドラ【水着】",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-af1d3a18b56d8ffa",
+          "character": "ラグナ",
+          "name": "ラグナ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-ee0d8f795a40398f",
+          "character": "クラリス・エーテルライト",
+          "name": "クラリス・エーデルライト",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "防御特化"
+        },
+        {
+          "id": "vierge-6fbc5b60c9621f35",
+          "character": "キヌエ・カンナミラ",
+          "name": "キヌエ・カンナミラ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "背水の守り人"
+        },
+        {
+          "id": "vierge-002729b215ccc464",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-0b24e792dc180853",
+          "character": "アウロラ",
+          "name": "アウロラ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／沈黙"
+        },
+        {
+          "id": "vierge-608130696e2a72a1",
+          "character": "フローリア",
+          "name": "フローリア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "祈り"
+        },
+        {
+          "id": "vierge-8f5ebe2d2c735760",
+          "character": "フローリア",
+          "name": "フローリア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／睡眠"
+        },
+        {
+          "id": "vierge-681afe865ec3740e",
+          "character": "フローリア",
+          "name": "フローリア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-84c6cc9dec41c2ef",
+          "character": "ヴァレリア",
+          "name": "ヴァレリア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "幻想／魔剣再現"
+        },
+        {
+          "id": "vierge-d1149a5db5109295",
+          "character": "ヴァレリア",
+          "name": "ヴァレリア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-4dc13b4d169697b3",
+          "character": "ヴィヴィ",
+          "name": "ヴィヴィ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-d3cb0a2311edf7b7",
+          "character": "セシディット",
+          "name": "セシディット",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "挑発"
+        },
+        {
+          "id": "vierge-fb7cb8b6fd951f4e",
+          "character": "サルタビア",
+          "name": "サルタビア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "祈り"
+        },
+        {
+          "id": "vierge-8e1d27577dccdde7",
+          "character": "ライム・キャットハンズ",
+          "name": "ライム・キャットハンズ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／背水"
+        },
+        {
+          "id": "vierge-8d383398fac2f817",
+          "character": "オルトリン",
+          "name": "オルトリン",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "白銀の守り人"
+        },
+        {
+          "id": "vierge-3552375a3dbb7c5c",
+          "character": "シャティー",
+          "name": "シャティー",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "挑発"
+        },
+        {
+          "id": "vierge-d788c0f49be2935a",
+          "character": "シャティー",
+          "name": "シャティー",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "紺碧の守り人"
+        },
+        {
+          "id": "vierge-60a2c7d1c8fcad9e",
+          "character": "アーシア",
+          "name": "アーシア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-199efc69bc87ab78",
+          "character": "エミリア",
+          "name": "エミリア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／紺碧"
+        },
+        {
+          "id": "vierge-ae74b868a85fb320",
+          "character": "シャム",
+          "name": "シャム",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "漆黒の守り人"
+        },
+        {
+          "id": "vierge-c684952dd835d796",
+          "character": "ルビー",
+          "name": "ルビー",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-e97598d53fb1f43c",
+          "character": "ルフェ",
+          "name": "ルフェ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "祈り"
+        },
+        {
+          "id": "vierge-c98753a4c63feb5c",
+          "character": "シエン",
+          "name": "シエン",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-0f372d9ff7db07a9",
+          "character": "プルエーコ",
+          "name": "プルエーコ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-fc560898e1943e39",
+          "character": "アマノリリス",
+          "name": "アマノリリス",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-9b83f97e316ccf1a",
+          "character": "エクスシア",
+          "name": "エクスシア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "深緑の守り人"
+        },
+        {
+          "id": "vierge-37f46ad190137f56",
+          "character": "キヌエ・カンナミラ",
+          "name": "キヌエ・カンナミラ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "紺碧の守り人"
+        },
+        {
+          "id": "vierge-e893c9f7e168f935",
+          "character": "アクエリア",
+          "name": "アクエリア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-81657d31f7b25904",
+          "character": "レイナ・メサ",
+          "name": "レイナ・メサ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／弱体"
+        },
+        {
+          "id": "vierge-360f72292fd3091c",
+          "character": "コードΩ46セニア",
+          "name": "コードΩ46セニア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-859982626fe0eee3",
+          "character": "コードΩ46セニア",
+          "name": "コードΩ46セニア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／気絶"
+        },
+        {
+          "id": "vierge-65072e2a46fd1232",
+          "character": "Dr.ミハイル",
+          "name": "Dr.ミハイル",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／回避"
+        },
+        {
+          "id": "vierge-78c8f74e5fc457de",
+          "character": "エルセア＝エコルダ",
+          "name": "エルセア＝エコルダ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／反撃"
+        },
+        {
+          "id": "vierge-4d0524838e8bd142",
+          "character": "コード＝204ケイティ",
+          "name": "コード＝204ケイティ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-6633e6e9cc358716",
+          "character": "コードΣチカル",
+          "name": "コードΣチカル",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "少女の歌声"
+        },
+        {
+          "id": "vierge-35fae2513c061f69",
+          "character": "コードΩ31オリガ",
+          "name": "コードΩ31オリガ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／睡眠"
+        },
+        {
+          "id": "vierge-90eb4a0a99cefa1f",
+          "character": "タイプHU-50ニナ",
+          "name": "タイプHU-50ニナ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "仁王立ち"
+        },
+        {
+          "id": "vierge-c71f49d1cd8b51de",
+          "character": "ミティア",
+          "name": "ミティア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／紺碧"
+        },
+        {
+          "id": "vierge-e1fbbd9d560d9845",
+          "character": "リーチェ・ホルスタイン",
+          "name": "リーチェ・ホルスタイン",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／麻痺"
+        },
+        {
+          "id": "vierge-54efe6a7b1f59c71",
+          "character": "コードΩ33カレン",
+          "name": "コードΩ33カレン",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "疾風"
+        },
+        {
+          "id": "vierge-02567337cb0a6f2b",
+          "character": "タイプMU-21ナナ",
+          "name": "タイプMU-21ナナ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "少女の旋律"
+        },
+        {
+          "id": "vierge-b44bb5a8506419a9",
+          "character": "タイプPU-22リン",
+          "name": "タイプPU-22リン",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／背水"
+        },
+        {
+          "id": "vierge-4636a7f994f2506a",
+          "character": "コードΣ43メルト",
+          "name": "コードΣ43メルト",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "異能封じ／睡眠"
+        },
+        {
+          "id": "vierge-ec16146c91534098",
+          "character": "コードΣ43メルト",
+          "name": "コードΣ43メルト",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "少女の葬送曲"
+        },
+        {
+          "id": "vierge-c670ffc4bc63e2e3",
+          "character": "コードΣ43メルト",
+          "name": "コードΣ43メルト",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-bf34fb6796c38150",
+          "character": "サングリア＝カミュ",
+          "name": "サングリア＝カミュ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "少女の鎮魂歌"
+        },
+        {
+          "id": "vierge-e70990767946cd25",
+          "character": "コードΣ44メニル",
+          "name": "コードΣ44メニル",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-eabd8e247e579e8d",
+          "character": "レティシア",
+          "name": "レティシア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／麻痺"
+        },
+        {
+          "id": "vierge-fac416bb3fb4dfc9",
+          "character": "コードΩ58モモ",
+          "name": "コードΩ58モモ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "加護"
+        },
+        {
+          "id": "vierge-432e14cd8d38bde5",
+          "character": "コードΩ00ユーフィリア",
+          "name": "コードΩ00ユーフィリア",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "背水の陣"
+        },
+        {
+          "id": "vierge-bc3a575b0a398b10",
+          "character": "コードΩ00ユーフィリア",
+          "name": "コードΩ00ユーフィリア",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-21197f9edc748790",
+          "character": "コードΣ61エヴァ",
+          "name": "コードΣ61エヴァ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／紅蓮"
+        },
+        {
+          "id": "vierge-3f1f2daa03d23908",
+          "character": "システム＝NPゼシカ",
+          "name": "システムNP＝ゼシカ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "挑発"
+        },
+        {
+          "id": "vierge-aa56b466c6f688ca",
+          "character": "コードΣ52テルル",
+          "name": "コードΣ52テルル",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "集中攻撃／背水"
+        },
+        {
+          "id": "vierge-0f547561a4c23908",
+          "character": "コードΩ55ペネル",
+          "name": "コードΩ55ペネル",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-704e4804804dbcfa",
+          "character": "セントレイ",
+          "name": "セントレイ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "防御特化"
+        },
+        {
+          "id": "vierge-0f0d1fae6d03413e",
+          "character": "セナ・ユニヴェール",
+          "name": "セナ・ユニヴェール",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／深緑"
+        },
+        {
+          "id": "vierge-473a95496fa9b8bb",
+          "character": "マユカ・サナギ",
+          "name": "マユカ・サナギ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-2fb630077cd7b220",
+          "character": "マユカ・サナギ",
+          "name": "マユカ・サナギ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-3b2469d49bcb0b25",
+          "character": "リク・エルキュール",
+          "name": "リク・エルキュール",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／回避"
+        },
+        {
+          "id": "vierge-116e44f4b6bbf43e",
+          "character": "リク・エルキュール",
+          "name": "リク・エルキュール",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "異能封じ／気絶"
+        },
+        {
+          "id": "vierge-edc99e2588a2a64a",
+          "character": "アインス・エクスアウラ",
+          "name": "アインス・エクスアウラ",
+          "rarity": "R",
+          "cost": 8,
+          "skill": "集中攻撃／紺碧"
+        },
+        {
+          "id": "vierge-57539e3319696eb7",
+          "character": "アインス・エクスアウラ",
+          "name": "アインス・エクスアウラ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-c2ee84669940d6ad",
+          "character": "シルト・リーヴェリンゲン",
+          "name": "シルト・リーヴェリンゲン",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "目覚める可能性"
+        },
+        {
+          "id": "vierge-4b186875e8ac9f01",
+          "character": "シルト・リーヴェリンゲン",
+          "name": "シルト・リーヴェリンゲン",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "再現者／魔剣創造"
+        },
+        {
+          "id": "vierge-b01b6484cb17f247",
+          "character": "スレイ・ティルダイン",
+          "name": "スレイ・ティルダイン",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "挑発"
+        },
+        {
+          "id": "vierge-499948b50effc4fd",
+          "character": "ナツナ・トオナギ",
+          "name": "ナツナ・トオナギ",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "鉄壁"
+        },
+        {
+          "id": "vierge-606dd2f8477c86ed",
+          "character": "リーリヤ・ザクシード",
+          "name": "リーリヤ・ザクシード",
+          "rarity": "R",
+          "cost": 7,
+          "skill": "情熱"
+        },
+        {
+          "id": "vierge-268ac50759494cec",
+          "character": "イーディン",
+          "name": "イーディン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "魔神の追撃",
+          "source": "https://ange.webcraft.work/ext/single.php?id=135"
+        },
+        {
+          "id": "vierge-ec0f4dbc5597498d",
+          "character": "コードΩ77ステラ",
+          "name": "コードΩ77ステラ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "体系／無限演算",
+          "source": "https://ange.webcraft.work/ext/single.php?id=136"
+        },
+        {
+          "id": "vierge-14559108a30b36cf",
+          "character": "エウレカ",
+          "name": "エウレカ",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "極限演算／助勢",
+          "source": "https://ange.webcraft.work/ext/single.php?id=699"
+        },
+        {
+          "id": "vierge-b75ecde1fa416930",
+          "character": "彩城天音",
+          "name": "彩城天音【3周年】",
+          "rarity": "UR",
+          "cost": 14,
+          "skill": "新たな繋がり",
+          "source": "https://ange.webcraft.work/ext/single.php?id=164"
+        },
+        {
+          "id": "vierge-fe7b0ea3fe815e13",
+          "character": "アリス",
+          "name": "アリス",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "魔王の追撃",
+          "source": "https://ange.webcraft.work/ext/single.php?id=654"
+        },
+        {
+          "id": "vierge-a5d8267f736ecc41",
+          "character": "コードΩ72レイン",
+          "name": "コードΩ72レイン",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "指定座標爆撃ver.3",
+          "source": "https://ange.webcraft.work/ext/single.php?id=349"
+        },
+        {
+          "id": "vierge-2121daf9928e3ab8",
+          "character": "レモン・マッドベア",
+          "name": "レモン・マッドベア",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "大術式／沈黙・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=415"
+        },
+        {
+          "id": "vierge-59375035fbd65253",
+          "character": "コードΣ81ティエラ",
+          "name": "コードΣ８１ティエラ",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "消えゆく烈火・赤",
+          "source": "https://ange.webcraft.work/ext/single.php?id=427"
+        },
+        {
+          "id": "vierge-0330656a6739b3ca",
+          "character": "ナイア・ラピュセア",
+          "name": "ナイア・ラピュセア",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "追撃の戦士",
+          "source": "https://ange.webcraft.work/ext/single.php?id=429"
+        },
+        {
+          "id": "vierge-c03d830e3822634f",
+          "character": "マコロン・マリネール",
+          "name": "マコロン・マリネール",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "八芒星陣",
+          "source": "https://ange.webcraft.work/ext/single.php?id=751"
+        },
+        {
+          "id": "vierge-b3df94f251e245a8",
+          "character": "ロゼ・マトリクス",
+          "name": "ロゼ・マトリクス",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "絶対感染／睡眠・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=452"
+        },
+        {
+          "id": "vierge-8f7a5c1b81e0d5da",
+          "character": "コードΣ14スラー",
+          "name": "コードΣ１４スラー",
+          "rarity": "SR",
+          "cost": 13,
+          "skill": "轟く爆撃act.3",
+          "source": "https://ange.webcraft.work/ext/single.php?id=453"
+        },
+        {
+          "id": "vierge-212f9a7069075492",
+          "character": "ミルル",
+          "name": "ミルル",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "研ぎ澄まされる閃火",
+          "source": "https://ange.webcraft.work/ext/single.php?id=767"
+        },
+        {
+          "id": "vierge-9260575b2fdf8a03",
+          "character": "パインパイン",
+          "name": "パインパイン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "奇蹟の葬送曲・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=489"
+        },
+        {
+          "id": "vierge-c0260f8a437b2e58",
+          "character": "ハルプ・エルトシュヴァン",
+          "name": "ハルプ・エルトシュヴァン",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "絶対感染／麻痺・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=560"
+        },
+        {
+          "id": "vierge-ea4b46d664815acf",
+          "character": "アイリーン",
+          "name": "アイリーン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "六芒星陣",
+          "source": "https://ange.webcraft.work/ext/single.php?id=510"
+        },
+        {
+          "id": "vierge-5d2bf33e7cb8e11f",
+          "character": "ユラ",
+          "name": "ユラ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "碧紺の方舟",
+          "source": "https://ange.webcraft.work/ext/single.php?id=511"
+        },
+        {
+          "id": "vierge-7d930b1a87690aa6",
+          "character": "リーネ・アゾット",
+          "name": "リーネ・アゾット",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "五竜天檄／沈黙",
+          "source": "https://ange.webcraft.work/ext/single.php?id=727"
+        },
+        {
+          "id": "vierge-f38dec4def4e7b91",
+          "character": "クララ",
+          "name": "クララ",
+          "rarity": "SR",
+          "cost": 12,
+          "skill": "希望・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=524"
+        },
+        {
+          "id": "vierge-6c01246e31cb1fdc",
+          "character": "久遠すがさ",
+          "name": "久遠すがさ",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "不死の体／反抗の狼煙",
+          "source": "https://ange.webcraft.work/ext/single.php?id=698"
+        },
+        {
+          "id": "vierge-4fe2340dc541206d",
+          "character": "ウルリカ",
+          "name": "ウルリカ",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "緑結晶の鼓吹",
+          "source": "https://ange.webcraft.work/ext/single.php?id=757"
+        },
+        {
+          "id": "vierge-9b6b0e513e0c5346",
+          "character": "シオン・パルティ",
+          "name": "シオン・パルティ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "奇蹟の鎮魂歌・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=655"
+        },
+        {
+          "id": "vierge-105565cbcb194f25",
+          "character": "コードΣ30ピコ",
+          "name": "コードΣ３０ピコ【大人】",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "無力化障壁ver.3",
+          "source": "https://ange.webcraft.work/ext/single.php?id=609"
+        },
+        {
+          "id": "vierge-72fca6c261323c8c",
+          "character": "シーラム999",
+          "name": "シーラム９９９",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "慈愛・白",
+          "source": "https://ange.webcraft.work/ext/single.php?id=749"
+        },
+        {
+          "id": "vierge-93fed23bc46f858a",
+          "character": "空知青葉",
+          "name": "空知青葉",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "万花繚乱",
+          "source": "https://ange.webcraft.work/ext/single.php?id=639"
+        },
+        {
+          "id": "vierge-2b43eb3437dc2fbf",
+          "character": "リネット",
+          "name": "リネット",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "天翔・黒",
+          "source": "https://ange.webcraft.work/ext/single.php?id=686"
+        },
+        {
+          "id": "vierge-1a052650aa92538e",
+          "character": "マリル",
+          "name": "マリル",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "連鎖／勇気",
+          "source": "https://ange.webcraft.work/ext/single.php?id=687"
+        },
+        {
+          "id": "vierge-af7a7e7c8259fc4e",
+          "character": "オルガ",
+          "name": "オルガ",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "反転術式／愛",
+          "source": "https://ange.webcraft.work/ext/single.php?id=688"
+        },
+        {
+          "id": "vierge-6df36d5dd3916634",
+          "character": "コードΩ43トリノ",
+          "name": "コードΩ43トリノ",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "極光・白",
+          "source": "https://ange.webcraft.work/ext/single.php?id=772"
+        },
+        {
+          "id": "vierge-5b6f55988f5a392a",
+          "character": "ガブリエラ",
+          "name": "ガブリエラ",
+          "rarity": "UR",
+          "cost": 16,
+          "skill": "反転術式／覇気",
+          "source": "https://ange.webcraft.work/ext/single.php?id=703"
+        },
+        {
+          "id": "vierge-5dfa85b853d8ed75",
+          "character": "クリミ・ナル",
+          "name": "クリミ・ナル",
+          "rarity": "UR",
+          "cost": 17,
+          "skill": "夢想・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=719"
+        },
+        {
+          "id": "vierge-40cb8653b36a0de6",
+          "character": "ノヴァ・ノストラ",
+          "name": "ノヴァ・ノストラ",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "魔人の追撃",
+          "source": "https://ange.webcraft.work/ext/single.php?id=720"
+        },
+        {
+          "id": "vierge-fa50e2bc5a4e7412",
+          "character": "カポネ・プリン",
+          "name": "カポネ・プリン",
+          "rarity": "UR",
+          "cost": 15,
+          "skill": "絶対感染／沈黙・全",
+          "source": "https://ange.webcraft.work/ext/single.php?id=773"
+        },
+        {
+          "id": "vierge-06d31bd1fa79ecaa",
+          "character": "村正正宗",
+          "name": "村正正宗【林下風気】",
+          "rarity": "UR",
+          "source": "https://www.gamer.ne.jp/news/201903010060/"
+        },
+        {
+          "id": "vierge-6774ba2484ef090e",
+          "character": "扶瀬みちる",
+          "name": "扶瀬みちる【お茶好きな少女】",
+          "rarity": "UR",
+          "cost": 18,
+          "source": "https://www.4gamer.net/games/234/G023460/20200217084/"
+        },
+        {
+          "id": "vierge-b680cec8bf5e1e70",
+          "character": "セルティ・フェルティ",
+          "name": "セルティ・フェルティ",
+          "rarity": "UR",
+          "cost": 18,
+          "source": "https://buhitter.com/search?offset=20&q=ange_gb"
+        },
+        {
+          "id": "vierge-37bd1eb5ac68fa7e",
+          "character": "エルゼ・ツァールト",
+          "name": "エルゼ・ツァールト",
+          "rarity": "UR",
+          "cost": 18,
+          "source": "https://buhitter.com/search?offset=20&q=ange_gb"
+        }
+      ]
+    },
+    "relink": {
+      "sources": [
+        "https://gamerch.com/ange-relink/791926",
+        "https://gamerch.com/ange-relink/895716"
+      ],
+      "note": "2024-09-10更新の公開攻略表に載る恒常カード37種。限定衣装・ピックアップ・★3確定ゲージは含みません。同レアリティ内は均等です。",
+      "missing_characters": [],
+      "cards": [
+        {
+          "id": "relink-8630597ddb38fc36",
+          "character": "ナクル",
+          "name": "ナクル",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-f5c33e4932627794",
+          "character": "遥",
+          "name": "遥",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-161d9ea059529c3f",
+          "character": "ヴェノム",
+          "name": "ヴェノム",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-356ee419f5922a19",
+          "character": "ミルドレッド",
+          "name": "ミルドレッド",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-e5b545498933ae4d",
+          "character": "紗夜",
+          "name": "紗夜",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-a884e1b5d68e25cb",
+          "character": "フェルノ",
+          "name": "フェルノ",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-75aa2b3f58175bf3",
+          "character": "ロザリー",
+          "name": "ロザリー",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-db7d903fbc221801",
+          "character": "ラウラ",
+          "name": "ラウラ",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-f67a2241f6177980",
+          "character": "天音",
+          "name": "天音",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-25535c1a7ba7a3f6",
+          "character": "ソフィーナ",
+          "name": "ソフィーナ",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-b1adbd3979699363",
+          "character": "シルト",
+          "name": "シルト",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-353e7896272bb97a",
+          "character": "セニア",
+          "name": "セニア",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-32b4d10e55cb7973",
+          "character": "ヒメ",
+          "name": "ヒメ",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-8dbc6af169cbb0fa",
+          "character": "ナイア",
+          "name": "ナイア",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-d5e13a98dd16dde5",
+          "character": "美海",
+          "name": "美海",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-6249ebef2bb50839",
+          "character": "エルエル",
+          "name": "エルエル",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-70214a9ab2639cef",
+          "character": "ステラ",
+          "name": "ステラ",
+          "rarity": "★3"
+        },
+        {
+          "id": "relink-8d9e903b47aea956",
+          "character": "レミエル",
+          "name": "レミエル",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-b6c3c8bc4d6def01",
+          "character": "トト",
+          "name": "トト",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-c34c1ef46531dcfc",
+          "character": "アルマリア",
+          "name": "アルマリア",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-653ecc6be3710904",
+          "character": "クラリス",
+          "name": "クラリス",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-e1901147f7ae7d7b",
+          "character": "葵",
+          "name": "葵",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-139b0c863b1e0d12",
+          "character": "新田",
+          "name": "新田",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-0b2d70d7c2148d24",
+          "character": "テオドーチェ",
+          "name": "テオドーチェ",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-948f5cc5f721a488",
+          "character": "セナ",
+          "name": "セナ",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-8cc92899649279fe",
+          "character": "ルルーナ",
+          "name": "ルルーナ",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-9d1ec449d69db7e3",
+          "character": "カレン",
+          "name": "カレン",
+          "rarity": "★2"
+        },
+        {
+          "id": "relink-682c13f10157bf46",
+          "character": "空",
+          "name": "空",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-3bc8e3f493f556d4",
+          "character": "マユカ",
+          "name": "マユカ",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-5ba0456b840aebaf",
+          "character": "ユフィ",
+          "name": "ユフィ",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-3455730e93d670a0",
+          "character": "アクエリア",
+          "name": "アクエリア",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-58efdf6f99798d1d",
+          "character": "シンシア",
+          "name": "シンシア",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-570722fd44c18520",
+          "character": "リュミエール",
+          "name": "リュミエール",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-05c9f000153111a5",
+          "character": "千尋",
+          "name": "千尋",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-c0536ce34658819a",
+          "character": "オルトリン",
+          "name": "オルトリン",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-fd2ee1b2d31eb606",
+          "character": "アインス",
+          "name": "アインス",
+          "rarity": "★1"
+        },
+        {
+          "id": "relink-6d7330c6b07f82c9",
+          "character": "リゼリッタ",
+          "name": "リゼリッタ",
+          "rarity": "★1"
+        }
+      ]
+    }
+  }
+}

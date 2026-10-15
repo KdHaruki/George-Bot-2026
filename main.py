@@ -12,11 +12,14 @@ import progress as progress_module
 from keep_alive import keep_alive
 from fun_features import TimerManager, draw_fortune, parse_duration, FORTUNES
 from registered_memory import MemoryStore, MemoryUnavailable
-from reminders import ReminderStore, ReminderScheduler, parse_schedule, JST
+from reminders import ReminderStore, ReminderScheduler, parse_schedule, JST, REPEAT_LABELS
 from reply_context import george_reply_target
 from command_help import command_help
 from health_check import HealthCheck
 from image_inputs import ImageSource, load_images, ambient_image_sources
+from seasonal_notifications import SeasonalStore, SeasonalScheduler
+from seasonal_commands import register_seasonal_commands
+from gacha_commands import register_gacha_commands
 
 ########################################
 # Botクラス
@@ -36,6 +39,8 @@ class MyClient(discord.Client):
         self.memories = MemoryStore()
         self.reminder_store = ReminderStore()
         self.reminders = ReminderScheduler(self.reminder_store)
+        self.seasonal_store = SeasonalStore()
+        self.seasonal = SeasonalScheduler(self.seasonal_store)
         self.cleaned_guilds = set()
         self.health = HealthCheck()
 
@@ -43,6 +48,7 @@ class MyClient(discord.Client):
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
         self.reminders.start(self)
+        self.seasonal.start(self)
 
     async def clear_guild_commands(self, guild):
         if guild.id in self.cleaned_guilds:
@@ -58,6 +64,7 @@ class MyClient(discord.Client):
 
     async def close(self):
         try:
+            await self.seasonal.close()
             await self.reminders.close()
             await self.timers.close()
             await self.george_chat.close()
@@ -73,6 +80,8 @@ class MyClient(discord.Client):
             self.ambient.states.pop(channel.id, None)
 
 client = MyClient()
+register_seasonal_commands(client)
+register_gacha_commands(client)
 
 ########################################
 # 起動確認
@@ -239,14 +248,16 @@ async def delete_memory(interaction: discord.Interaction, タイトル: str):
 
 @client.tree.command(name="予定", description="再起動後も残る予定リマインダーを登録（日本時間）")
 @app_commands.guild_only()
-@app_commands.describe(日時="例：明日21時、2026-10-16 21:00", 内容="1〜300文字。通知はこのチャンネルに送信")
-async def schedule_reminder(interaction: discord.Interaction, 日時: str, 内容: str):
+@app_commands.describe(日時="最初の通知日時。例：明日21時、2026-10-16 21:00", 内容="1〜300文字。通知はこのチャンネルに送信", 繰り返し="毎週は初回の曜日、毎月は初回の日付。存在しない日は月末")
+@app_commands.choices(繰り返し=[app_commands.Choice(name=label, value=value) for value, label in REPEAT_LABELS.items()])
+async def schedule_reminder(interaction: discord.Interaction, 日時: str, 内容: str, 繰り返し: str = "none"):
     await interaction.response.defer(ephemeral=True)
     try:
         due_at = parse_schedule(日時)
-        rid = await asyncio.to_thread(client.reminder_store.add, interaction.guild_id, interaction.channel_id, interaction.user.id, due_at, 内容)
+        rid = await asyncio.to_thread(client.reminder_store.add, interaction.guild_id, interaction.channel_id, interaction.user.id, due_at, 内容, 繰り返し)
         stamp = due_at.astimezone(JST).strftime("%Y/%m/%d %H:%M")
-        text = f"予定ID {rid}：{stamp}（日本時間）に、このチャンネルで呼ぶぜ！\n{内容}\n通常は予定時刻から約1分以内、停止中に過ぎた分は復帰後の通知になるぞ。"
+        repeat_note = "毎月は存在しない日をその月の末日にするぜ。\n" if 繰り返し == "monthly" else ""
+        text = f"予定ID {rid}：初回 {stamp}（日本時間）｜{REPEAT_LABELS[繰り返し]}\nこのチャンネルで呼ぶぜ！\n{内容}\n{repeat_note}通常は予定時刻から約1分以内、停止中の分は復帰後に1回通知して、次の未来の日程に進むぞ。"
     except (ValueError, MemoryUnavailable) as exc:
         text = str(exc)
     await interaction.followup.send(text, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
@@ -259,7 +270,7 @@ async def list_reminders(interaction: discord.Interaction):
     try:
         rows = await asyncio.to_thread(client.reminder_store.list, interaction.guild_id, interaction.user.id)
         statuses = {"pending": "待機中", "processing": "通知処理中", "failed": "通知失敗"}
-        text = "\n\n".join(f"ID {rid}｜{due.astimezone(JST):%Y/%m/%d %H:%M}（日本時間）｜{statuses.get(status, status)}\n<#{channel_id}> {content}" for rid, due, content, status, channel_id in rows) or "未通知の予定はないぜ。"
+        text = "\n\n".join(f"ID {rid}｜次回 {due.astimezone(JST):%Y/%m/%d %H:%M}（日本時間）｜{statuses.get(status, status)}｜{REPEAT_LABELS.get(repeat, repeat)}\n<#{channel_id}> {content}" for rid, due, content, status, channel_id, repeat in rows) or "未通知の予定はないぜ。"
     except MemoryUnavailable as exc:
         text = str(exc)
     for offset in range(0, len(text), 1800):
