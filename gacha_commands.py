@@ -2,6 +2,8 @@
 import discord
 import asyncio
 import math
+import logging
+import random
 from discord import app_commands
 
 from gacha import Card, Gacha, RULES
@@ -12,40 +14,55 @@ from registered_memory import MemoryUnavailable
 GAME_CHOICES = [app_commands.Choice(name=rules.name, value=key) for key, rules in RULES.items()]
 
 
-def result_embed(engine, game, cards, saved=None):
+def gacha_comment(game, cards, saved=None, favorite=None):
+    if favorite and favorite[0] == game:
+        picked = favorite[1]
+        if any(card.id == picked.id for card in cards):
+            return random.choice([
+                f'お気に入りの{picked.character}が来たぜ！ お気に入りの一枚が引けてよかったな！',
+                f'{picked.character}、お気に入りにしてた一枚じゃねえか！ うれしい再会だな！',
+                f'おっ、お気に入りの{picked.character}を引けたな！ 大事な一枚がまた増えたぜ！',
+            ])
+        if any(card.character == picked.character for card in cards):
+            return random.choice([
+                f'お気に入りの{picked.character}が来たぜ！ 別の一枚も集められてよかったな！',
+                f'{picked.character}を引けたな！ お気に入りの子のコレクションが広がるぜ！',
+                f'おっ、{picked.character}じゃねえか！ お気に入りの子の別カードもうれしいな！',
+            ])
+    new_count = sum(entry['new'] for entry in saved) if saved is not None else 0
+    highest = RULES[game].normal[0][0]
+    rare_count = sum(card.rarity == highest for card in cards)
+    if rare_count and new_count:
+        return f'{highest}が{rare_count}枚、それに初入手も{new_count}種類だぜ！ 新しい顔ぶれをじっくり見てみな！'
+    if rare_count:
+        return random.choice([f'{highest}が{rare_count}枚来たぜ！ どの一枚が気に入った？', f'おっ、{highest}を引けたな！ いい顔ぶれじゃねえか！'])
+    if new_count:
+        return random.choice([f'初入手が{new_count}種類だぜ！ コレクションが広がったな！', f'新しいカードが{new_count}種類も来たぜ！ じっくり眺めてみな！'])
+    if saved is not None:
+        return random.choice(['今回は持っている顔ぶれだったな。集めた枚数はしっかり増えたぜ！', 'おなじみの顔ぶれが来たぜ！ コレクションに追加しておいたぞ！'])
+    return random.choice(['今回はこんな顔ぶれだぜ！ 気になる一枚はいたか？', '結果が出たぜ！ どのプログレスもじっくり見てみな！'])
+
+
+def result_embed(engine, game, cards, saved=None, favorite=None):
     rules = RULES[game]
-    catalog = engine.catalog['games'][game]
     lines = []
     for index, card in enumerate(cards, 1):
-        guaranteed = len(cards) == rules.batch_size and index == len(cards)
         text = discord.utils.escape_markdown(card.label)
         is_new = saved is not None and saved[index - 1]['new']
-        prefix = '**NEW** ' if is_new else ''
-        ownership = '' if saved is None or is_new else f" 【所持{saved[index - 1]['quantity']}枚】"
-        lines.append(prefix + f'{index}. **{card.rarity}** {text}' + ownership + (' 【確定枠】' if guaranteed else ''))
+        ownership = ' **【NEW】**' if is_new else ''
+        lines.append(f'`{index:02d}` **{card.rarity}** {text}' + ownership)
     embed = discord.Embed(title=f'{rules.name}：{len(cards)}回ガチャ',
                           description='\n'.join(lines), color=0xB06FE0)
-    embed.add_field(name='ジョージの一言', value='いい出会いはあったか？ また気軽に引いてくれよな！', inline=False)
-    if game == 'vierge':
-        missing = len(catalog['missing_characters'])
-        embed.add_field(name='収録範囲', value=f'資料で確認できたカードのプールだぜ。未確認のキャラは{missing}人。\n当時のガチャ収録内容とは異なるぞ。詳細は `/ガチャ確率`。', inline=False)
+    embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(gacha_comment(game, cards, saved, favorite)), inline=False)
     if saved is None:
         embed.add_field(name='保存なし', value='DATABASE_URL未設定のため、この結果はコレクションに保存されないぞ。', inline=False)
-    embed.set_footer(text='無料シミュレーター・' + ('コレクション保存済み' if saved is not None else '保存なし') + '・同じレアリティ内は均等抽選')
     return embed
 
 
 def rates_embed(engine, game):
     rules = RULES[game]
-    catalog = engine.catalog['games'][game]
-    embed = discord.Embed(title=f'{rules.name}：排出率・収録範囲',
+    embed = discord.Embed(title=f'{rules.name}：排出率',
                           description=engine.rates_text(game), color=0xB06FE0)
-    embed.add_field(name='このBotの収録内容', value=catalog['note'], inline=False)
-    if game == 'vierge':
-        embed.add_field(name='確率の根拠', value='提供してもらったゲーム内「通常時」の提供割合。UR/SR2倍は適用しないぞ。', inline=False)
-    missing = catalog['missing_characters']
-    if missing:
-        embed.add_field(name=f'カード情報未確認：{len(missing)}人', value='、'.join(missing), inline=False)
     return embed
 
 
@@ -55,9 +72,7 @@ def register_gacha_commands(bot, store=None):
 
     @bot.tree.command(name='ガチャ', description='2作品のカードガチャを無料で試す')
     @app_commands.describe(作品='引きたい作品', 回数='1回／ヴィエルジュ7連／リリンク10連')
-    @app_commands.choices(作品=GAME_CHOICES, 回数=[app_commands.Choice(name='1回', value=1),
-                         app_commands.Choice(name='7連（ヴィエルジュ）', value=7),
-                         app_commands.Choice(name='10連（リリンク）', value=10)])
+    @app_commands.choices(作品=GAME_CHOICES)
     @app_commands.checks.cooldown(1, 5, key=lambda interaction: interaction.user.id)
     async def draw(interaction: discord.Interaction, 作品: str, 回数: int = 1):
         try:
@@ -69,6 +84,7 @@ def register_gacha_commands(bot, store=None):
             return
         await interaction.response.defer()
         saved = None
+        favorite = None
         if store.url:
             try:
                 saved = await asyncio.to_thread(store.save_draw, interaction.user.id, 作品, interaction.id, cards)
@@ -76,8 +92,20 @@ def register_gacha_commands(bot, store=None):
             except (MemoryUnavailable, ValueError):
                 await interaction.followup.send('ガチャ結果の保存を確認できなかったぜ。`/所持カード`で確認してから、時間をおいて試してくれ。', ephemeral=True)
                 return
-        await interaction.followup.send(embed=result_embed(engine, 作品, cards, saved),
+            try:
+                favorite = await asyncio.to_thread(store.favorite, interaction.user.id)
+            except MemoryUnavailable:
+                # Saving succeeded: a failed optional lookup must not hide the result.
+                logging.warning('Gacha favorite lookup unavailable')
+        await interaction.followup.send(embed=result_embed(engine, 作品, cards, saved, favorite),
                                         allowed_mentions=discord.AllowedMentions.none())
+
+    @draw.autocomplete('回数')
+    async def draw_count(interaction: discord.Interaction, current: int):
+        game = getattr(interaction.namespace, '作品', None)
+        if game not in RULES:
+            return [app_commands.Choice(name='1回（先に作品を選択）', value=1)]
+        return [app_commands.Choice(name=f'{count}回', value=count) for count in (1, RULES[game].batch_size)]
 
     @draw.error
     async def on_draw_error(interaction: discord.Interaction, error):
@@ -86,7 +114,7 @@ def register_gacha_commands(bot, store=None):
         else:
             raise error
 
-    @bot.tree.command(name='ガチャ確率', description='作品ごとの排出率・収録範囲・未確認キャラを確認する')
+    @bot.tree.command(name='ガチャ確率', description='作品ごとの排出率を確認する')
     @app_commands.describe(作品='確認したい作品')
     @app_commands.choices(作品=GAME_CHOICES)
     async def rates(interaction: discord.Interaction, 作品: str):
@@ -133,12 +161,10 @@ def register_gacha_commands(bot, store=None):
         if ページ > pages:
             await interaction.followup.send(f'ページは1〜{pages}で指定してくれ！', ephemeral=True)
             return
-        lines = [('⭐ ' if (game, card.id) == favorite_key else '') + f"**{card.rarity}** {discord.utils.escape_markdown(card.label)}" + ('' if unowned else f' — **{count}枚**') + f"（{'ヴィエルジュ' if game == 'vierge' else 'リリンク'}）"
+        lines = [('⭐ ' if (game, card.id) == favorite_key else '') + f"**{card.rarity}** {discord.utils.escape_markdown(card.label)}" + ('' if unowned else f' — **{count}枚**')
                  for game, card, count in rows[(ページ - 1) * 10:ページ * 10]]
         empty = ('この条件の未所持カードはないぜ！' if query or レアリティ else '今のガチャ対象は全部そろってるぜ！') if unowned else '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
         embed = discord.Embed(title='キミの未所持カード' if unowned else 'キミの所持カード', description='\n'.join(lines) or empty, color=0xB06FE0)
-        scope = '今のガチャ収録分だけが対象・未収録カードは含まないぞ' if unowned else 'サーバーとDMで共通の個人コレクション'
-        embed.set_footer(text=f'{ページ}/{pages}ページ・該当{len(rows)}種類・{scope}')
         await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
     async def favorite_autocomplete(interaction: discord.Interaction, current: str):
@@ -147,6 +173,9 @@ def register_gacha_commands(bot, store=None):
         except (MemoryUnavailable, asyncio.TimeoutError):
             return []
         query = current.strip().casefold()
+        rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
+        rows = sorted(rows, key=lambda row: (0 if row[0] == 'vierge' else 1,
+                      rank.get(row[1].rarity, 9), row[1].character, row[1].label, row[1].id))
         return [app_commands.Choice(name=f"{card.rarity} {card.label}（{'ヴィエルジュ' if game == 'vierge' else 'リリンク'}）"[:100],
                                     value=f'{game}:{card.id}') for game, card, _ in rows
                 if not query or query in (card.character + card.label).casefold()][:25]

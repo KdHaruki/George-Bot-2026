@@ -9,7 +9,7 @@ from discord import app_commands
 
 from gacha import Card, Gacha
 from gacha_collection import CollectionStore, collection_summary, unowned_cards
-from gacha_commands import register_gacha_commands, result_embed
+from gacha_commands import gacha_comment, register_gacha_commands, result_embed
 from registered_memory import MemoryUnavailable
 
 
@@ -96,12 +96,61 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(total, sum(len(pool) for pool in engine.pools['vierge'].values()))
         saved = [dict(card=asdict(card), quantity=1, new=True), dict(card=asdict(card), quantity=2, new=False)]
         embed = result_embed(engine, 'vierge', [card, card], saved)
-        self.assertTrue(embed.description.splitlines()[0].startswith('**NEW** '))
-        self.assertFalse(embed.description.splitlines()[1].startswith('**NEW** '))
-        self.assertIn('【所持2枚】', embed.description)
+        self.assertTrue(embed.description.splitlines()[0].startswith('`01` **UR** '))
+        self.assertTrue(embed.description.splitlines()[0].endswith('**【NEW】**'))
+        self.assertTrue(embed.description.splitlines()[1].startswith('`02` **UR** '))
+        self.assertNotIn('【所持', embed.description)
+
+
+class ResultCommentTests(unittest.TestCase):
+    def test_favorite_exact_and_same_character_take_priority(self):
+        favorite = Card('fav', 'ロザリー', 'お気に入り', 'UR')
+        variant = Card('variant', 'ロザリー', '別カード', 'SR')
+        with patch('gacha_commands.random.choice', side_effect=lambda choices: choices[0]):
+            exact = gacha_comment('vierge', [favorite], favorite=('vierge', favorite, 2))
+            self.assertIn('お気に入りの一枚', exact)
+            other = gacha_comment('vierge', [variant], favorite=('vierge', favorite, 2))
+            self.assertIn('別の一枚', other)
+            unrelated = gacha_comment('relink', [Card('fav', 'ロザリー', '別作品', '★1')], favorite=('vierge', favorite, 2))
+            self.assertNotIn('お気に入り', unrelated)
+
+    def test_comments_follow_saved_new_rare_and_duplicate_results(self):
+        card = Card('one', 'ロザリー', 'ロザリー', 'SR')
+        new = [dict(new=True)]
+        duplicate = [dict(new=False)]
+        with patch('gacha_commands.random.choice', side_effect=lambda choices: choices[0]):
+            self.assertIn('初入手が1種類', gacha_comment('vierge', [card], new))
+            self.assertIn('枚数はしっかり増えた', gacha_comment('vierge', [card], duplicate))
+            self.assertNotIn('増えた', gacha_comment('vierge', [card]))
+            rare = Card('rare', 'ロザリー', 'ロザリー', 'UR')
+            self.assertIn('URが1枚', gacha_comment('vierge', [rare], duplicate))
+            self.assertIn('初入手も1種類', gacha_comment('vierge', [rare], new))
+
+    def test_mixed_ten_draw_lines_keep_number_first_and_guarantee(self):
+        engine = Gacha()
+        card = engine.pools['relink']['★2'][0]
+        saved = [dict(new=index == 0, quantity=index + 1) for index in range(10)]
+        embed = result_embed(engine, 'relink', [card] * 10, saved)
+        for index, line in enumerate(embed.description.splitlines(), 1):
+            self.assertTrue(line.startswith(f'`{index:02d}` **★2** '))
+        self.assertNotIn('【確定枠】', embed.description)
+        self.assertEqual(embed.description.count('【NEW】'), 1)
+        self.assertLessEqual(len(embed), 6000)
 
 
 class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
+    async def test_favorite_candidates_sort_by_game_then_descending_rarity(self):
+        expected = [('vierge', rarity) for rarity in ('UR', 'SR', 'HR', 'R')] + [('relink', rarity) for rarity in ('★3', '★2', '★1')]
+        rows = [(game, Card(str(index), 'ロザリー', 'ロザリー', rarity), 1)
+                for index, (game, rarity) in enumerate(expected)]
+        store = SimpleNamespace(url='test', owned=Mock(return_value=list(reversed(rows))))
+        client, tree, interaction = self.objects(store)
+        autocomplete = tree.get_command('お気に入り')._params['カード'].autocomplete
+        for query in ('', 'ロザリー'):
+            choices = await autocomplete(interaction, query)
+            self.assertEqual([choice.value for choice in choices], [f'{game}:{card.id}' for game, card, _ in rows])
+        await client.close()
+
     async def test_favorite_registration_view_removal_and_pinning(self):
         engine = Gacha()
         cards = [card for pool in engine.pools['vierge'].values() for card in pool]
@@ -153,7 +202,10 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         client, tree, interaction = self.objects(store)
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
         self.assertEqual(store.save_draw.call_args.args[:3], (10, 'relink', 100))
-        self.assertTrue(interaction.followup.send.call_args.kwargs['embed'].description.startswith('**NEW** '))
+        self.assertIn('**【NEW】**', interaction.followup.send.call_args.kwargs['embed'].description)
+        store.favorite.side_effect = MemoryUnavailable('offline')
+        await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        self.assertIn('**【NEW】**', interaction.followup.send.call_args.kwargs['embed'].description)
         store.save_draw.side_effect = MemoryUnavailable('offline')
         interaction.followup.send.reset_mock()
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
@@ -173,6 +225,9 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
         self.assertEqual(len(call.kwargs['embed'].description.splitlines()), min(10, len(rosaries)))
+        self.assertNotIn('ヴィエルジュ', call.kwargs['embed'].description)
+        self.assertNotIn('リリンク', call.kwargs['embed'].description)
+        self.assertFalse(call.kwargs['embed'].footer.text)
         await tree.get_command('所持カード').callback(interaction, ページ=2)
         self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.splitlines()), 10)
         await tree.get_command('収集率').callback(interaction)
@@ -202,7 +257,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
         embed = call.kwargs['embed']
-        self.assertIn(f'該当{len(rosaries) - 1}種類', embed.footer.text)
+        self.assertFalse(embed.footer.text)
         self.assertNotIn(rosaries[0].label, embed.description)
         await command.callback(interaction, ページ=2)
         embed = interaction.followup.send.call_args.kwargs['embed']
@@ -215,7 +270,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         await command.callback(interaction, 'vierge')
         embed = interaction.followup.send.call_args.kwargs['embed']
         self.assertIn('全部そろってる', embed.description)
-        self.assertIn('該当0種類', embed.footer.text)
+        self.assertFalse(embed.footer.text)
         await command.callback(interaction, 'vierge', '存在しない名前')
         self.assertIn('この条件', interaction.followup.send.call_args.kwargs['embed'].description)
         await client.close()

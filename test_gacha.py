@@ -82,6 +82,10 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
         client = discord.Client(intents=discord.Intents.none())
         bot = SimpleNamespace(tree=app_commands.CommandTree(client))
         register_gacha_commands(bot, store=SimpleNamespace(url=''))
+        autocomplete = bot.tree.get_command('ガチャ')._params['回数'].autocomplete
+        for game, expected in [('vierge', [1, 7]), ('relink', [1, 10]), (None, [1])]:
+            choices = await autocomplete(SimpleNamespace(namespace=SimpleNamespace(作品=game)), 0)
+            self.assertEqual([choice.value for choice in choices], expected)
         self.assertEqual({command.name for command in bot.tree.get_commands()}, {'ガチャ', 'ガチャ確率', '所持カード', '未所持カード', '収集率', 'お気に入り'})
         interaction = SimpleNamespace(response=SimpleNamespace(send_message=AsyncMock(), defer=AsyncMock()),
                                       followup=SimpleNamespace(send=AsyncMock()))
