@@ -1,0 +1,94 @@
+"""User-owned collections, saved atomically with idempotent draw receipts."""
+from contextlib import contextmanager
+from dataclasses import asdict
+import json
+
+from gacha import Card
+from registered_memory import MemoryStore, MemoryUnavailable
+
+
+class CollectionStore(MemoryStore):
+    @contextmanager
+    def connect(self):
+        try:
+            with super().connect() as connection:
+                connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_cards (
+                    user_id BIGINT NOT NULL, game TEXT NOT NULL, card_id TEXT NOT NULL,
+                    card JSONB NOT NULL, quantity BIGINT NOT NULL CHECK(quantity>0),
+                    PRIMARY KEY(user_id,game,card_id))""")
+                connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_draws (
+                    interaction_id BIGINT PRIMARY KEY, user_id BIGINT NOT NULL,
+                    game TEXT NOT NULL, result JSONB NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+                connection.execute("CREATE INDEX IF NOT EXISTS george_gacha_draws_owner_idx ON george_gacha_draws(user_id,created_at)")
+                connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_favorites (
+                    user_id BIGINT PRIMARY KEY, game TEXT NOT NULL, card_id TEXT NOT NULL,
+                    FOREIGN KEY(user_id,game,card_id) REFERENCES george_gacha_cards(user_id,game,card_id))""")
+                yield connection
+        except MemoryUnavailable:
+            raise MemoryUnavailable('コレクションの保存先を利用できなかったぜ。管理者にDATABASE_URLを確認してもらってくれ。') from None
+
+    def save_draw(self, user_id, game, interaction_id, cards):
+        with self.connect() as connection:
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            previous = connection.execute('SELECT user_id,game,result FROM george_gacha_draws WHERE interaction_id=%s', (interaction_id,)).fetchone()
+            if previous:
+                if previous[:2] != (user_id, game):
+                    raise ValueError('Draw owner mismatch')
+                return previous[2]
+            result = []
+            for card in cards:
+                payload = asdict(card)
+                quantity = connection.execute("""INSERT INTO george_gacha_cards(user_id,game,card_id,card,quantity)
+                    VALUES (%s,%s,%s,%s::jsonb,1)
+                    ON CONFLICT(user_id,game,card_id) DO UPDATE SET
+                    quantity=george_gacha_cards.quantity+1,card=EXCLUDED.card RETURNING quantity""",
+                    (user_id, game, card.id, json.dumps(payload, ensure_ascii=False))).fetchone()[0]
+                result.append(dict(card=payload, quantity=quantity, new=quantity == 1))
+            connection.execute('INSERT INTO george_gacha_draws(interaction_id,user_id,game,result) VALUES (%s,%s,%s,%s::jsonb)',
+                               (interaction_id, user_id, game, json.dumps(result, ensure_ascii=False)))
+            # Receipts only prevent short-term redelivery; owned cards never expire.
+            connection.execute("DELETE FROM george_gacha_draws WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
+        return result
+
+    def owned(self, user_id, game=None):
+        with self.connect() as connection:
+            rows = connection.execute("""SELECT game,card,quantity FROM george_gacha_cards
+                WHERE user_id=%s AND (%s::text IS NULL OR game=%s) ORDER BY game,card_id""", (user_id, game, game)).fetchall()
+        return [(game, Card(**card), quantity) for game, card, quantity in rows]
+
+    def favorite(self, user_id):
+        with self.connect() as connection:
+            row = connection.execute("""SELECT c.game,c.card,c.quantity FROM george_gacha_favorites f
+                JOIN george_gacha_cards c ON (c.user_id,c.game,c.card_id)=(f.user_id,f.game,f.card_id)
+                WHERE f.user_id=%s""", (user_id,)).fetchone()
+        return (row[0], Card(**row[1]), row[2]) if row else None
+
+    def set_favorite(self, user_id, game, card_id):
+        with self.connect() as connection:
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            row = connection.execute("SELECT card,quantity FROM george_gacha_cards WHERE user_id=%s AND game=%s AND card_id=%s", (user_id, game, card_id)).fetchone()
+            if row is None:
+                raise ValueError('お気に入りにできるのは、自分が持っているカードだけだぜ。候補から選んでくれ！')
+            connection.execute("""INSERT INTO george_gacha_favorites(user_id,game,card_id) VALUES (%s,%s,%s)
+                ON CONFLICT(user_id) DO UPDATE SET game=EXCLUDED.game,card_id=EXCLUDED.card_id""", (user_id, game, card_id))
+        return game, Card(**row[0]), row[1]
+
+    def clear_favorite(self, user_id):
+        with self.connect() as connection:
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            return connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).rowcount > 0
+
+
+def collection_summary(engine, rows, game):
+    current = {card.id for pool in engine.pools[game].values() for card in pool}
+    owned = {card.id for row_game, card, _ in rows if row_game == game}
+    total_copies = sum(count for row_game, _, count in rows if row_game == game)
+    return len(current & owned), len(current), total_copies, len(owned - current)
+
+
+def unowned_cards(engine, rows, game=None):
+    """Compare by game and stable card ID, never by character name alone."""
+    owned = {(row_game, card.id) for row_game, card, count in rows if count > 0}
+    return [(key, card, 0) for key in ([game] if game else engine.pools)
+            for pool in engine.pools[key].values() for card in pool if (key, card.id) not in owned]

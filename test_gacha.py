@@ -80,14 +80,15 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_commands_register_once_and_wrong_batch_is_private(self):
         client = discord.Client(intents=discord.Intents.none())
         bot = SimpleNamespace(tree=app_commands.CommandTree(client))
-        register_gacha_commands(bot)
-        self.assertEqual({command.name for command in bot.tree.get_commands()}, {'ガチャ', 'ガチャ確率'})
-        interaction = SimpleNamespace(response=SimpleNamespace(send_message=AsyncMock()))
+        register_gacha_commands(bot, store=SimpleNamespace(url=''))
+        self.assertEqual({command.name for command in bot.tree.get_commands()}, {'ガチャ', 'ガチャ確率', '所持カード', '未所持カード', '収集率', 'お気に入り'})
+        interaction = SimpleNamespace(response=SimpleNamespace(send_message=AsyncMock(), defer=AsyncMock()),
+                                      followup=SimpleNamespace(send=AsyncMock()))
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 7)
         self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
         interaction.response.send_message.reset_mock()
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 10)
-        self.assertEqual(len(interaction.response.send_message.call_args.kwargs['embed'].description.splitlines()), 10)
+        self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.splitlines()), 10)
         await client.close()
 
 

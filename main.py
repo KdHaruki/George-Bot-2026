@@ -15,7 +15,7 @@ from fun_features import TimerManager, draw_fortune, parse_duration, FORTUNES
 from registered_memory import MemoryStore, MemoryUnavailable
 from reminders import ReminderStore, ReminderScheduler, parse_schedule, JST, REPEAT_LABELS
 from reply_context import george_reply_target
-from command_help import command_help
+from command_help import command_help, HELP_CATEGORIES
 from health_check import HealthCheck
 from image_inputs import ImageSource, load_images, ambient_image_sources
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
@@ -171,9 +171,11 @@ async def progress(interaction: discord.Interaction, name: str):
 # メッセージイベント
 ########################################
 
-@client.tree.command(name="ヘルプ", description="コマンドの使い方とDM・サーバーの違いを確認")
-async def show_help(interaction: discord.Interaction):
-    await interaction.response.send_message(embed=command_help(interaction.guild_id is not None),
+@client.tree.command(name="ヘルプ", description="やりたいことからコマンドを探す（分類で詳しい使い方）")
+@app_commands.describe(分類="会話・ガチャ・予定など、やりたいことを選ぶ")
+@app_commands.choices(分類=[app_commands.Choice(name=label, value=key) for key, label in HELP_CATEGORIES.items()])
+async def show_help(interaction: discord.Interaction, 分類: str = 'overview'):
+    await interaction.response.send_message(embed=command_help(interaction.guild_id is not None, 分類),
                                             ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
 
