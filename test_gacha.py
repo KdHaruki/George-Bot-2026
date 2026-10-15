@@ -67,6 +67,7 @@ class GachaTests(unittest.TestCase):
 
     def test_embeds_fit_discord_limits_and_disclose_scope(self):
         for game, rules in RULES.items():
+            self.assertNotIn('https://', str(rates_embed(self.engine, game).to_dict()))
             for embed in (rates_embed(self.engine, game), result_embed(self.engine, game, self.engine.draw(game, rules.batch_size, random.Random(7)))):
                 self.assertLessEqual(len(embed), 6000)
                 self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))

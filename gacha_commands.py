@@ -46,15 +46,6 @@ def rates_embed(engine, game):
     missing = catalog['missing_characters']
     if missing:
         embed.add_field(name=f'カード情報未確認：{len(missing)}人', value='、'.join(missing), inline=False)
-    links = []
-    for index, url in enumerate(catalog['sources'], 1):
-        link = f'[資料{index}]({url})'
-        if len('\n'.join(links + [link])) > 900:
-            embed.add_field(name='カード情報の資料', value='\n'.join(links), inline=False)
-            links = []
-        links.append(link)
-    if links:
-        embed.add_field(name='カード情報の資料', value='\n'.join(links), inline=False)
     return embed
 
 
