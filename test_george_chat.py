@@ -100,6 +100,16 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(parts[1].text, image.label)
         self.assertEqual(parts[2].inline_data.data, b"test-image")
 
+    async def test_ambient_character_records_are_scoped_to_current_conversation(self):
+        await self.chat.ambient_reply([(1, 100, 'ロザリーの好みは？'), (2, 200, '気になるね')])
+        instruction = self.generate.call_args.kwargs['config'].system_instruction
+        self.assertIn('"progressName": "ロザリー"', instruction)
+        self.assertIn('"progressLike": "手品、鏡"', instruction)
+        await self.chat.ambient_reply([(3, 100, '今日は晴れたね'), (4, 200, '散歩しよう')])
+        instruction = self.generate.call_args.kwargs['config'].system_instruction
+        self.assertNotIn('"progressName": "ロザリー"', instruction)
+        self.assertFalse(self.chat.sessions)
+
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！","lucky_item":"赤いハンカチ"}')
