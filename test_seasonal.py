@@ -44,6 +44,16 @@ class CalendarTests(unittest.TestCase):
 
 
 class SeasonalTests(unittest.IsolatedAsyncioTestCase):
+    async def test_waits_until_ten_and_no_longer_polls_each_minute(self):
+        scheduler, store, bot, channel, clock = self.objects(datetime(2026, 10, 31, 9, 59, tzinfo=JST))
+        self.assertEqual(scheduler.wait_seconds(), 60)
+        clock[0] = clock[0].replace(hour=10, minute=1)
+        self.assertEqual(scheduler.wait_seconds(), 21600)
+        scheduler.retry_needed = True
+        self.assertEqual(scheduler.wait_seconds(), 3600)
+        scheduler.notify_changed()
+        await scheduler.wait_for_change(21600)
+
     async def test_settings_require_manager_and_preserve_guild_channel_scope(self):
         import main
         bot = main.client

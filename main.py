@@ -7,6 +7,7 @@ import re
 import asyncio
 from threading import Thread
 from ambient_chat import AmbientChat, PARTICIPATION_CHANCE
+from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
@@ -255,6 +256,7 @@ async def schedule_reminder(interaction: discord.Interaction, 日時: str, 内�
     try:
         due_at = parse_schedule(日時)
         rid = await asyncio.to_thread(client.reminder_store.add, interaction.guild_id, interaction.channel_id, interaction.user.id, due_at, 内容, 繰り返し)
+        client.reminders.notify_changed()
         stamp = due_at.astimezone(JST).strftime("%Y/%m/%d %H:%M")
         repeat_note = "毎月は存在しない日をその月の末日にするぜ。\n" if 繰り返し == "monthly" else ""
         text = f"予定ID {rid}：初回 {stamp}（日本時間）｜{REPEAT_LABELS[繰り返し]}\nこのチャンネルで呼ぶぜ！\n{内容}\n{repeat_note}通常は予定時刻から約1分以内、停止中の分は復帰後に1回通知して、次の未来の日程に進むぞ。"
@@ -283,6 +285,8 @@ async def cancel_reminder(interaction: discord.Interaction, id: app_commands.Ran
     await interaction.response.defer(ephemeral=True)
     try:
         cancelled = await asyncio.to_thread(client.reminder_store.cancel, interaction.guild_id, interaction.user.id, id)
+        if cancelled:
+            client.reminders.notify_changed()
         text = "予定を取り消したぜ。通知の送信直前だった場合は届くことがあるぞ。" if cancelled else "取り消せる自分の予定が見つからなかったぜ。"
     except MemoryUnavailable as exc:
         text = str(exc)
@@ -396,7 +400,10 @@ async def on_message(message):
     client.ambient.reserve(state)
     snapshot = list(state.messages)
     try:
-        sources = ambient_image_sources(snapshot)
+        context = await load_ambient_history(message)
+        if not context or not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
+            return
+        sources = ambient_image_sources(context)
         bundle = await load_images(sources)
         if sources and not bundle.images:
             return
@@ -404,7 +411,7 @@ async def on_message(message):
             return
         notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if client.memories.url else []
         image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if sources else {}
-        answer = await client.george_chat.ambient_reply(snapshot, notes, **image_options)
+        answer = await client.george_chat.ambient_reply(context, notes, **image_options)
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())

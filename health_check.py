@@ -58,6 +58,10 @@ class HealthCheck:
             status += "\n予定のDB確認：まだ未実施"
         if scheduler.last_delivery_failed:
             status += "\n直近の確認で通知送信に失敗あり"
+        next_check = getattr(scheduler, "next_check_at", None)
+        if next_check:
+            stamp = next_check.astimezone(timezone(timedelta(hours=9))).strftime("%m/%d %H:%M:%S")
+            status += f"\n次回確認予定：{stamp}（日本時間・変更時は読み直し）"
         status += "\n※各チャンネルへの実際の通知到達は未検証"
         embed.add_field(name="予定通知", value=status, inline=False)
         embed.add_field(name="短時間タイマー", value=f"このBot全体で稼働中：{len(bot.timers.tasks)}件", inline=False)

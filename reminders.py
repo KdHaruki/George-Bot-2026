@@ -109,14 +109,23 @@ class ReminderStore(MemoryStore):
 
     def claim_due(self):
         with self.connect() as connection:
-            connection.execute("UPDATE george_reminders SET status='failed' WHERE status='processing' AND lease_until<NOW() AND attempts>=5")
+            connection.execute("UPDATE george_reminders SET status='failed' WHERE status='processing' AND (lease_until IS NULL OR lease_until<NOW()) AND attempts>=5")
             return connection.execute("""WITH due AS (
                 SELECT id FROM george_reminders WHERE due_at<=NOW() AND attempts<5
-                AND (status='pending' OR (status='processing' AND lease_until<NOW()))
+                AND (status='pending' OR (status='processing' AND (lease_until IS NULL OR lease_until<NOW())))
                 ORDER BY due_at FOR UPDATE SKIP LOCKED LIMIT 10)
                 UPDATE george_reminders r SET status='processing', attempts=r.attempts+1,
                 lease_until=NOW()+INTERVAL '5 minutes' FROM due WHERE r.id=due.id
                 RETURNING r.id,r.guild_id,r.channel_id,r.user_id,r.due_at,r.content,r.repeat_kind""").fetchall()
+
+    def next_wake_at(self):
+        """Include abandoned processing leases, even their final failed attempt."""
+        with self.connect() as connection:
+            return connection.execute("""SELECT MIN(wake_at) FROM (
+                SELECT due_at AS wake_at FROM george_reminders WHERE status='pending' AND attempts<5
+                UNION ALL
+                SELECT COALESCE(lease_until,NOW()) AS wake_at FROM george_reminders WHERE status='processing'
+                ) upcoming""").fetchone()[0]
 
     def active(self, reminder_id):
         with self.connect() as connection:
@@ -138,12 +147,24 @@ class ReminderStore(MemoryStore):
 
 
 class ReminderScheduler:
-    def __init__(self, store):
+    def __init__(self, store, clock=None):
         self.store = store
         self.task = None
         self.last_check_at = None
         self.last_check_ok = None
         self.last_delivery_failed = False
+        self.clock = clock or (lambda: datetime.now(timezone.utc))
+        self.changed = asyncio.Event()
+        self.next_check_at = None
+
+    def notify_changed(self):
+        self.changed.set()
+
+    async def wait_for_change(self, seconds):
+        try:
+            await asyncio.wait_for(self.changed.wait(), timeout=seconds)
+        except asyncio.TimeoutError:
+            pass
 
     def start(self, bot):
         if self.store.url and self.task is None:
@@ -152,14 +173,22 @@ class ReminderScheduler:
     async def run(self, bot):
         await bot.wait_until_ready()
         while not bot.is_closed():
+            # Clear before reading: writes during DB access/delivery remain signalled.
+            self.changed.clear()
             try:
                 await self.deliver_due(bot)
+                due = await asyncio.to_thread(self.store.next_wake_at)
+                now = self.clock()
+                # Sparse reconciliation handles clock corrections and external changes.
+                seconds = min(6 * 3600, max(0.5, (due - now).total_seconds())) if due else 6 * 3600
                 self.last_check_ok = True
             except Exception as exc:
                 self.last_check_ok = False
                 logging.warning("Reminder check failed: type=%s", type(exc).__name__)
-            self.last_check_at = datetime.now(timezone.utc)
-            await asyncio.sleep(60)
+                seconds = 5 * 60
+            self.last_check_at = self.clock()
+            self.next_check_at = self.last_check_at + timedelta(seconds=seconds)
+            await self.wait_for_change(seconds)
 
     async def deliver_due(self, bot):
         self.last_delivery_failed = False

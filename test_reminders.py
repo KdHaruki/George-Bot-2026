@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, MagicMock, patch
 from reminders import parse_schedule, ReminderScheduler, ReminderStore, JST, next_occurrence
 import sys
+import asyncio
 
 
 class ScheduleTests(unittest.TestCase):
@@ -105,3 +106,87 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         channel.send.side_effect = RuntimeError("test")
         await ReminderScheduler(store).deliver_due(bot)
         store.finish.assert_called_once_with(42, False)
+
+
+class SchedulerWaitTests(unittest.IsolatedAsyncioTestCase):
+    async def run_once(self, due=None, error=None, signal_during_read=False):
+        now = datetime(2026, 10, 15, tzinfo=timezone.utc)
+        store = SimpleNamespace(claim_due=Mock(return_value=[]), next_wake_at=Mock(return_value=due))
+        scheduler = ReminderScheduler(store, clock=lambda: now)
+        if error:
+            store.next_wake_at.side_effect = error
+        elif signal_during_read:
+            # The mutation signal can arrive while the read is in flight.
+            async def read(_):
+                scheduler.notify_changed()
+                return due
+        bot = SimpleNamespace(wait_until_ready=AsyncMock(), is_closed=Mock(side_effect=[False, True]))
+        scheduler.wait_for_change = AsyncMock()
+        if signal_during_read:
+            scheduler.deliver_due = AsyncMock()
+            with patch('reminders.asyncio.to_thread', side_effect=read):
+                await scheduler.run(bot)
+        else:
+            await scheduler.run(bot)
+        return scheduler, store
+
+    async def test_no_minute_poll_and_future_deadline(self):
+        now = datetime(2026, 10, 15, tzinfo=timezone.utc)
+        due = now.replace(hour=2)
+        scheduler, store = await self.run_once(due)
+        scheduler.wait_for_change.assert_awaited_once_with(7200)
+        store.claim_due.assert_called_once()
+        store.next_wake_at.assert_called_once()
+        self.assertEqual(scheduler.next_check_at, due)
+
+    async def test_empty_queue_reconciles_sparsely_and_db_failure_retries(self):
+        scheduler, _ = await self.run_once()
+        scheduler.wait_for_change.assert_awaited_once_with(21600)
+        scheduler, _ = await self.run_once(error=RuntimeError('offline'))
+        scheduler.wait_for_change.assert_awaited_once_with(300)
+        self.assertFalse(scheduler.last_check_ok)
+
+    async def test_mutation_signal_during_read_is_not_lost(self):
+        scheduler, _ = await self.run_once(signal_during_read=True)
+        self.assertTrue(scheduler.changed.is_set())
+
+    async def test_change_wakes_wait_and_shutdown_cancels_task(self):
+        scheduler = ReminderScheduler(SimpleNamespace(url='test'))
+        task = asyncio.create_task(scheduler.wait_for_change(21600))
+        await asyncio.sleep(0)
+        scheduler.notify_changed()
+        await asyncio.wait_for(task, timeout=1)
+        scheduler.changed.clear()
+        scheduler.task = asyncio.create_task(scheduler.wait_for_change(21600))
+        await asyncio.sleep(0)
+        await scheduler.close()
+        self.assertIsNone(scheduler.task)
+
+    def test_next_wake_covers_future_pending_and_processing_lease(self):
+        connection = MagicMock()
+        connection.__enter__.return_value = connection
+        due = datetime(2026, 10, 15, tzinfo=timezone.utc)
+        connection.execute.return_value.fetchone.return_value = (due,)
+        with patch.dict(sys.modules, {'psycopg': SimpleNamespace(connect=Mock(return_value=connection))}):
+            self.assertEqual(ReminderStore('postgresql://test-only').next_wake_at(), due)
+        sql = connection.execute.call_args.args[0]
+        self.assertIn('MIN(wake_at)', sql)
+        self.assertIn("status='pending'", sql)
+        self.assertIn('lease_until', sql)
+
+    async def test_registration_and_cancellation_wake_running_scheduler(self):
+        import main
+        interaction = SimpleNamespace(response=SimpleNamespace(defer=AsyncMock()),
+                                      followup=SimpleNamespace(send=AsyncMock()),
+                                      guild_id=1, channel_id=2, user=SimpleNamespace(id=3))
+        store = SimpleNamespace(add=Mock(return_value=42), cancel=Mock(return_value=True))
+        scheduler = SimpleNamespace(notify_changed=Mock())
+        due = datetime(2026, 10, 16, tzinfo=timezone.utc)
+        with patch.object(main.client, 'reminder_store', store), patch.object(main.client, 'reminders', scheduler), patch('main.parse_schedule', return_value=due):
+            await main.schedule_reminder.callback(interaction, '明日21時', '集合')
+            scheduler.notify_changed.assert_called_once()
+            await main.cancel_reminder.callback(interaction, 42)
+            self.assertEqual(scheduler.notify_changed.call_count, 2)
+            store.cancel.return_value = False
+            await main.cancel_reminder.callback(interaction, 42)
+            self.assertEqual(scheduler.notify_changed.call_count, 2)

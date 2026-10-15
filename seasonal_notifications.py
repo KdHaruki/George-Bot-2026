@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import discord
 from registered_memory import MemoryStore, MemoryUnavailable
@@ -116,6 +116,28 @@ class SeasonalScheduler:
         self.checked_day = None
         self.delivered = set()
         self.clock = clock or (lambda: datetime.now(timezone.utc))
+        self.changed = asyncio.Event()
+        self.retry_needed = False
+
+    def notify_changed(self):
+        self.changed.set()
+
+    def wait_seconds(self):
+        now = self.clock().astimezone(JST)
+        tomorrow = now.replace(hour=10, minute=0, second=0, microsecond=0)
+        if tomorrow <= now:
+            tomorrow += timedelta(days=1)
+        # Reconcile changes from another process at most every six hours.
+        delay = min(6 * 3600, (tomorrow - now).total_seconds())
+        if self.retry_needed or self.last_check_ok is False:
+            delay = min(delay, 3600)
+        return max(0.5, delay)
+
+    async def wait_for_change(self, seconds):
+        try:
+            await asyncio.wait_for(self.changed.wait(), timeout=seconds)
+        except asyncio.TimeoutError:
+            pass
 
     def start(self, bot):
         if self.store.url and self.task is None:
@@ -124,6 +146,7 @@ class SeasonalScheduler:
     async def run(self, bot):
         await bot.wait_until_ready()
         while not bot.is_closed():
+            self.changed.clear()
             try:
                 await self.tick(bot)
                 self.last_check_ok = True
@@ -131,10 +154,11 @@ class SeasonalScheduler:
                 self.last_check_ok = False
                 logging.warning("Seasonal check failed: type=%s", type(exc).__name__)
             self.last_check_at = datetime.now(timezone.utc)
-            await asyncio.sleep(60)
+            await self.wait_for_change(self.wait_seconds())
 
     async def tick(self, bot, now=None):
         self.last_delivery_failed = False
+        self.retry_needed = False
         now = (now or self.clock()).astimezone(JST)
         if now.hour < 10:
             return
@@ -146,6 +170,7 @@ class SeasonalScheduler:
             return
         await self.calendar.refresh(now)
         if not self.calendar.covers(day):
+            self.retry_needed = True
             logging.warning("Seasonal posts skipped: holiday year is unavailable")
             return
         for guild_id, channel_id, _ in settings:
@@ -156,6 +181,7 @@ class SeasonalScheduler:
                 continue
             try:
                 if not await asyncio.to_thread(self.store.claim, guild_id, channel_id, day):
+                    self.retry_needed = True
                     continue
                 channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
                 if getattr(getattr(channel, "guild", None), "id", None) != guild_id:
@@ -180,6 +206,7 @@ class SeasonalScheduler:
                 await asyncio.to_thread(self.store.finish, guild_id, day, message.id)
             except Exception as exc:
                 self.last_delivery_failed = True
+                self.retry_needed = True
                 logging.warning("Seasonal delivery failed: type=%s", type(exc).__name__)
 
     async def close(self):

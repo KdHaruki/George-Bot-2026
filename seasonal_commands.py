@@ -29,6 +29,7 @@ def register_seasonal_commands(bot):
             return
         try:
             await asyncio.to_thread(bot.seasonal_store.configure, interaction.guild_id, interaction.channel_id)
+            bot.seasonal.notify_changed()
             text = "このチャンネルを投稿先にしたぜ！ 行事・祝日の日本時間10:00に投稿するぞ。当日10時以降の起動・設定なら当日中に通知するが、翌日には持ち越さないぜ。"
         except MemoryUnavailable as exc:
             text = str(exc)
@@ -50,6 +51,7 @@ def register_seasonal_commands(bot):
             return
         try:
             await asyncio.to_thread(bot.seasonal_store.stop, interaction.guild_id)
+            bot.seasonal.notify_changed()
             text = "季節通知を停止したぜ。再開は投稿先で /季節通知 設定 を実行してくれ。送信直前の通知は届く場合があるぞ。"
         except MemoryUnavailable as exc:
             text = str(exc)
@@ -65,6 +67,7 @@ def register_seasonal_commands(bot):
         try:
             month, day = parse_event_date(日付)
             await asyncio.to_thread(bot.seasonal_store.put_event, interaction.guild_id, 名前, month, day)
+            bot.seasonal.notify_changed()
             text = f"毎年{month}月{day}日の「{名前.strip()}」を登録したぜ！" + ("2月29日はうるう年だけ通知するぞ。" if (month, day) == (2, 29) else "")
         except (ValueError, MemoryUnavailable) as exc:
             text = str(exc)
@@ -93,6 +96,8 @@ def register_seasonal_commands(bot):
             return
         try:
             deleted = await asyncio.to_thread(bot.seasonal_store.delete_event, interaction.guild_id, 名前)
+            if deleted:
+                bot.seasonal.notify_changed()
             text = "独自行事を削除したぜ。" if deleted else "追加した行事が見つからないぜ。共通行事・祝日の無効化は /行事切替 を使ってくれ。"
         except MemoryUnavailable as exc:
             text = str(exc)
@@ -106,6 +111,7 @@ def register_seasonal_commands(bot):
             return
         try:
             await asyncio.to_thread(bot.seasonal_store.put_event, interaction.guild_id, 名前, enabled=有効)
+            bot.seasonal.notify_changed()
             text = f"「{名前.strip()}」を{'有効' if 有効 else '無効'}にしたぜ。共通行事・祝日は正式な名前と一致する場合だけ適用するぞ。"
         except (ValueError, MemoryUnavailable) as exc:
             text = str(exc)
