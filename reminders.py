@@ -1,0 +1,134 @@
+"""Durable scheduled notifications. UTC storage, explicit Japan-time input."""
+import asyncio
+import logging
+import re
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
+
+import discord
+from registered_memory import MemoryStore, MemoryUnavailable
+
+JST = timezone(timedelta(hours=9))
+
+
+def parse_schedule(text, now=None):
+    now = (now or datetime.now(timezone.utc)).astimezone(JST)
+    text = text.strip()
+    relative = re.fullmatch(r"(今日|明日|明後日)\s*(\d{1,2})(?::(\d{2})|時(?:(\d{1,2})分)?)", text)
+    try:
+        if relative:
+            day, hour, minute, jp_minute = relative.groups()
+            date = now.date() + timedelta(days={"今日": 0, "明日": 1, "明後日": 2}[day])
+            scheduled = datetime(date.year, date.month, date.day, int(hour), int(minute or jp_minute or 0), tzinfo=JST)
+        else:
+            scheduled = datetime.strptime(text.replace("/", "-"), "%Y-%m-%d %H:%M").replace(tzinfo=JST)
+    except ValueError:
+        raise ValueError("日時は「明日21時」「明日21:30」「2026-10-16 21:00」の形式で頼むぜ。日本時間で受け付けるぞ！") from None
+    if not now < scheduled <= now + timedelta(days=365):
+        raise ValueError("予定は今より後、365日以内で頼むぜ！")
+    return scheduled.astimezone(timezone.utc)
+
+
+class ReminderStore(MemoryStore):
+    @contextmanager
+    def connect(self):
+        try:
+            with super().connect() as connection:
+                connection.execute("""CREATE TABLE IF NOT EXISTS george_reminders (
+                    id BIGSERIAL PRIMARY KEY, guild_id BIGINT NOT NULL,
+                    channel_id BIGINT NOT NULL, user_id BIGINT NOT NULL,
+                    due_at TIMESTAMPTZ NOT NULL, content TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+                    lease_until TIMESTAMPTZ)""")
+                connection.execute("CREATE INDEX IF NOT EXISTS george_reminders_due_idx ON george_reminders (status, due_at)")
+                yield connection
+        except MemoryUnavailable:
+            raise MemoryUnavailable("予定の保存先を利用できなかったぜ。管理者にDATABASE_URLを確認してもらってくれ。") from None
+
+    def add(self, guild_id, channel_id, user_id, due_at, content):
+        content = content.strip()
+        if not 1 <= len(content) <= 300:
+            raise ValueError("予定の内容は1〜300文字で頼むぜ。")
+        with self.connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"george-reminders:{user_id}",))
+            count = connection.execute("SELECT COUNT(*) FROM george_reminders WHERE user_id=%s AND status IN ('pending','processing')", (user_id,)).fetchone()[0]
+            if count >= 20:
+                raise ValueError("未通知の予定は1人20件までだぜ。不要な予定を取り消してくれ。")
+            return connection.execute("""INSERT INTO george_reminders (guild_id,channel_id,user_id,due_at,content)
+                VALUES (%s,%s,%s,%s,%s) RETURNING id""", (guild_id, channel_id, user_id, due_at, content)).fetchone()[0]
+
+    def list(self, guild_id, user_id):
+        with self.connect() as connection:
+            return connection.execute("""SELECT id, due_at, content, status, channel_id FROM george_reminders
+                WHERE guild_id=%s AND user_id=%s AND status IN ('pending','processing','failed')
+                ORDER BY due_at LIMIT 50""", (guild_id, user_id)).fetchall()
+
+    def cancel(self, guild_id, user_id, reminder_id):
+        with self.connect() as connection:
+            return connection.execute("""UPDATE george_reminders SET status='cancelled' WHERE id=%s
+                AND guild_id=%s AND user_id=%s AND status IN ('pending','processing','failed')""",
+                                      (reminder_id, guild_id, user_id)).rowcount > 0
+
+    def claim_due(self):
+        with self.connect() as connection:
+            connection.execute("UPDATE george_reminders SET status='failed' WHERE status='processing' AND lease_until<NOW() AND attempts>=5")
+            return connection.execute("""WITH due AS (
+                SELECT id FROM george_reminders WHERE due_at<=NOW() AND attempts<5
+                AND (status='pending' OR (status='processing' AND lease_until<NOW()))
+                ORDER BY due_at FOR UPDATE SKIP LOCKED LIMIT 10)
+                UPDATE george_reminders r SET status='processing', attempts=r.attempts+1,
+                lease_until=NOW()+INTERVAL '5 minutes' FROM due WHERE r.id=due.id
+                RETURNING r.id,r.guild_id,r.channel_id,r.user_id,r.due_at,r.content""").fetchall()
+
+    def active(self, reminder_id):
+        with self.connect() as connection:
+            return connection.execute("SELECT 1 FROM george_reminders WHERE id=%s AND status='processing'", (reminder_id,)).fetchone() is not None
+
+    def finish(self, reminder_id, success):
+        with self.connect() as connection:
+            if success:
+                connection.execute("UPDATE george_reminders SET status='sent' WHERE id=%s AND status='processing'", (reminder_id,))
+            else:
+                connection.execute("UPDATE george_reminders SET status='failed' WHERE id=%s AND status='processing' AND attempts>=5", (reminder_id,))
+
+
+class ReminderScheduler:
+    def __init__(self, store):
+        self.store = store
+        self.task = None
+
+    def start(self, bot):
+        if self.store.url and self.task is None:
+            self.task = asyncio.create_task(self.run(bot))
+
+    async def run(self, bot):
+        await bot.wait_until_ready()
+        while not bot.is_closed():
+            try:
+                await self.deliver_due(bot)
+            except Exception as exc:
+                logging.warning("Reminder check failed: type=%s", type(exc).__name__)
+            await asyncio.sleep(60)
+
+    async def deliver_due(self, bot):
+        for rid, guild_id, channel_id, user_id, due_at, content in await asyncio.to_thread(self.store.claim_due):
+            try:
+                channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
+                if getattr(getattr(channel, "guild", None), "id", None) != guild_id:
+                    raise ValueError("Reminder channel does not match guild")
+                if not await asyncio.to_thread(self.store.active, rid):
+                    continue
+                stamp = due_at.astimezone(JST).strftime("%Y/%m/%d %H:%M")
+                await channel.send(f"📅 <@{user_id}> 予定のお知らせだぜ！\n{stamp}（日本時間）\n{discord.utils.escape_mentions(content)}\n予定ID：{rid}",
+                                   allowed_mentions=discord.AllowedMentions(users=[discord.Object(id=user_id)], roles=False, everyone=False))
+            except Exception as exc:
+                logging.warning("Reminder delivery failed: type=%s", type(exc).__name__)
+                await asyncio.to_thread(self.store.finish, rid, False)
+            else:
+                await asyncio.to_thread(self.store.finish, rid, True)
+
+    async def close(self):
+        if self.task:
+            self.task.cancel()
+            await asyncio.gather(self.task, return_exceptions=True)
+            self.task = None

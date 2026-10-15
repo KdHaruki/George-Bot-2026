@@ -72,6 +72,14 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         await self.chat.reply((2, 1), "こんにちは")
         self.assertNotIn("テスト共有資料", self.generate.call_args.kwargs["config"].system_instruction)
 
+    async def test_reply_quote_is_included_without_other_users_history(self):
+        await self.chat.reply((1, 1), "別の人の話")
+        await self.chat.reply((1, 2), "詳しく教えて", reply_to="ロザリーについての返事")
+        contents = self.generate.call_args.kwargs["contents"]
+        self.assertEqual(len(contents), 1)
+        self.assertIn("ロザリーについての返事", contents[0].parts[0].text)
+        self.assertNotIn("別の人の話", contents[0].parts[0].text)
+
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！","lucky_item":"赤いハンカチ"}')

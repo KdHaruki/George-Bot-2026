@@ -12,6 +12,9 @@ import progress as progress_module
 from keep_alive import keep_alive
 from fun_features import TimerManager, draw_fortune, parse_duration, FORTUNES
 from registered_memory import MemoryStore, MemoryUnavailable
+from reminders import ReminderStore, ReminderScheduler, parse_schedule, JST
+from reply_context import george_reply_target
+from command_help import command_help
 
 ########################################
 # Botクラス
@@ -29,11 +32,14 @@ class MyClient(discord.Client):
         self.ambient = AmbientChat()
         self.timers = TimerManager()
         self.memories = MemoryStore()
+        self.reminder_store = ReminderStore()
+        self.reminders = ReminderScheduler(self.reminder_store)
         self.cleaned_guilds = set()
 
     async def setup_hook(self):
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
+        self.reminders.start(self)
 
     async def clear_guild_commands(self, guild):
         if guild.id in self.cleaned_guilds:
@@ -49,6 +55,7 @@ class MyClient(discord.Client):
 
     async def close(self):
         try:
+            await self.reminders.close()
             await self.timers.close()
             await self.george_chat.close()
         finally:
@@ -151,6 +158,12 @@ async def progress(interaction: discord.Interaction, name: str):
 # メッセージイベント
 ########################################
 
+@client.tree.command(name="ヘルプ", description="コマンドの使い方とDM・サーバーの違いを確認")
+async def show_help(interaction: discord.Interaction):
+    await interaction.response.send_message(embed=command_help(interaction.guild_id is not None),
+                                            ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+
+
 @client.tree.command(name="おみくじ", description="ジョージのおみくじで運試し")
 async def omikuji(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
@@ -214,6 +227,47 @@ async def delete_memory(interaction: discord.Interaction, タイトル: str):
     await interaction.followup.send(answer, ephemeral=True)
 
 
+@client.tree.command(name="予定", description="再起動後も残る予定リマインダーを登録（日本時間）")
+@app_commands.guild_only()
+@app_commands.describe(日時="例：明日21時、2026-10-16 21:00", 内容="1〜300文字。通知はこのチャンネルに送信")
+async def schedule_reminder(interaction: discord.Interaction, 日時: str, 内容: str):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        due_at = parse_schedule(日時)
+        rid = await asyncio.to_thread(client.reminder_store.add, interaction.guild_id, interaction.channel_id, interaction.user.id, due_at, 内容)
+        stamp = due_at.astimezone(JST).strftime("%Y/%m/%d %H:%M")
+        text = f"予定ID {rid}：{stamp}（日本時間）に、このチャンネルで呼ぶぜ！\n{内容}\n通常は予定時刻から約1分以内、停止中に過ぎた分は復帰後の通知になるぞ。"
+    except (ValueError, MemoryUnavailable) as exc:
+        text = str(exc)
+    await interaction.followup.send(text, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+
+
+@client.tree.command(name="予定一覧", description="このサーバーで自分が登録した未通知・失敗した予定を確認")
+@app_commands.guild_only()
+async def list_reminders(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        rows = await asyncio.to_thread(client.reminder_store.list, interaction.guild_id, interaction.user.id)
+        statuses = {"pending": "待機中", "processing": "通知処理中", "failed": "通知失敗"}
+        text = "\n\n".join(f"ID {rid}｜{due.astimezone(JST):%Y/%m/%d %H:%M}（日本時間）｜{statuses.get(status, status)}\n<#{channel_id}> {content}" for rid, due, content, status, channel_id in rows) or "未通知の予定はないぜ。"
+    except MemoryUnavailable as exc:
+        text = str(exc)
+    for offset in range(0, len(text), 1800):
+        await interaction.followup.send(text[offset:offset + 1800], ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+
+
+@client.tree.command(name="予定取消", description="このサーバーで自分が登録した予定をIDで取り消す")
+@app_commands.guild_only()
+async def cancel_reminder(interaction: discord.Interaction, id: app_commands.Range[int, 1, 9007199254740991]):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        cancelled = await asyncio.to_thread(client.reminder_store.cancel, interaction.guild_id, interaction.user.id, id)
+        text = "予定を取り消したぜ。通知の送信直前だった場合は届くことがあるぞ。" if cancelled else "取り消せる自分の予定が見つからなかったぜ。"
+    except MemoryUnavailable as exc:
+        text = str(exc)
+    await interaction.followup.send(text, ephemeral=True)
+
+
 @client.tree.command(name="タイマー", description="指定した時間にジョージが呼びかける（再起動で解除）")
 @app_commands.describe(時間="例：10分、1時間30分、30秒（最大24時間）", 内容="何のタイマーか（省略可）")
 async def timer(interaction: discord.Interaction, 時間: str, 内容: str = "タイマー終了"):
@@ -254,8 +308,9 @@ async def on_message(message):
             # Missing reaction permissions must not prevent conversation replies.
             logging.warning("Random reaction could not be added")
 
-    # メンションされた場合
-    if client.user in message.mentions or isinstance(message.channel, discord.DMChannel):
+    target = await george_reply_target(message, client.user.id)
+    # Replies to George work even when Discord's reply mention is disabled.
+    if client.user in message.mentions or target is not None or isinstance(message.channel, discord.DMChannel):
         parts = message.content.split()
         if len(parts) >= 3 and parts[1].lower() in ["pro", "progress", "プロ", "プログレス"]:
             keyword = parts[2]
@@ -285,7 +340,7 @@ async def on_message(message):
                 else:
                     async with message.channel.typing():
                         notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if message.guild and client.memories.url else []
-                        answer = await client.george_chat.reply(key, text, notes)
+                        answer = await client.george_chat.reply(key, text, notes, reply_to=target.content if target is not None else "")
             except MemoryUnavailable as exc:
                 answer = str(exc)
             except ChatUnavailable:
