@@ -125,12 +125,17 @@ class CollectionStore(MemoryStore):
                 WHERE f.user_id=%s""", (user_id,)).fetchone()
         return (row[0], current_card(row[0], Card(**row[1])), row[2]) if row else None
 
-    def set_favorite(self, user_id, game, card_id):
+    def set_favorite(self, user_id, game, card_id, toggle=False):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             row = connection.execute("SELECT card,quantity FROM george_gacha_cards WHERE user_id=%s AND game=%s AND card_id=%s", (user_id, game, card_id)).fetchone()
             if row is None:
                 raise ValueError('お気に入りにできるのは、自分が持っているカードだけだぜ。候補から選んでくれ！')
+            if toggle:
+                current = connection.execute('SELECT game,card_id FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).fetchone()
+                if current == (game, card_id):
+                    connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,))
+                    return None
             connection.execute("""INSERT INTO george_gacha_favorites(user_id,game,card_id) VALUES (%s,%s,%s)
                 ON CONFLICT(user_id) DO UPDATE SET game=EXCLUDED.game,card_id=EXCLUDED.card_id""", (user_id, game, card_id))
         return game, current_card(game, Card(**row[0])), row[1]

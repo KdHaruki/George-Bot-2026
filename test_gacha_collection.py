@@ -9,11 +9,39 @@ from discord import app_commands
 
 from gacha import Card, Gacha, vierge_character_card
 from gacha_collection import CollectionStore, collection_summary, unowned_cards
-from gacha_commands import favorite_details, gacha_comment, register_gacha_commands, result_embed
+from gacha_commands import CardListView, favorite_details, gacha_comment, register_gacha_commands, result_embed
 from registered_memory import MemoryUnavailable
 
 
 class StoreTests(unittest.TestCase):
+    def test_same_favorite_toggle_deletes_only_registration(self):
+        card = vierge_character_card('ロザリー', 'UR')
+        current = [None]
+        connection = Mock()
+        def execute(sql, params):
+            if sql.startswith('SELECT card,quantity'):
+                return SimpleNamespace(fetchone=lambda: (asdict(card), 3))
+            if sql.startswith('SELECT game,card_id'):
+                return SimpleNamespace(fetchone=lambda: current[0])
+            if sql.startswith('INSERT INTO george_gacha_favorites'):
+                current[0] = (params[1], params[2])
+            if sql.startswith('DELETE FROM george_gacha_favorites'):
+                self.assertEqual(params, (10,))
+                current[0] = None
+            return Mock()
+        connection.execute.side_effect = execute
+        @contextmanager
+        def connect():
+            yield connection
+        store = CollectionStore('test')
+        with patch.object(store, 'connect', connect):
+            self.assertIsNotNone(store.set_favorite(10, 'vierge', card.id, toggle=True))
+            self.assertIsNone(store.set_favorite(10, 'vierge', card.id, toggle=True))
+            self.assertIsNone(current[0])
+            current[0] = ('relink', card.id)
+            self.assertIsNotNone(store.set_favorite(10, 'vierge', card.id, toggle=True))
+        self.assertFalse(any('DELETE FROM george_gacha_cards' in call.args[0] for call in connection.execute.call_args_list))
+
     def test_vierge_migration_merges_variants_and_moves_favorite_once(self):
         canonical = vierge_character_card('ロザリー', 'UR')
         inventory = {'old-a': (asdict(Card('old-a', 'ロザリー', 'ロザリー【水着】', 'UR', 15, '技')), 2),
@@ -254,6 +282,25 @@ class ResultCommentTests(unittest.TestCase):
 
 
 class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
+    async def test_list_buttons_are_owner_only_and_page_argument_is_removed(self):
+        client, tree, _ = self.objects(SimpleNamespace(url='test'))
+        for name in ('所持カード', '未所持カード'):
+            self.assertNotIn('ページ', [parameter.name for parameter in tree.get_command(name).parameters])
+        view = CardListView(10, [f'カード{index}' for index in range(21)], '所持カード')
+        interaction = SimpleNamespace(user=SimpleNamespace(id=20), response=SimpleNamespace(send_message=AsyncMock(), edit_message=AsyncMock()))
+        await view.go_next(interaction)
+        self.assertEqual(view.page, 0)
+        interaction.user.id = 10
+        await view.go_next(interaction)
+        self.assertEqual(view.embed().description.splitlines()[0], 'カード10')
+        await view.go_next(interaction)
+        self.assertTrue(view.next.disabled)
+        self.assertEqual(view.embed().description, 'カード20')
+        await view.go_previous(interaction)
+        self.assertFalse(view.next.disabled)
+        view.stop()
+        await client.close()
+
     async def test_draw_ai_uses_saved_facts_and_falls_back_on_failure(self):
         card = Gacha().pools['relink']['★1'][0]
         saved = [dict(card=asdict(card), quantity=1, new=True)]
@@ -289,13 +336,14 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
                 for index, (game, rarity) in enumerate(expected)]
         store = SimpleNamespace(url='test', owned=Mock(return_value=list(reversed(rows))))
         client, tree, interaction = self.objects(store)
-        autocomplete = tree.get_command('お気に入り')._params['カード'].autocomplete
+        autocomplete = tree.get_command('お気に入り')._params['選択'].autocomplete
+        interaction.namespace = SimpleNamespace(プログレス='ロザリー')
         for query in ('', 'ロザリー'):
             choices = await autocomplete(interaction, query)
             self.assertEqual([choice.value for choice in choices], [f'{game}:{card.id}' for game, card, _ in rows])
-        interaction.namespace = SimpleNamespace(作品='relink', プログレス='ロザ')
+        interaction.namespace = SimpleNamespace(プログレス='ロザ')
         choices = await autocomplete(interaction, '')
-        self.assertEqual([choice.value for choice in choices], [f'{game}:{card.id}' for game, card, _ in rows if game == 'relink'])
+        self.assertEqual([choice.value for choice in choices], [f'{game}:{card.id}' for game, card, _ in rows])
         interaction.namespace.プログレス = '該当なし'
         self.assertEqual(await autocomplete(interaction, ''), [])
         await client.close()
@@ -309,8 +357,8 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
                                 favorite=Mock(return_value=chosen), set_favorite=Mock(return_value=chosen), clear_favorite=Mock(return_value=True))
         client, tree, interaction = self.objects(store)
         command = tree.get_command('お気に入り')
-        await command.callback(interaction, f'vierge:{picked.id}')
-        store.set_favorite.assert_called_once_with(10, 'vierge', picked.id)
+        await command.callback(interaction, picked.character, f'vierge:{picked.id}')
+        store.set_favorite.assert_called_once_with(10, 'vierge', picked.id, toggle=True)
         self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
         await command.callback(interaction)
         store.favorite.assert_called_with(10)
@@ -320,14 +368,14 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         first = interaction.followup.send.call_args.kwargs['embed'].description.splitlines()[0]
         self.assertTrue(first.startswith('⭐ '))
         self.assertIn(picked.name, first)
-        await command.callback(interaction, 解除=True)
-        store.clear_favorite.assert_called_once_with(10)
-        self.assertIn('所持カードはそのまま', interaction.followup.send.call_args.args[0])
-        await command.callback(interaction, 'unknown-card')
+        self.assertEqual([parameter.name for parameter in command.parameters], ['プログレス', '選択'])
+        await command.callback(interaction, picked.character, 'unknown-card')
         self.assertIn('候補から', interaction.followup.send.call_args.args[0])
-        await command.callback(interaction, f'vierge:{picked.id}', True)
+        await command.callback(interaction, picked.character)
+        self.assertIn('選択', interaction.followup.send.call_args.args[0])
         self.assertEqual(store.set_favorite.call_count, 1)
-        autocomplete = command._params['カード'].autocomplete
+        interaction.namespace = SimpleNamespace(プログレス=picked.character)
+        autocomplete = command._params['選択'].autocomplete
         choices = await autocomplete(interaction, picked.character)
         store.owned.assert_called_with(10)
         self.assertLessEqual(len(choices), 25)
@@ -373,7 +421,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         rows = [('vierge', card, 2) for card in cards]
         store = SimpleNamespace(url='test', owned=Mock(return_value=rows))
         client, tree, interaction = self.objects(store)
-        await tree.get_command('所持カード').callback(interaction, 'vierge', 'ロザリー', 'UR', 1)
+        await tree.get_command('所持カード').callback(interaction, 'vierge', 'ロザリー', 'UR')
         store.owned.assert_called_with(10, 'vierge')
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
@@ -381,11 +429,12 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('ヴィエルジュ', call.kwargs['embed'].description)
         self.assertNotIn('リリンク', call.kwargs['embed'].description)
         self.assertFalse(call.kwargs['embed'].footer.text)
-        await tree.get_command('所持カード').callback(interaction, ページ=2)
+        await tree.get_command('所持カード').callback(interaction)
         self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.splitlines()), 10)
         await tree.get_command('収集率').callback(interaction)
         embed = interaction.followup.send.call_args.kwargs['embed']
         self.assertIn('100.0%', embed.fields[0].value)
+        self.assertFalse(embed.footer.text)
         self.assertIn('0.0%', embed.fields[1].value)
         self.assertLess(len(embed), 6000)
         await client.close()
@@ -405,20 +454,18 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         store = SimpleNamespace(url='test', owned=Mock(return_value=[('vierge', rosaries[0], 3)]))
         client, tree, interaction = self.objects(store)
         command = tree.get_command('未所持カード')
-        await command.callback(interaction, 'vierge', 'ロザリー', 'UR', 1)
+        await command.callback(interaction, 'vierge', 'ロザリー', 'UR')
         store.owned.assert_called_with(10, 'vierge')
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
         embed = call.kwargs['embed']
         self.assertFalse(embed.footer.text)
         self.assertNotIn(rosaries[0].label, embed.description)
-        await command.callback(interaction, ページ=2)
+        await command.callback(interaction)
         embed = interaction.followup.send.call_args.kwargs['embed']
         self.assertEqual(len(embed.description.splitlines()), 10)
         self.assertLess(len(embed), 6000)
         self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-        await command.callback(interaction, 'vierge', ページ=1000000)
-        self.assertNotIn('embed', interaction.followup.send.call_args.kwargs)
         store.owned.return_value = [('vierge', card, 1) for card in cards]
         await command.callback(interaction, 'vierge')
         embed = interaction.followup.send.call_args.kwargs['embed']
