@@ -3,12 +3,40 @@ from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock, AsyncMock, MagicMock, patch
 import sys
+from contextlib import contextmanager
 
 from seasonal_calendar import parse_holidays, events_for, parse_event_date, HolidayCalendar, JST
 from seasonal_notifications import SeasonalScheduler, SeasonalStore
 
 
 class CalendarTests(unittest.TestCase):
+    def test_seasonal_toggle_turns_on_off_and_keeps_channel_on_stop(self):
+        state = [None]
+        connection = Mock()
+        def execute(sql, params):
+            if sql.startswith('SELECT enabled'):
+                return SimpleNamespace(fetchone=lambda: (state[0][1],) if state[0] else None)
+            if sql.startswith('INSERT INTO george_seasonal_settings'):
+                state[0] = (params[1], True)
+            if sql.startswith('UPDATE george_seasonal_settings'):
+                state[0] = (state[0][0], False)
+            return Mock()
+        connection.execute.side_effect = execute
+        @contextmanager
+        def connect():
+            yield connection
+        store = SeasonalStore('test')
+        with patch.object(store, 'connect', connect):
+            self.assertTrue(store.toggle(1, 10, True))
+            self.assertEqual(state[0], (10, True))
+            self.assertFalse(store.toggle(1, 20, False))
+            self.assertEqual(state[0], (10, False))
+            with self.assertRaises(ValueError):
+                store.toggle(1, 20, False)
+            self.assertEqual(state[0], (10, False))
+            self.assertTrue(store.toggle(1, 20, True))
+            self.assertEqual(state[0], (20, True))
+
     def test_official_csv_encoding_and_dates(self):
         data = "国民の祝日・休日月日,国民の祝日・休日名称\r\n" + "\r\n".join(f"2026/1/{day},テスト行事{day}" for day in range(1, 17)) + "\r\n2026/10/12,スポーツの日\r\n"
         parsed = parse_holidays(data.encode("cp932"))
@@ -57,7 +85,7 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
     async def test_settings_require_manager_and_preserve_guild_channel_scope(self):
         import main
         bot = main.client
-        store = SimpleNamespace(configure=Mock())
+        store = SimpleNamespace(toggle=Mock(return_value=True))
         command = bot.tree.get_command("季節通知").get_command("設定")
         interaction = SimpleNamespace(permissions=SimpleNamespace(manage_guild=False, administrator=False),
                                       response=SimpleNamespace(send_message=AsyncMock(), defer=AsyncMock()),
@@ -65,11 +93,11 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
                                       channel=SimpleNamespace(), app_permissions=SimpleNamespace(view_channel=True, send_messages=True))
         with patch.object(bot, "seasonal_store", store):
             await command.callback(interaction)
-            store.configure.assert_not_called()
+            store.toggle.assert_not_called()
             interaction.permissions.manage_guild = True
             interaction.permissions.administrator = True
             await command.callback(interaction)
-        store.configure.assert_called_once_with(123, 456)
+        store.toggle.assert_called_once_with(123, 456, True)
 
     async def test_custom_events_use_seasonal_group_and_removed_features_are_absent(self):
         import main
@@ -80,6 +108,8 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(hasattr(bot, attribute))
         group = bot.tree.get_command('季節通知')
         self.assertIsNone(group.get_command('行事切替'))
+        self.assertIsNone(group.get_command('行事一覧'))
+        self.assertIsNone(group.get_command('停止'))
         store = SimpleNamespace(put_event=Mock(), delete_event=Mock(return_value=True))
         scheduler = SimpleNamespace(notify_changed=Mock())
         interaction = SimpleNamespace(permissions=SimpleNamespace(administrator=True), guild_id=123,
@@ -90,6 +120,22 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
             await group.get_command('行事削除').callback(interaction, '設立記念日')
             store.delete_event.assert_called_once_with(123, '設立記念日')
         self.assertEqual(scheduler.notify_changed.call_count, 2)
+
+    async def test_status_includes_common_and_custom_events_even_without_channel(self):
+        import main
+        store = SimpleNamespace(settings=Mock(return_value=None), events=Mock(return_value=[('設立記念日', 4, 1, True)]))
+        interaction = SimpleNamespace(guild_id=123, permissions=SimpleNamespace(administrator=True),
+            response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        command = main.client.tree.get_command('季節通知').get_command('確認')
+        with patch.object(main.client, 'seasonal_store', store):
+            await command.callback(interaction)
+        text = ''.join(call.args[0] for call in interaction.followup.send.call_args_list)
+        self.assertIn('未設定', text)
+        self.assertIn('ハロウィン', text)
+        self.assertIn('04-01 設立記念日', text)
+        self.assertNotIn('｜有効', text)
+        self.assertTrue(all(call.kwargs['ephemeral'] for call in interaction.followup.send.call_args_list))
+        store.events.assert_called_once_with(123)
 
     def objects(self, current=None):
         clock = [current or datetime(2026, 10, 31, 10, 0, tzinfo=JST)]

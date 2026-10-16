@@ -15,6 +15,19 @@ def event_header(names):
 
 
 class SeasonalStore(MemoryStore):
+    def toggle(self, guild_id, channel_id, can_send):
+        with self.connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f'george-seasonal-toggle:{guild_id}',))
+            row = connection.execute('SELECT enabled FROM george_seasonal_settings WHERE guild_id=%s FOR UPDATE', (guild_id,)).fetchone()
+            if row and row[0]:
+                connection.execute('UPDATE george_seasonal_settings SET enabled=FALSE WHERE guild_id=%s', (guild_id,))
+                return False
+            if not can_send:
+                raise ValueError('このチャンネルへの閲覧・送信権限をジョージに付けてくれ！')
+            connection.execute('''INSERT INTO george_seasonal_settings VALUES (%s,%s,TRUE)
+                ON CONFLICT(guild_id) DO UPDATE SET channel_id=EXCLUDED.channel_id,enabled=TRUE''', (guild_id, channel_id))
+            return True
+
     @contextmanager
     def connect(self):
         try:
