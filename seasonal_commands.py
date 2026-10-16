@@ -84,10 +84,10 @@ def register_seasonal_commands(bot):
         try:
             overrides = await asyncio.to_thread(bot.seasonal_store.events, interaction.guild_id)
             muted = {name for name, _, _, enabled in overrides if not enabled}
-            text = "【共通の季節行事】\n" + "\n".join(f"{month:02d}-{day:02d} {name}｜{'無効' if name in muted else '有効'}" for (month, day), name in DEFAULT_EVENTS.items())
+            text = "【共通の季節行事】\n" + "\n".join(f"{month:02d}-{day:02d} {name}" + ('｜無効' if name in muted else '') for (month, day), name in DEFAULT_EVENTS.items())
             text += "\n\n【日本の祝日・休日】\n内閣府の公開データをBot全体で自動取得するぜ。振替休日なども公表名で扱うぞ。"
             if overrides:
-                text += "\n\n【このサーバーの追加・切替】\n" + "\n".join(f"{f'{month:02d}-{day:02d}' if month is not None else '共通行事・祝日'} {name}｜{'有効' if enabled else '無効'}" for name, month, day, enabled in overrides)
+                text += "\n\n【このサーバーの追加・切替】\n" + "\n".join(f"{f'{month:02d}-{day:02d}' if month is not None else '共通行事・祝日'} {name}" + ('' if enabled else '｜無効') for name, month, day, enabled in overrides)
         except MemoryUnavailable as exc:
             text = str(exc)
         await send(interaction, text)
@@ -100,20 +100,8 @@ def register_seasonal_commands(bot):
             deleted = await asyncio.to_thread(bot.seasonal_store.delete_event, interaction.guild_id, 名前)
             if deleted:
                 bot.seasonal.notify_changed()
-            text = "独自行事を削除したぜ。" if deleted else "追加した行事が見つからないぜ。共通行事・祝日の無効化は /季節通知 行事切替 を使ってくれ。"
+            text = "独自行事を削除したぜ。" if deleted else "追加した行事が見つからないぜ。削除できるのはこのサーバーで登録した固有行事だけだぞ。"
         except MemoryUnavailable as exc:
-            text = str(exc)
-        await send(interaction, text)
-
-    @group.command(name="行事切替", description="行事・祝日を名前で個別に有効化・無効化（管理者用）")
-    async def toggle_event(interaction: discord.Interaction, 名前: str, 有効: bool):
-        if not await manager(interaction):
-            return
-        try:
-            await asyncio.to_thread(bot.seasonal_store.put_event, interaction.guild_id, 名前, enabled=有効)
-            bot.seasonal.notify_changed()
-            text = f"「{名前.strip()}」を{'有効' if 有効 else '無効'}にしたぜ。共通行事・祝日は正式な名前と一致する場合だけ適用するぞ。"
-        except (ValueError, MemoryUnavailable) as exc:
             text = str(exc)
         await send(interaction, text)
 

@@ -79,6 +79,7 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
         for attribute in ('timers', 'reminders', 'reminder_store', 'memories'):
             self.assertFalse(hasattr(bot, attribute))
         group = bot.tree.get_command('季節通知')
+        self.assertIsNone(group.get_command('行事切替'))
         store = SimpleNamespace(put_event=Mock(), delete_event=Mock(return_value=True))
         scheduler = SimpleNamespace(notify_changed=Mock())
         interaction = SimpleNamespace(permissions=SimpleNamespace(administrator=True), guild_id=123,
