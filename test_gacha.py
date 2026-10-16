@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import discord
 from discord import app_commands
 
-from gacha import Gacha, RULES, choose_rarity, RELINK_OUTFITS, current_card, Card
+from gacha import Gacha, RULES, choose_rarity, RELINK_OUTFITS, current_card, Card, outfit_display_name
 from gacha_commands import register_gacha_commands, rates_embed, result_embed
 from command_help import command_help
 from progress import progressData
@@ -100,7 +100,7 @@ class GachaTests(unittest.TestCase):
             original_name = RELINK_OUTFITS[card.id]['wiki_name']
             old_id = 'relink-' + hashlib.sha256((original_name + card.rarity).encode()).hexdigest()[:16]
             self.assertEqual(card.id, old_id)
-            self.assertEqual(card.name, f"{card.character}（{RELINK_OUTFITS[card.id]['outfit']}）")
+            self.assertEqual(card.name, outfit_display_name(card.character, RELINK_OUTFITS[card.id]['outfit']))
             old = Card(card.id, card.character, original_name, card.rarity)
             self.assertEqual(current_card('relink', old).name, card.name)
 

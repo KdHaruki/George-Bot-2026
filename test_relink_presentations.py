@@ -23,8 +23,9 @@ class PresentationTests(unittest.TestCase):
                 path = Path(directory) / (card.id + '.png')
                 path.write_bytes(b'\x89PNG test')
                 embed = star3_embeds([card, card])[0]
-                self.assertEqual(embed.thumbnail.url, 'attachment://' + path.name)
-                self.assertFalse(embed.image.url)
+                self.assertEqual(embed.image.url, 'attachment://' + path.name)
+                self.assertFalse(embed.thumbnail.url)
+                self.assertFalse(embed.footer.text)
                 files = presentation_files([card, card])
                 try:
                     self.assertEqual(len(files), 1)
@@ -47,12 +48,13 @@ class PresentationTests(unittest.TestCase):
             self.assertIsNotNone(path)
             self.assertTrue(0 < path.stat().st_size <= 2 * 1024 * 1024)
         rosalie = next(card for card in cards if card.character == 'ロザリー')
-        self.assertEqual(rosalie.name, 'ロザリー（幻影のドレス）')
+        self.assertEqual(rosalie.name, 'ロザリー【幻影のドレス】')
         self.assertEqual(PRESENTATIONS[rosalie.id]['quote'], 'キミのこと、\nずーーっと待ってたよ！')
         embeds = star3_embeds([rosalie, rosalie] + engine.pools['relink']['★1'][:1])
-        self.assertEqual(len(embeds), 1)
+        self.assertEqual(len(embeds), 2)
         self.assertIn('×2', embeds[0].title)
-        self.assertEqual(embeds[0].description, PRESENTATIONS[rosalie.id]['quote'])
+        self.assertFalse(embeds[0].description)
+        self.assertEqual(embeds[1].description, PRESENTATIONS[rosalie.id]['quote'])
 
     def test_import_preserves_exact_punctuation_and_newlines(self):
         raw = '<img data-src="https://cdn.gamerch.com/banner"><div class="mu__box"><p>キミのこと、<br />ずーーっと待ってたよ！</p></div><h2 id="outline__%E5%9F%BA%E6%9C%AC%E6%83%85%E5%A0%B1"'
@@ -74,7 +76,7 @@ class PresentationCommandTests(unittest.IsolatedAsyncioTestCase):
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 1)
         calls = interaction.followup.send.call_args_list
         self.assertIn(card.name, calls[0].kwargs['embed'].description)
-        self.assertEqual(calls[1].kwargs['embeds'][0].description, PRESENTATIONS[card.id]['quote'])
+        self.assertEqual(calls[1].kwargs['embeds'][1].description, PRESENTATIONS[card.id]['quote'])
         self.assertFalse(calls[1].kwargs['allowed_mentions'].everyone)
         store.save_draw.assert_called_once()
         await client.close()

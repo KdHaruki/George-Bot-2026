@@ -187,7 +187,7 @@ class StoreTests(unittest.TestCase):
         saved = [dict(card=asdict(card), quantity=1, new=True), dict(card=asdict(card), quantity=2, new=False)]
         embed = result_embed(engine, 'vierge', [card, card], saved)
         self.assertTrue(embed.description.splitlines()[0].startswith('【UR】'))
-        self.assertTrue(embed.description.splitlines()[0].endswith('（NEW）'))
+        self.assertTrue(embed.description.splitlines()[0].endswith('←NEW！'))
         self.assertTrue(embed.description.splitlines()[1].startswith('【UR】'))
         self.assertNotIn('NEW', embed.description.splitlines()[1])
         self.assertNotIn('`01`', embed.description)
@@ -249,7 +249,7 @@ class ResultCommentTests(unittest.TestCase):
             self.assertTrue(line.startswith('【★2】'))
             self.assertNotIn(f'`{index:02d}`', line)
         self.assertNotIn('【確定枠】', embed.description)
-        self.assertEqual(embed.description.count('（NEW）'), 1)
+        self.assertEqual(embed.description.count('←NEW！'), 1)
         self.assertLessEqual(len(embed), 6000)
 
 
@@ -351,10 +351,10 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         client, tree, interaction = self.objects(store)
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
         self.assertEqual(store.save_draw.call_args.args[:3], (10, 'relink', 100))
-        self.assertIn('（NEW）', interaction.followup.send.call_args.kwargs['embed'].description)
+        self.assertIn('←NEW！', interaction.followup.send.call_args.kwargs['embed'].description)
         store.favorite.side_effect = MemoryUnavailable('offline')
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
-        self.assertIn('（NEW）', interaction.followup.send.call_args.kwargs['embed'].description)
+        self.assertIn('←NEW！', interaction.followup.send.call_args.kwargs['embed'].description)
         store.save_draw.side_effect = MemoryUnavailable('offline')
         interaction.followup.send.reset_mock()
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)

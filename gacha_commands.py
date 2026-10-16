@@ -84,7 +84,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
     for index, card in enumerate(cards, 1):
         text = discord.utils.escape_markdown(card.label)
         is_new = saved is not None and saved[index - 1]['new']
-        ownership = '（NEW）' if is_new else ''
+        ownership = '←NEW！' if is_new else ''
         lines.append(f'【{card.rarity}】{text}' + ownership)
     embed = discord.Embed(title=f'{rules.name}：{len(cards)}回ガチャ',
                           description='\n'.join(lines), color=0xB06FE0)
@@ -177,16 +177,19 @@ def register_gacha_commands(bot, store=None):
                                         allowed_mentions=discord.AllowedMentions.none())
         if 作品 == 'relink':
             try:
-                presentations = star3_embeds(cards)
-                files = presentation_files(cards)
-                try:
-                    # At most ten draws: one attachment per unique ★3, below Discord's limit.
-                    if presentations:
-                        await interaction.followup.send(embeds=presentations, files=files,
-                                                        allowed_mentions=discord.AllowedMentions.none())
-                finally:
-                    for file in files:
-                        file.close()
+                ids = list(dict.fromkeys(card.id for card in cards if card.rarity == '★3'))
+                for offset in range(0, len(ids), 5):
+                    batch = [card for card in cards if card.id in ids[offset:offset + 5]]
+                    presentations = star3_embeds(batch)
+                    files = presentation_files(batch)
+                    try:
+                        # Two embeds per card, at most ten embeds in one message.
+                        if presentations:
+                            await interaction.followup.send(embeds=presentations, files=files,
+                                                            allowed_mentions=discord.AllowedMentions.none())
+                    finally:
+                        for file in files:
+                            file.close()
             except Exception as exc:
                 # The saved result was already delivered; optional art must not hide it.
                 logging.warning('Relink presentation skipped: type=%s', type(exc).__name__)

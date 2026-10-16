@@ -5,6 +5,7 @@ import time
 import urllib.request
 from scripts.fetch_gacha_sources import Tables
 from scripts.fetch_relink_presentations import Links
+from gacha import outfit_display_name
 
 
 def build():
@@ -26,7 +27,7 @@ def build():
         if len(outfits) != 1 or not outfits[0]:
             raise ValueError(f'Outfit requires review: {card["id"]}')
         output[card['id']] = dict(wiki_name=wiki_name, outfit=outfits[0],
-                                  name=f"{card['character']}（{outfits[0]}）", source=source)
+                                  name=outfit_display_name(card['character'], outfits[0]), source=source)
         print(f'Checked {len(output)}/{len(cards)}', flush=True)
     Path('relink_outfits.json').write_text(json.dumps(output, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 

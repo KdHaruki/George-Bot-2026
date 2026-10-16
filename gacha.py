@@ -5,6 +5,7 @@ from pathlib import Path
 import random
 from datetime import datetime, timedelta, timezone
 import hashlib
+import re
 from progress import progressData
 
 
@@ -54,9 +55,15 @@ def vierge_character_card(character, rarity):
     return Card(f'vierge-character-{rarity}-{identity}', character, character, rarity)
 
 
+def outfit_display_name(character, outfit):
+    text = outfit.replace('(', '（').replace(')', '）').strip()
+    text = re.sub(r'\s*([（）])\s*', r'\1', text)
+    return f'{character}【{text}】'
+
+
 def current_card(game, card):
     outfit = RELINK_OUTFITS.get(card.id) if game == 'relink' else None
-    return replace(card, name=outfit['name']) if outfit else card
+    return replace(card, name=outfit_display_name(card.character, outfit['outfit'])) if outfit else card
 
 
 def choose_rarity(weights, rng):
