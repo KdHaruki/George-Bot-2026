@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from dataclasses import asdict
 import json
 
-from gacha import BATCH_GUARANTEE, RULES, Card, Gacha
+from gacha import BATCH_GUARANTEE, RULES, Card, Gacha, vierge_character_card, current_card
 import random
 from registered_memory import MemoryStore, MemoryUnavailable
 
@@ -30,9 +30,33 @@ class CollectionStore(MemoryStore):
                 connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_favorites (
                     user_id BIGINT PRIMARY KEY, game TEXT NOT NULL, card_id TEXT NOT NULL,
                     FOREIGN KEY(user_id,game,card_id) REFERENCES george_gacha_cards(user_id,game,card_id))""")
+                self.migrate_vierge(connection)
                 yield connection
         except MemoryUnavailable:
             raise MemoryUnavailable('コレクションの保存先を利用できなかったぜ。管理者にDATABASE_URLを確認してもらってくれ。') from None
+
+    @staticmethod
+    def migrate_vierge(connection):
+        connection.execute('CREATE TABLE IF NOT EXISTS george_gacha_migrations (name TEXT PRIMARY KEY)')
+        key = ('vierge-characters-v1',)
+        query = 'SELECT 1 FROM george_gacha_migrations WHERE name=%s'
+        if connection.execute(query, key).fetchone():
+            return
+        connection.execute("SELECT pg_advisory_xact_lock(hashtext('george-vierge-characters-v1'))")
+        if connection.execute(query, key).fetchone():
+            return
+        rows = connection.execute("SELECT user_id,card_id,card,quantity FROM george_gacha_cards WHERE game='vierge' FOR UPDATE").fetchall()
+        for user_id, old_id, payload, quantity in rows:
+            card = vierge_character_card(payload['character'], payload['rarity'])
+            if old_id == card.id:
+                continue
+            connection.execute('''INSERT INTO george_gacha_cards(user_id,game,card_id,card,quantity)
+                VALUES (%s,'vierge',%s,%s::jsonb,%s) ON CONFLICT(user_id,game,card_id)
+                DO UPDATE SET quantity=george_gacha_cards.quantity+EXCLUDED.quantity,card=EXCLUDED.card''',
+                (user_id, card.id, json.dumps(asdict(card), ensure_ascii=False), quantity))
+            connection.execute("UPDATE george_gacha_favorites SET card_id=%s WHERE user_id=%s AND game='vierge' AND card_id=%s", (card.id, user_id, old_id))
+            connection.execute("DELETE FROM george_gacha_cards WHERE user_id=%s AND game='vierge' AND card_id=%s", (user_id, old_id))
+        connection.execute('INSERT INTO george_gacha_migrations(name) VALUES (%s)', key)
 
     def save_draw(self, user_id, game, interaction_id, cards):
         with self.connect() as connection:
@@ -41,8 +65,10 @@ class CollectionStore(MemoryStore):
             if previous:
                 if previous[:2] != (user_id, game):
                     raise ValueError('Draw owner mismatch')
-                return previous[2]
-            cards = list(cards)
+                if game == 'vierge':
+                    return [dict(entry, card=asdict(vierge_character_card(entry['card']['character'], entry['card']['rarity']))) for entry in previous[2]]
+                return [dict(entry, card=asdict(current_card(game, Card(**entry['card'])))) for entry in previous[2]]
+            cards = [current_card(game, card) for card in cards]
             if game == 'relink':
                 total = connection.execute("""INSERT INTO george_relink_counts(user_id,draws)
                     VALUES (%s,COALESCE((SELECT batches*10 FROM george_gacha_batches
@@ -90,14 +116,14 @@ class CollectionStore(MemoryStore):
         with self.connect() as connection:
             rows = connection.execute("""SELECT game,card,quantity FROM george_gacha_cards
                 WHERE user_id=%s AND (%s::text IS NULL OR game=%s) ORDER BY game,card_id""", (user_id, game, game)).fetchall()
-        return [(game, Card(**card), quantity) for game, card, quantity in rows]
+        return [(game, current_card(game, Card(**card)), quantity) for game, card, quantity in rows]
 
     def favorite(self, user_id):
         with self.connect() as connection:
             row = connection.execute("""SELECT c.game,c.card,c.quantity FROM george_gacha_favorites f
                 JOIN george_gacha_cards c ON (c.user_id,c.game,c.card_id)=(f.user_id,f.game,f.card_id)
                 WHERE f.user_id=%s""", (user_id,)).fetchone()
-        return (row[0], Card(**row[1]), row[2]) if row else None
+        return (row[0], current_card(row[0], Card(**row[1])), row[2]) if row else None
 
     def set_favorite(self, user_id, game, card_id):
         with self.connect() as connection:
@@ -107,7 +133,7 @@ class CollectionStore(MemoryStore):
                 raise ValueError('お気に入りにできるのは、自分が持っているカードだけだぜ。候補から選んでくれ！')
             connection.execute("""INSERT INTO george_gacha_favorites(user_id,game,card_id) VALUES (%s,%s,%s)
                 ON CONFLICT(user_id) DO UPDATE SET game=EXCLUDED.game,card_id=EXCLUDED.card_id""", (user_id, game, card_id))
-        return game, Card(**row[0]), row[1]
+        return game, current_card(game, Card(**row[0])), row[1]
 
     def clear_favorite(self, user_id):
         with self.connect() as connection:

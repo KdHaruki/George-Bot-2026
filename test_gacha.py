@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import discord
 from discord import app_commands
 
-from gacha import Gacha, RULES, choose_rarity
+from gacha import Gacha, RULES, choose_rarity, RELINK_OUTFITS, current_card, Card
 from gacha_commands import register_gacha_commands, rates_embed, result_embed
 from command_help import command_help
 from progress import progressData
@@ -36,12 +36,15 @@ class GachaTests(unittest.TestCase):
         class InspectPool(Ticket):
             def choice(self, values):
                 self.names = {card.character for card in values}
+                if not hasattr(self, 'seen'):
+                    self.seen = []
+                self.seen.append(self.names)
                 return values[0]
         rng = InspectPool(0)
         engine.choose_card('relink', '★3', rng, date(2026, 3, 24))
-        self.assertEqual(rng.names, {'ナクル', 'ラウラ'})
+        self.assertEqual(rng.seen[0], {'ナクル', 'ラウラ'})
         engine.choose_card('relink', '★3', rng, date(2026, 10, 16))
-        self.assertEqual(len(rng.names), 17)
+        self.assertEqual(rng.names, {card.character for card in engine.pools['relink']['★3']})
         engine.choose_card('relink', '★2', rng, date(2026, 11, 26))
         self.assertEqual(len(rng.names), 10)
 
@@ -81,8 +84,25 @@ class GachaTests(unittest.TestCase):
         missing = set(self.engine.catalog['games']['vierge']['missing_characters'])
         self.assertEqual(allowed, {card.character for card in cards} | missing)
         self.assertFalse({card.character for card in cards} & missing)
-        self.assertEqual({rarity: len(pool) for rarity, pool in self.engine.pools['relink'].items()}, {'★3': 17, '★2': 10, '★1': 10})
-        self.assertEqual(self.engine.pools['relink']['★3'][0].name, 'ナクル')
+        self.assertFalse(missing)
+        self.assertEqual(len(cards), 213 * 4)
+        self.assertTrue(all(card.name == card.character and card.cost is None and not card.skill for card in cards))
+        for pool in self.engine.pools['vierge'].values():
+            self.assertEqual({card.character for card in pool}, allowed)
+        self.assertEqual({rarity: len(pool) for rarity, pool in self.engine.pools['relink'].items()}, {'★3': 46, '★2': 10, '★1': 10})
+        cards = self.engine.pools['relink']['★3']
+        limited = [card for card in cards if '（' in RELINK_OUTFITS[card.id]['wiki_name']]
+        self.assertEqual(len(limited), 29)
+        theo = next(card for card in limited if RELINK_OUTFITS[card.id]['wiki_name'] == 'テオ（バレンタイン）')
+        self.assertEqual(theo.character, 'テオドーチェ')
+        import hashlib
+        for card in [card for pool in self.engine.pools['relink'].values() for card in pool]:
+            original_name = RELINK_OUTFITS[card.id]['wiki_name']
+            old_id = 'relink-' + hashlib.sha256((original_name + card.rarity).encode()).hexdigest()[:16]
+            self.assertEqual(card.id, old_id)
+            self.assertEqual(card.name, f"{card.character}（{RELINK_OUTFITS[card.id]['outfit']}）")
+            old = Card(card.id, card.character, original_name, card.rarity)
+            self.assertEqual(current_card('relink', old).name, card.name)
 
     def test_embeds_fit_discord_limits_and_disclose_scope(self):
         for game, rules in RULES.items():

@@ -1,9 +1,11 @@
 """Offline gacha simulation. Rates use integer basis points, never Gemini."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 from pathlib import Path
 import random
 from datetime import datetime, timedelta, timezone
+import hashlib
+from progress import progressData
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,7 @@ RULES = {
 }
 
 BATCH_GUARANTEE = {'vierge': 4, 'relink': 10}
+RELINK_OUTFITS = json.loads(Path(__file__).with_name('relink_outfits.json').read_text(encoding='utf-8'))
 
 
 @dataclass(frozen=True)
@@ -46,6 +49,16 @@ class Card:
         return self.name + (' ／ ' + '・'.join(details) if details else '')
 
 
+def vierge_character_card(character, rarity):
+    identity = hashlib.sha256(character.encode('utf-8')).hexdigest()[:20]
+    return Card(f'vierge-character-{rarity}-{identity}', character, character, rarity)
+
+
+def current_card(game, card):
+    outfit = RELINK_OUTFITS.get(card.id) if game == 'relink' else None
+    return replace(card, name=outfit['name']) if outfit else card
+
+
 def choose_rarity(weights, rng):
     if any(weight < 0 for _, weight in weights) or sum(weight for _, weight in weights) != 10000:
         raise ValueError('排出率の合計は100%である必要があります。')
@@ -63,13 +76,21 @@ class Gacha:
         self.birthdays = json.loads(Path(__file__).with_name('relink_birthdays.json').read_text(encoding='utf-8'))['birthdays']
         path = Path(catalog_path) if catalog_path else Path(__file__).with_name('gacha_catalog.json')
         self.catalog = json.loads(path.read_text(encoding='utf-8'))
+        # Vierge is a character simulator, independent of historical card variants.
+        self.catalog['games']['vierge'] = {
+            'sources': [], 'missing_characters': [],
+            'note': f'全{len(progressData)}人×UR・SR・HR・R。キャラクターとレアリティだけのBot独自ガチャ。各レアリティ内はキャラごとに均等。',
+            'cards': [dict(id=card.id, character=card.character, name=card.name, rarity=card.rarity)
+                      for rarity, _ in RULES['vierge'].normal
+                      for record in progressData
+                      for card in [vierge_character_card(record['progressName'], rarity)]]}
         self.pools = {}
         for game, rules in RULES.items():
             entries = self.catalog['games'][game]
             pool = {rarity: [] for rarity, _ in rules.normal}
             seen = set()
             for item in entries['cards']:
-                card = Card(**item)
+                card = current_card(game, Card(**item))
                 if card.id in seen or card.rarity not in pool:
                     raise ValueError('ガチャカードのIDまたはレアリティが不正です。')
                 seen.add(card.id)
@@ -87,7 +108,13 @@ class Gacha:
             featured = [card for card in pool if card.character in names]
             others = [card for card in pool if card.character not in names]
             if featured and others:
-                pool = featured if rng.randrange(10000) < 5000 else others
+                if rng.randrange(10000) < 5000:
+                    # Split the featured half equally by character, then by outfit.
+                    representatives = list({card.character: card for card in featured}.values())
+                    character = rng.choice(representatives).character
+                    pool = [card for card in featured if card.character == character]
+                else:
+                    pool = others
         return rng.choice(pool)
 
     def draw(self, game, count=1, rng=None, on_day=None):

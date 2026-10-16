@@ -10,6 +10,7 @@ from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
 from gacha_collection import CollectionStore, collection_summary, unowned_cards
 from registered_memory import MemoryUnavailable
 from progress import progressData
+from relink_presentations import star3_embeds, presentation_files
 
 
 GAME_CHOICES = [app_commands.Choice(name=rules.name, value=key) for key, rules in RULES.items()]
@@ -83,8 +84,8 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
     for index, card in enumerate(cards, 1):
         text = discord.utils.escape_markdown(card.label)
         is_new = saved is not None and saved[index - 1]['new']
-        ownership = ' **【NEW】**' if is_new else ''
-        lines.append(f'`{index:02d}` **{card.rarity}** {text}' + ownership)
+        ownership = '（NEW）' if is_new else ''
+        lines.append(f'【{card.rarity}】{text}' + ownership)
     embed = discord.Embed(title=f'{rules.name}：{len(cards)}回ガチャ',
                           description='\n'.join(lines), color=0xB06FE0)
     embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(gacha_comment(game, cards, saved, favorite)), inline=False)
@@ -174,6 +175,21 @@ def register_gacha_commands(bot, store=None):
         embed.set_field_at(0, name='ジョージの一言', value=discord.utils.escape_markdown(comment), inline=False)
         await interaction.followup.send(embed=embed,
                                         allowed_mentions=discord.AllowedMentions.none())
+        if 作品 == 'relink':
+            try:
+                presentations = star3_embeds(cards)
+                files = presentation_files(cards)
+                try:
+                    # At most ten draws: one attachment per unique ★3, below Discord's limit.
+                    if presentations:
+                        await interaction.followup.send(embeds=presentations, files=files,
+                                                        allowed_mentions=discord.AllowedMentions.none())
+                finally:
+                    for file in files:
+                        file.close()
+            except Exception as exc:
+                # The saved result was already delivered; optional art must not hide it.
+                logging.warning('Relink presentation skipped: type=%s', type(exc).__name__)
 
     @draw.autocomplete('回数')
     async def draw_count(interaction: discord.Interaction, current: int):

@@ -7,13 +7,48 @@ from unittest.mock import AsyncMock, Mock, patch
 import discord
 from discord import app_commands
 
-from gacha import Card, Gacha
+from gacha import Card, Gacha, vierge_character_card
 from gacha_collection import CollectionStore, collection_summary, unowned_cards
 from gacha_commands import favorite_details, gacha_comment, register_gacha_commands, result_embed
 from registered_memory import MemoryUnavailable
 
 
 class StoreTests(unittest.TestCase):
+    def test_vierge_migration_merges_variants_and_moves_favorite_once(self):
+        canonical = vierge_character_card('ロザリー', 'UR')
+        inventory = {'old-a': (asdict(Card('old-a', 'ロザリー', 'ロザリー【水着】', 'UR', 15, '技')), 2),
+                     'old-b': (asdict(Card('old-b', 'ロザリー', 'ロザリー【制服】', 'UR', 14, '別技')), 3),
+                     canonical.id: (asdict(canonical), 1)}
+        favorite = ['old-b']
+        migrated = [False]
+        connection = Mock()
+        def execute(sql, params=None):
+            if sql.startswith('SELECT 1 FROM george_gacha_migrations'):
+                return SimpleNamespace(fetchone=lambda: (1,) if migrated[0] else None)
+            if sql.startswith('SELECT user_id,card_id'):
+                return SimpleNamespace(fetchall=lambda: [(10, key, payload, count) for key, (payload, count) in list(inventory.items())])
+            if sql.startswith('INSERT INTO george_gacha_cards'):
+                import json
+                uid, key, payload, count = params
+                self.assertEqual(uid, 10)
+                inventory[key] = (json.loads(payload), count + inventory.get(key, (None, 0))[1])
+            if sql.startswith('UPDATE george_gacha_favorites'):
+                new_id, uid, old_id = params
+                if favorite[0] == old_id:
+                    favorite[0] = new_id
+            if sql.startswith('DELETE FROM george_gacha_cards'):
+                self.assertEqual(favorite[0] == params[1], False)
+                del inventory[params[1]]
+            if sql.startswith('INSERT INTO george_gacha_migrations'):
+                migrated[0] = True
+            return Mock()
+        connection.execute.side_effect = execute
+        CollectionStore.migrate_vierge(connection)
+        self.assertEqual(inventory, {canonical.id: (asdict(canonical), 6)})
+        self.assertEqual(favorite, [canonical.id])
+        CollectionStore.migrate_vierge(connection)
+        self.assertEqual(inventory[canonical.id][1], 6)
+
     def test_batch_guarantees_persist_separately_and_replay_does_not_increment(self):
         engine = Gacha()
         counters, receipts = {}, {}
@@ -103,7 +138,7 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(unowned_cards(engine, [], 'relink'), [('relink', other, 0)])
 
     def test_duplicate_cards_increment_and_receipt_prevents_double_award(self):
-        card = Card('id', 'ロザリー', 'ロザリー', 'UR')
+        card = vierge_character_card('ロザリー', 'UR')
         connection = Mock()
         receipt = Mock()
         receipt.fetchone.return_value = None
@@ -151,9 +186,11 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(total, sum(len(pool) for pool in engine.pools['vierge'].values()))
         saved = [dict(card=asdict(card), quantity=1, new=True), dict(card=asdict(card), quantity=2, new=False)]
         embed = result_embed(engine, 'vierge', [card, card], saved)
-        self.assertTrue(embed.description.splitlines()[0].startswith('`01` **UR** '))
-        self.assertTrue(embed.description.splitlines()[0].endswith('**【NEW】**'))
-        self.assertTrue(embed.description.splitlines()[1].startswith('`02` **UR** '))
+        self.assertTrue(embed.description.splitlines()[0].startswith('【UR】'))
+        self.assertTrue(embed.description.splitlines()[0].endswith('（NEW）'))
+        self.assertTrue(embed.description.splitlines()[1].startswith('【UR】'))
+        self.assertNotIn('NEW', embed.description.splitlines()[1])
+        self.assertNotIn('`01`', embed.description)
         self.assertNotIn('【所持', embed.description)
 
 
@@ -203,15 +240,16 @@ class ResultCommentTests(unittest.TestCase):
             self.assertIn('URが1枚', gacha_comment('vierge', [rare], duplicate))
             self.assertIn('初入手も1種類', gacha_comment('vierge', [rare], new))
 
-    def test_mixed_ten_draw_lines_keep_number_first_and_guarantee(self):
+    def test_relink_result_has_bracketed_rarity_and_new_without_numbers(self):
         engine = Gacha()
         card = engine.pools['relink']['★2'][0]
         saved = [dict(new=index == 0, quantity=index + 1) for index in range(10)]
         embed = result_embed(engine, 'relink', [card] * 10, saved)
         for index, line in enumerate(embed.description.splitlines(), 1):
-            self.assertTrue(line.startswith(f'`{index:02d}` **★2** '))
+            self.assertTrue(line.startswith('【★2】'))
+            self.assertNotIn(f'`{index:02d}`', line)
         self.assertNotIn('【確定枠】', embed.description)
-        self.assertEqual(embed.description.count('【NEW】'), 1)
+        self.assertEqual(embed.description.count('（NEW）'), 1)
         self.assertLessEqual(len(embed), 6000)
 
 
@@ -313,10 +351,10 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         client, tree, interaction = self.objects(store)
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
         self.assertEqual(store.save_draw.call_args.args[:3], (10, 'relink', 100))
-        self.assertIn('**【NEW】**', interaction.followup.send.call_args.kwargs['embed'].description)
+        self.assertIn('（NEW）', interaction.followup.send.call_args.kwargs['embed'].description)
         store.favorite.side_effect = MemoryUnavailable('offline')
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
-        self.assertIn('**【NEW】**', interaction.followup.send.call_args.kwargs['embed'].description)
+        self.assertIn('（NEW）', interaction.followup.send.call_args.kwargs['embed'].description)
         store.save_draw.side_effect = MemoryUnavailable('offline')
         interaction.followup.send.reset_mock()
         await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
