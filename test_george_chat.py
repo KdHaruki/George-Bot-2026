@@ -122,6 +122,17 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await self.chat.collection_comment(facts)
 
+    async def test_favorite_comment_treats_progress_as_person(self):
+        self.generate.return_value = SimpleNamespace(text='ロザリーはおしゃれが好きな子だぜ！ キミも一緒に楽しんでくれよな！')
+        facts = {'action': 'favorite_view', 'character': 'ロザリー'}
+        self.assertIn('ロザリー', await self.chat.collection_comment(facts))
+        instruction = self.generate.call_args.kwargs['config'].system_instruction
+        self.assertIn('同じ世界に実在する人物', instruction)
+        for answer in ('カードを眺めてるんだな！', 'コレクションが増えたな！'):
+            self.generate.return_value = SimpleNamespace(text=answer)
+            with self.assertRaises(ValueError):
+                await self.chat.collection_comment(facts)
+
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！","lucky_item":"赤いハンカチ"}')

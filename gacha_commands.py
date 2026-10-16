@@ -34,6 +34,9 @@ def favorite_details(card):
 
 
 def collection_facts(game, cards, saved=None, favorite=None, viewing=False):
+    if viewing:
+        return dict(action='favorite_view', character=cards[0].character,
+                    profiles=[favorite_details(cards[0])[0]])
     picked = favorite[1] if favorite and favorite[0] == game else None
     relation = 'none'
     if picked:
@@ -96,8 +99,8 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
                    + ('1枚確定！' if game == 'vierge' else '確定！')) if progress == limit - 1 else f'確定まであと{limit - progress}回'
         if game == 'relink':
             remaining = 100 - progress
-            message = '次回1回で★3確定！' if remaining == 1 else ('次回10連で★3確定！' if remaining <= 10 else f'★3確定まであと{remaining}カウント')
-        unit = 'カウント' if game == 'relink' else '回'
+            message = '次回1回で★3確定！' if remaining == 1 else ('次回10連で★3確定！' if remaining <= 10 else f'★3確定まであと{remaining}')
+        unit = '' if game == 'relink' else '回'
         embed.add_field(name='ガチャカウント', value=f'{progress}/{limit}{unit}：**{message}**', inline=False)
     if saved is None:
         embed.add_field(name='保存なし', value='DATABASE_URL未設定のため、この結果はコレクションに保存されないぞ。', inline=False)
@@ -312,7 +315,6 @@ def register_gacha_commands(bot, store=None):
             comment = await ai_comment(collection_facts(game, [card], favorite=selected, viewing=True), comment)
             embed.add_field(name='ジョージのプログレス紹介', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
             embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
-            embed.set_footer(text='ユーザーごとに両作品で1枚・サーバーとDMで共通・所持一覧の先頭に表示')
             await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
         except (ValueError, MemoryUnavailable) as exc:
             await interaction.followup.send(str(exc), ephemeral=True)

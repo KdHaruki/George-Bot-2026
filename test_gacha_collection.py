@@ -198,7 +198,7 @@ class ResultCommentTests(unittest.TestCase):
     def test_only_selected_game_counter_and_next_draw_message(self):
         engine = Gacha()
         for counts in ({'vierge': 3, 'relink': 90}, {'vierge': 7, 'relink': 190}):
-            for game, expected in [('vierge', '3/4回：**次回7連でUR1枚確定！**'), ('relink', '90/100カウント：**次回10連で★3確定！**')]:
+            for game, expected in [('vierge', '3/4回：**次回7連でUR1枚確定！**'), ('relink', '90/100：**次回10連で★3確定！**')]:
                 card = next(iter(engine.pools[game].values()))[0]
                 embed = result_embed(engine, game, [card], batch_counts=counts)
                 counters = [field.value for field in embed.fields if field.name == 'ガチャカウント']
@@ -277,6 +277,10 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         bot.george_chat.collection_comment.side_effect = None
         await command.callback(interaction)
         self.assertEqual(bot.george_chat.collection_comment.call_args.args[0]['action'], 'favorite_view')
+        facts = bot.george_chat.collection_comment.call_args.args[0]
+        self.assertNotIn('cards', facts)
+        self.assertNotIn('saved', facts)
+        self.assertFalse(interaction.followup.send.call_args.kwargs['embed'].footer.text)
         await client.close()
 
     async def test_favorite_candidates_sort_by_game_then_descending_rarity(self):
