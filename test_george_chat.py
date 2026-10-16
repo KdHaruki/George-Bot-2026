@@ -123,7 +123,7 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
                 await self.chat.collection_comment(facts)
 
     async def test_favorite_comment_treats_progress_as_person(self):
-        self.generate.return_value = SimpleNamespace(text='ロザリーはおしゃれが好きな子だぜ！ キミも一緒に楽しんでくれよな！')
+        self.generate.return_value = SimpleNamespace(text='ロザリーはおしゃれが好きな子だぜ！ オマエも一緒に楽しんでくれよな！')
         facts = {'action': 'favorite_view', 'character': 'ロザリー'}
         self.assertIn('ロザリー', await self.chat.collection_comment(facts))
         instruction = self.generate.call_args.kwargs['config'].system_instruction
