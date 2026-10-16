@@ -89,11 +89,15 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
                           description='\n'.join(lines), color=0xB06FE0)
     embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(gacha_comment(game, cards, saved, favorite)), inline=False)
     if batch_counts is not None:
-        limit = BATCH_GUARANTEE[game]
+        limit = 100 if game == 'relink' else BATCH_GUARANTEE[game]
         progress = batch_counts.get(game, 0) % limit
         message = (f'次回{rules.batch_size}連で{rules.normal[0][0]}'
                    + ('1枚確定！' if game == 'vierge' else '確定！')) if progress == limit - 1 else f'確定まであと{limit - progress}回'
-        embed.add_field(name='ガチャカウント', value=f'{progress}/{limit}回：**{message}**', inline=False)
+        if game == 'relink':
+            remaining = 100 - progress
+            message = '次回1回で★3確定！' if remaining == 1 else ('次回10連で★3確定！' if remaining <= 10 else f'★3確定まであと{remaining}カウント')
+        unit = 'カウント' if game == 'relink' else '回'
+        embed.add_field(name='ガチャカウント', value=f'{progress}/{limit}{unit}：**{message}**', inline=False)
     if saved is None:
         embed.add_field(name='保存なし', value='DATABASE_URL未設定のため、この結果はコレクションに保存されないぞ。', inline=False)
     return embed
@@ -104,6 +108,11 @@ def rates_embed(engine, game):
     embed = discord.Embed(title=f'{rules.name}：排出率',
                           description=engine.rates_text(game), color=0xB06FE0)
     embed.add_field(name='連続ガチャの累計保証', value=f'{rules.batch_size}連を{BATCH_GUARANTEE[game]}回引くごとに、最後の1枚が{rules.normal[0][0]}確定。途中で最高レアが出ても回数はリセットしないぞ。1回ガチャは対象外。', inline=False)
+    if game == 'relink':
+        embed.set_field_at(0, name='累計カウント保証', value='単発は1、10連は10カウント。100カウント到達ごとの1枚が★3確定。途中の★3ではリセットせず、端数も繰り越すぞ。', inline=False)
+        embed.add_field(name='誕生日ピックアップ', value='日本時間の誕生日当日は、★3抽選内で対象の子が合計50％。同日が複数なら均等に分け、残り50％は対象外の★3から抽選。100カウント保証にも適用。★3全体の排出率は変わらないぞ。', inline=False)
+    if game == 'vierge':
+        embed.add_field(name='7連の周期初回保証', value='カウントが1/4になる7連（累計1・5・9回目…）は最後の1枚がSR以上。UR・SRはそのまま、HR以下ならSRに引き上げるぞ。', inline=False)
     return embed
 
 
@@ -130,7 +139,7 @@ def register_gacha_commands(bot, store=None):
     @app_commands.choices(作品=GAME_CHOICES)
     @app_commands.checks.cooldown(1, 5, key=lambda interaction: interaction.user.id)
     async def draw(interaction: discord.Interaction, 作品: str, 回数: int = 1):
-        if not store.url and 作品 in RULES and 回数 == RULES[作品].batch_size:
+        if not store.url and 作品 in RULES and (作品 == 'relink' or 回数 == RULES[作品].batch_size):
             await interaction.response.send_message('連続ガチャの保証回数を保存するため、DATABASE_URLの設定が必要だぜ。', ephemeral=True)
             return
         try:

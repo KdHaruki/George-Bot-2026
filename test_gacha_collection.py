@@ -19,6 +19,10 @@ class StoreTests(unittest.TestCase):
         counters, receipts = {}, {}
         connection = Mock()
         def execute(sql, params):
+            if sql.startswith('INSERT INTO george_relink_counts'):
+                key = (params[0], 'relink')
+                counters[key] = counters.get(key, 0) + params[2]
+                return SimpleNamespace(fetchone=lambda: (counters[key],))
             if sql.startswith('SELECT user_id'):
                 return SimpleNamespace(fetchone=lambda: receipts.get(params[0]))
             if sql.startswith('INSERT INTO george_gacha_batches'):
@@ -40,13 +44,30 @@ class StoreTests(unittest.TestCase):
                 low = engine.pools[game][list(engine.pools[game])[-1]][0]
                 for index in range(1, limit * 2 + 1):
                     result = store.save_draw(10, game, len(receipts) + 100, [low] * (7 if game == 'vierge' else 10))
-                    self.assertEqual(result[-1]['card']['rarity'], ('UR' if game == 'vierge' else '★3') if index % limit == 0 else low.rarity)
+                    expected = ('UR' if game == 'vierge' else '★3') if index % limit == 0 else ('SR' if game == 'vierge' and index % limit == 1 else low.rarity)
+                    self.assertEqual(result[-1]['card']['rarity'], expected)
+                    self.assertEqual(len(result), 7 if game == 'vierge' else 10)
                 before = dict(counters)
                 receipt_id = next(key for key, value in receipts.items() if value[1] == game)
                 store.save_draw(10, game, receipt_id, [low])
-                store.save_draw(10, game, len(receipts) + 100, [low])
                 self.assertEqual(counters, before)
-            self.assertEqual(counters, {(10, 'vierge'): 8, (10, 'relink'): 20})
+                store.save_draw(10, game, len(receipts) + 100, [low])
+                if game == 'relink':
+                    before[(10, game)] += 1
+                self.assertEqual(counters, before)
+            self.assertEqual(counters, {(10, 'vierge'): 8, (10, 'relink'): 201})
+            counters[(20, 'relink')] = 95
+            low = engine.pools['relink']['★1'][0]
+            result = store.save_draw(20, 'relink', 999, [low] * 10)
+            self.assertEqual([entry['card']['rarity'] for entry in result], ['★1'] * 4 + ['★3'] + ['★1'] * 5)
+            self.assertEqual(counters[(20, 'relink')], 105)
+            counters[(20, 'relink')] = 199
+            birthday_card = next(card for card in engine.pools['relink']['★3'] if card.character == 'ロザリー')
+            with patch.object(Gacha, 'choose_card', return_value=birthday_card) as birthday_selection:
+                result = store.save_draw(20, 'relink', 1000, [low])
+                birthday_selection.assert_called_once_with('relink', '★3')
+            self.assertEqual(result[0]['card']['character'], 'ロザリー')
+            self.assertEqual(result[0]['card']['rarity'], '★3')
 
     def test_favorite_requires_ownership_and_clear_only_targets_current_user(self):
         card = Card('id', 'ロザリー', 'ロザリー', 'UR')
@@ -139,13 +160,13 @@ class StoreTests(unittest.TestCase):
 class ResultCommentTests(unittest.TestCase):
     def test_only_selected_game_counter_and_next_draw_message(self):
         engine = Gacha()
-        for counts in ({'vierge': 3, 'relink': 9}, {'vierge': 7, 'relink': 19}):
-            for game, expected in [('vierge', '3/4回：**次回7連でUR1枚確定！**'), ('relink', '9/10回：**次回10連で★3確定！**')]:
+        for counts in ({'vierge': 3, 'relink': 90}, {'vierge': 7, 'relink': 190}):
+            for game, expected in [('vierge', '3/4回：**次回7連でUR1枚確定！**'), ('relink', '90/100カウント：**次回10連で★3確定！**')]:
                 card = next(iter(engine.pools[game].values()))[0]
                 embed = result_embed(engine, game, [card], batch_counts=counts)
                 counters = [field.value for field in embed.fields if field.name == 'ガチャカウント']
                 self.assertEqual(counters, [expected])
-                reset = result_embed(engine, game, [card], batch_counts={'vierge': 4, 'relink': 10})
+                reset = result_embed(engine, game, [card], batch_counts={'vierge': 4, 'relink': 100})
                 text = next(field.value for field in reset.fields if field.name == 'ガチャカウント')
                 self.assertTrue(text.startswith('0/'))
                 self.assertNotIn('次回', text)

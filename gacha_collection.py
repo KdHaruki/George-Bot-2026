@@ -25,6 +25,8 @@ class CollectionStore(MemoryStore):
                 connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_batches (
                     user_id BIGINT NOT NULL, game TEXT NOT NULL, batches BIGINT NOT NULL DEFAULT 0,
                     PRIMARY KEY(user_id,game))""")
+                connection.execute("""CREATE TABLE IF NOT EXISTS george_relink_counts (
+                    user_id BIGINT PRIMARY KEY, draws BIGINT NOT NULL DEFAULT 0)""")
                 connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_favorites (
                     user_id BIGINT PRIMARY KEY, game TEXT NOT NULL, card_id TEXT NOT NULL,
                     FOREIGN KEY(user_id,game,card_id) REFERENCES george_gacha_cards(user_id,game,card_id))""")
@@ -41,13 +43,26 @@ class CollectionStore(MemoryStore):
                     raise ValueError('Draw owner mismatch')
                 return previous[2]
             cards = list(cards)
-            if len(cards) == RULES[game].batch_size:
+            if game == 'relink':
+                total = connection.execute("""INSERT INTO george_relink_counts(user_id,draws)
+                    VALUES (%s,COALESCE((SELECT batches*10 FROM george_gacha_batches
+                        WHERE user_id=%s AND game='relink'),0)+%s)
+                    ON CONFLICT(user_id) DO UPDATE SET draws=george_relink_counts.draws+%s
+                    RETURNING draws""", (user_id, user_id, len(cards), len(cards))).fetchone()[0]
+                for index in range(len(cards)):
+                    if (total - len(cards) + index + 1) % 100 == 0:
+                        cards[index] = Gacha().choose_card(game, '★3')
+            elif len(cards) == RULES[game].batch_size:
                 batches = connection.execute("""INSERT INTO george_gacha_batches(user_id,game,batches)
                     VALUES (%s,%s,1) ON CONFLICT(user_id,game) DO UPDATE SET
                     batches=george_gacha_batches.batches+1 RETURNING batches""", (user_id, game)).fetchone()[0]
                 if batches % BATCH_GUARANTEE[game] == 0:
                     highest = RULES[game].normal[0][0]
                     cards[-1] = random.SystemRandom().choice(Gacha().pools[game][highest])
+                elif game == 'vierge' and batches % BATCH_GUARANTEE[game] == 1:
+                    # Raise the existing guaranteed slot to SR; never downgrade UR.
+                    if cards[-1].rarity not in ('UR', 'SR'):
+                        cards[-1] = random.SystemRandom().choice(Gacha().pools[game]['SR'])
             result = []
             for card in cards:
                 payload = asdict(card)
@@ -66,7 +81,10 @@ class CollectionStore(MemoryStore):
     def batch_counts(self, user_id):
         with self.connect() as connection:
             rows = connection.execute('SELECT game,batches FROM george_gacha_batches WHERE user_id=%s', (user_id,)).fetchall()
-        return {game: count for game, count in rows}
+            relink = connection.execute('SELECT draws FROM george_relink_counts WHERE user_id=%s', (user_id,)).fetchone()
+        counts = {game: count for game, count in rows}
+        counts['relink'] = relink[0] if relink else counts.get('relink', 0) * 10
+        return counts
 
     def owned(self, user_id, game=None):
         with self.connect() as connection:

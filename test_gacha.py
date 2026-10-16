@@ -1,6 +1,7 @@
 import collections
 import random
 import unittest
+from datetime import date
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -26,6 +27,24 @@ class Ticket:
 
 
 class GachaTests(unittest.TestCase):
+    def test_birthday_is_exactly_half_and_shared_birthdays_split_pool(self):
+        engine = Gacha()
+        self.assertTrue({card.character for card in engine.pools['relink']['★3']} <= engine.birthdays.keys())
+        for value, featured in ((0, True), (4999, True), (5000, False), (9999, False)):
+            card = engine.choose_card('relink', '★3', Ticket(value), date(2026, 11, 26))
+            self.assertEqual(card.character == 'ロザリー', featured)
+        class InspectPool(Ticket):
+            def choice(self, values):
+                self.names = {card.character for card in values}
+                return values[0]
+        rng = InspectPool(0)
+        engine.choose_card('relink', '★3', rng, date(2026, 3, 24))
+        self.assertEqual(rng.names, {'ナクル', 'ラウラ'})
+        engine.choose_card('relink', '★3', rng, date(2026, 10, 16))
+        self.assertEqual(len(rng.names), 17)
+        engine.choose_card('relink', '★2', rng, date(2026, 11, 26))
+        self.assertEqual(len(rng.names), 10)
+
     @classmethod
     def setUpClass(cls):
         cls.engine = Gacha()

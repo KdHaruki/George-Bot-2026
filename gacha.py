@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import random
+from datetime import datetime, timedelta, timezone
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,7 @@ def choose_rarity(weights, rng):
 
 class Gacha:
     def __init__(self, catalog_path=None):
+        self.birthdays = json.loads(Path(__file__).with_name('relink_birthdays.json').read_text(encoding='utf-8'))['birthdays']
         path = Path(catalog_path) if catalog_path else Path(__file__).with_name('gacha_catalog.json')
         self.catalog = json.loads(path.read_text(encoding='utf-8'))
         self.pools = {}
@@ -76,7 +78,19 @@ class Gacha:
                 raise ValueError('空のレアリティがあるため抽選できません。')
             self.pools[game] = pool
 
-    def draw(self, game, count=1, rng=None):
+    def choose_card(self, game, rarity, rng=None, on_day=None):
+        rng = rng or random.SystemRandom()
+        pool = self.pools[game][rarity]
+        if game == 'relink' and rarity == '★3':
+            day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
+            names = {name for name, birthday in self.birthdays.items() if birthday == day.strftime('%m-%d')}
+            featured = [card for card in pool if card.character in names]
+            others = [card for card in pool if card.character not in names]
+            if featured and others:
+                pool = featured if rng.randrange(10000) < 5000 else others
+        return rng.choice(pool)
+
+    def draw(self, game, count=1, rng=None, on_day=None):
         rules = RULES[game]
         if count not in (1, rules.batch_size):
             raise ValueError(f'回数は1回または{rules.batch_size}回を指定してくれ！')
@@ -86,7 +100,7 @@ class Gacha:
             # One dedicated guaranteed slot, not a reroll after a failed batch.
             weights = rules.guaranteed if count == rules.batch_size and index == count - 1 else rules.normal
             rarity = choose_rarity(weights, rng)
-            results.append(rng.choice(self.pools[game][rarity]))
+            results.append(self.choose_card(game, rarity, rng, on_day))
         return results
 
     def rates_text(self, game):
@@ -98,4 +112,6 @@ class Gacha:
             lines.append(f'**{rarity}**：通常 {rate / 100:g}% ／ 確定枠 {guarantee[rarity] / 100:g}%（{size}種）')
         lines.append(f'{rules.batch_size}連＝通常抽選{rules.batch_size - 1}枠＋確定枠1枠。')
         lines.append('レアリティを抽選後、そのレアリティの収録カードから均等に抽選するぜ。')
+        if game == 'relink':
+            lines[-1] = 'レアリティを抽選後にカードを選ぶぞ。★3は誕生日ピックアップ中のみ通常の均等抽選と異なるぜ。'
         return '\n'.join(lines)
