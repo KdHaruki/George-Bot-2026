@@ -126,11 +126,11 @@ async def progress_autocomplete(interaction: discord.Interaction, current: str):
         for r in results[:25]
     ]
 ########################################
-# /progress プログレス検索
+# /プログレス プログレス検索
 ########################################
 
 @client.tree.command(
-    name="progress",
+    name="プログレス",
     description="プログレス検索"
 )
 @app_commands.describe(name="名前または世界")
@@ -239,7 +239,7 @@ async def on_message(message):
                     client.george_chat.reset(key)
                     answer = "会話をリセットしたぜ。"
                 elif not text and not attachments:
-                    answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /progress、会話のリセットは「リセット」だぜ。"
+                    answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /プログレス、会話のリセットは「リセット」だぜ。"
                 else:
                     async with message.channel.typing():
                         bundle = await load_images([ImageSource(item, f"今回の発言の添付画像{index + 1}") for index, item in enumerate(attachments)])

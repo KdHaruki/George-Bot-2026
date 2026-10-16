@@ -6,6 +6,11 @@ from command_help import command_help, HELP_CATEGORIES
 
 
 class HelpTests(unittest.TestCase):
+    def test_progress_command_uses_japanese_name(self):
+        from main import client
+        self.assertIsNotNone(client.tree.get_command('プログレス'))
+        self.assertIsNone(client.tree.get_command('progress'))
+
     def test_all_uploaded_command_and_option_names_are_lowercase(self):
         from main import client
         def check(payload):
