@@ -20,7 +20,6 @@ from image_inputs import ImageSource, load_images, ambient_image_sources
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
 from gacha_commands import register_gacha_commands
-from dm_history import DMStore, archive_dm, register_dm_history
 from command_permissions import require_administrator
 
 ########################################
@@ -41,7 +40,6 @@ class MyClient(discord.Client):
         self.seasonal = SeasonalScheduler(self.seasonal_store)
         self.cleaned_guilds = set()
         self.health = HealthCheck()
-        self.dm_store = DMStore()
 
     async def setup_hook(self):
         commands = await self.tree.sync()
@@ -71,7 +69,6 @@ class MyClient(discord.Client):
 client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
-register_dm_history(client, client.dm_store)
 
 ########################################
 # 起動確認
@@ -195,8 +192,6 @@ async def omikuji(interaction: discord.Interaction):
 
 @client.event
 async def on_message(message):
-    if not message.author.bot and message.guild is None:
-        await archive_dm(client.dm_store, message)
 
     if message.author.bot:
         return

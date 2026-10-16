@@ -27,7 +27,7 @@ class HealthCheck:
 
     async def database_check(self, store):
         if not store.url:
-            return "未設定：季節通知・コレクション・DM保存は利用不可"
+            return "未設定：季節通知・コレクションは利用不可"
         try:
             ok = await asyncio.wait_for(asyncio.to_thread(store.ping), timeout=20)
             return "正常：接続・SELECT確認済み" if ok else "異常：接続確認の結果が不正"
@@ -37,7 +37,7 @@ class HealthCheck:
     async def report(self, bot):
         async with self.lock:
             if self.checked_at is None or time.monotonic() - self.checked_at >= 300:
-                self.results = await asyncio.gather(self.gemini_check(bot.george_chat), self.database_check(bot.dm_store))
+                self.results = await asyncio.gather(self.gemini_check(bot.george_chat), self.database_check(bot.seasonal_store))
                 self.checked_at = time.monotonic()
         age = int(time.monotonic() - self.checked_at)
         embed = discord.Embed(title="ジョージの健康診断", description=f"API・DBの確認結果：{age}秒前（5分間共用キャッシュ）", color=0xE2AD48)
@@ -54,5 +54,5 @@ class HealthCheck:
             if seasonal.last_delivery_failed or seasonal.last_check_ok is False:
                 text += "\n直近の確認・送信に失敗あり（ログを確認）"
             embed.add_field(name="季節通知（日本時間10:00）", value=text, inline=False)
-        embed.set_footer(text="Gemini接続テストは利用枠を消費します。会話本文・DM履歴はテストに送りません。")
+        embed.set_footer(text="Gemini接続テストは利用枠を消費します。会話本文はテストに送りません。")
         return embed

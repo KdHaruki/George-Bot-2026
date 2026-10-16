@@ -9,7 +9,7 @@ class HealthTests(unittest.IsolatedAsyncioTestCase):
         generate = AsyncMock(return_value=SimpleNamespace(text="OK"))
         return SimpleNamespace(
             george_chat=SimpleNamespace(client=SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate))), model="test-model"),
-            dm_store=SimpleNamespace(url="secret-db-url", ping=Mock(return_value=True)),
+            seasonal_store=SimpleNamespace(url="secret-db-url", ping=Mock(return_value=True)),
             is_ready=lambda: True)
 
 
@@ -19,23 +19,23 @@ class HealthTests(unittest.IsolatedAsyncioTestCase):
         await health.report(bot)
         report = await health.report(bot)
         bot.george_chat.client.aio.models.generate_content.assert_awaited_once()
-        bot.dm_store.ping.assert_called_once()
+        bot.seasonal_store.ping.assert_called_once()
         self.assertNotIn("secret-db-url", str(report.to_dict()))
         self.assertNotIn("予定通知", str(report.to_dict()))
 
     async def test_unconfigured_and_stopped_are_distinct(self):
         bot = self.bot()
         bot.george_chat.client = None
-        bot.dm_store.url = ""
+        bot.seasonal_store.url = ""
         report = await HealthCheck().report(bot)
         text = str(report.to_dict())
         self.assertIn("GEMINI_API_KEY", text)
-        self.assertIn("季節通知・コレクション・DM保存は利用不可", text)
-        bot.dm_store.ping.assert_not_called()
+        self.assertIn("季節通知・コレクションは利用不可", text)
+        bot.seasonal_store.ping.assert_not_called()
 
     async def test_database_error_is_redacted(self):
         bot = self.bot()
-        bot.dm_store.ping.side_effect = RuntimeError("secret-password")
+        bot.seasonal_store.ping.side_effect = RuntimeError("secret-password")
         report = await HealthCheck().report(bot)
         self.assertNotIn("secret-password", str(report.to_dict()))
         self.assertIn("接続テスト失敗", str(report.to_dict()))
