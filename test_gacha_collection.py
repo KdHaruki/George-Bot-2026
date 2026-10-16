@@ -9,11 +9,45 @@ from discord import app_commands
 
 from gacha import Card, Gacha
 from gacha_collection import CollectionStore, collection_summary, unowned_cards
-from gacha_commands import gacha_comment, register_gacha_commands, result_embed
+from gacha_commands import favorite_details, gacha_comment, register_gacha_commands, result_embed
 from registered_memory import MemoryUnavailable
 
 
 class StoreTests(unittest.TestCase):
+    def test_batch_guarantees_persist_separately_and_replay_does_not_increment(self):
+        engine = Gacha()
+        counters, receipts = {}, {}
+        connection = Mock()
+        def execute(sql, params):
+            if sql.startswith('SELECT user_id'):
+                return SimpleNamespace(fetchone=lambda: receipts.get(params[0]))
+            if sql.startswith('INSERT INTO george_gacha_batches'):
+                counters[params] = counters.get(params, 0) + 1
+                return SimpleNamespace(fetchone=lambda: (counters[params],))
+            if sql.startswith('INSERT INTO george_gacha_cards'):
+                return SimpleNamespace(fetchone=lambda: (1,))
+            if sql.startswith('INSERT INTO george_gacha_draws'):
+                import json
+                receipts[params[0]] = (params[1], params[2], json.loads(params[3]))
+            return Mock()
+        connection.execute.side_effect = execute
+        @contextmanager
+        def connect():
+            yield connection
+        store = CollectionStore('test')
+        with patch.object(store, 'connect', connect):
+            for game, limit in [('vierge', 4), ('relink', 10)]:
+                low = engine.pools[game][list(engine.pools[game])[-1]][0]
+                for index in range(1, limit * 2 + 1):
+                    result = store.save_draw(10, game, len(receipts) + 100, [low] * (7 if game == 'vierge' else 10))
+                    self.assertEqual(result[-1]['card']['rarity'], ('UR' if game == 'vierge' else '★3') if index % limit == 0 else low.rarity)
+                before = dict(counters)
+                receipt_id = next(key for key, value in receipts.items() if value[1] == game)
+                store.save_draw(10, game, receipt_id, [low])
+                store.save_draw(10, game, len(receipts) + 100, [low])
+                self.assertEqual(counters, before)
+            self.assertEqual(counters, {(10, 'vierge'): 8, (10, 'relink'): 20})
+
     def test_favorite_requires_ownership_and_clear_only_targets_current_user(self):
         card = Card('id', 'ロザリー', 'ロザリー', 'UR')
         connection = Mock()
@@ -103,12 +137,34 @@ class StoreTests(unittest.TestCase):
 
 
 class ResultCommentTests(unittest.TestCase):
+    def test_only_selected_game_counter_and_next_draw_message(self):
+        engine = Gacha()
+        for counts in ({'vierge': 3, 'relink': 9}, {'vierge': 7, 'relink': 19}):
+            for game, expected in [('vierge', '3/4回：**次回7連でUR1枚確定！**'), ('relink', '9/10回：**次回10連で★3確定！**')]:
+                card = next(iter(engine.pools[game].values()))[0]
+                embed = result_embed(engine, game, [card], batch_counts=counts)
+                counters = [field.value for field in embed.fields if field.name == 'ガチャカウント']
+                self.assertEqual(counters, [expected])
+                reset = result_embed(engine, game, [card], batch_counts={'vierge': 4, 'relink': 10})
+                text = next(field.value for field in reset.fields if field.name == 'ガチャカウント')
+                self.assertTrue(text.startswith('0/'))
+                self.assertNotIn('次回', text)
+
+    def test_favorite_introduction_exact_short_and_unknown_names(self):
+        for name in ('ロザリー', 'ユーフィリア'):
+            introduction, comment = favorite_details(Card('id', name, name, 'UR'))
+            self.assertIn('紹介だぜ', introduction)
+            self.assertIn(name, comment)
+            self.assertNotIn('https://', introduction)
+        introduction, _ = favorite_details(Card('id', '存在しない名前', '不明', 'UR'))
+        self.assertIn('分からねえ', introduction)
+
     def test_favorite_exact_and_same_character_take_priority(self):
         favorite = Card('fav', 'ロザリー', 'お気に入り', 'UR')
         variant = Card('variant', 'ロザリー', '別カード', 'SR')
         with patch('gacha_commands.random.choice', side_effect=lambda choices: choices[0]):
             exact = gacha_comment('vierge', [favorite], favorite=('vierge', favorite, 2))
-            self.assertIn('お気に入りの一枚', exact)
+            self.assertIn('お気に入りのロザリー', exact)
             other = gacha_comment('vierge', [variant], favorite=('vierge', favorite, 2))
             self.assertIn('別の一枚', other)
             unrelated = gacha_comment('relink', [Card('fav', 'ロザリー', '別作品', '★1')], favorite=('vierge', favorite, 2))
@@ -139,6 +195,31 @@ class ResultCommentTests(unittest.TestCase):
 
 
 class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
+    async def test_draw_ai_uses_saved_facts_and_falls_back_on_failure(self):
+        card = Gacha().pools['relink']['★1'][0]
+        saved = [dict(card=asdict(card), quantity=1, new=True)]
+        store = SimpleNamespace(url='test', save_draw=Mock(return_value=saved))
+        client = discord.Client(intents=discord.Intents.default())
+        bot = SimpleNamespace(tree=app_commands.CommandTree(client), george_chat=SimpleNamespace(collection_comment=AsyncMock(return_value='お気に入りも増えて楽しいな！')))
+        store.favorite = Mock(return_value=('relink', card, 1))
+        store.batch_counts = Mock(return_value={})
+        register_gacha_commands(bot, store)
+        interaction = SimpleNamespace(id=100, user=SimpleNamespace(id=10), response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        facts = bot.george_chat.collection_comment.call_args.args[0]
+        self.assertEqual(facts['favorite_relation'], 'exact_card')
+        self.assertEqual(facts['new_count'], 1)
+        self.assertEqual(facts['cards'][0]['character'], card.character)
+        self.assertEqual(interaction.followup.send.call_args.kwargs['embed'].fields[0].value, 'お気に入りも増えて楽しいな！')
+        bot.george_chat.collection_comment.side_effect = ValueError('invalid')
+        await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        self.assertIn(card.character, interaction.followup.send.call_args.kwargs['embed'].fields[0].value)
+        command = bot.tree.get_command('お気に入り')
+        bot.george_chat.collection_comment.side_effect = None
+        await command.callback(interaction)
+        self.assertEqual(bot.george_chat.collection_comment.call_args.args[0]['action'], 'favorite_view')
+        await client.close()
+
     async def test_favorite_candidates_sort_by_game_then_descending_rarity(self):
         expected = [('vierge', rarity) for rarity in ('UR', 'SR', 'HR', 'R')] + [('relink', rarity) for rarity in ('★3', '★2', '★1')]
         rows = [(game, Card(str(index), 'ロザリー', 'ロザリー', rarity), 1)
@@ -149,6 +230,11 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         for query in ('', 'ロザリー'):
             choices = await autocomplete(interaction, query)
             self.assertEqual([choice.value for choice in choices], [f'{game}:{card.id}' for game, card, _ in rows])
+        interaction.namespace = SimpleNamespace(作品='relink', プログレス='ロザ')
+        choices = await autocomplete(interaction, '')
+        self.assertEqual([choice.value for choice in choices], [f'{game}:{card.id}' for game, card, _ in rows if game == 'relink'])
+        interaction.namespace.プログレス = '該当なし'
+        self.assertEqual(await autocomplete(interaction, ''), [])
         await client.close()
 
     async def test_favorite_registration_view_removal_and_pinning(self):
@@ -165,6 +251,8 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
         await command.callback(interaction)
         store.favorite.assert_called_with(10)
+        self.assertEqual([field.name for field in interaction.followup.send.call_args.kwargs['embed'].fields],
+                         ['ジョージのプログレス紹介', 'ジョージの一言'])
         await tree.get_command('所持カード').callback(interaction)
         first = interaction.followup.send.call_args.kwargs['embed'].description.splitlines()[0]
         self.assertTrue(first.startswith('⭐ '))
@@ -184,6 +272,8 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         await client.close()
 
     def objects(self, store):
+        if not hasattr(store, 'batch_counts'):
+            store.batch_counts = Mock(return_value={})
         if not hasattr(store, 'favorite'):
             store.favorite = Mock(return_value=None)
         client = discord.Client(intents=discord.Intents.default())

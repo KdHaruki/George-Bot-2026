@@ -110,6 +110,18 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('"progressName": "ロザリー"', instruction)
         self.assertFalse(self.chat.sessions)
 
+    async def test_collection_comment_is_bounded_and_isolated(self):
+        await self.chat.reply((1, 1), '個人の会話')
+        self.generate.return_value = SimpleNamespace(text='ロザリーが来たぜ！')
+        facts = {'action': 'draw', 'new_count': 1}
+        self.assertEqual(await self.chat.collection_comment(facts), 'ロザリーが来たぜ！')
+        self.assertNotIn('個人の会話', self.generate.call_args.kwargs['contents'])
+        self.assertIn('かわいこちゃん', self.generate.call_args.kwargs['config'].system_instruction)
+        for answer in ('', 'あ' * 141, 'https://example.com'):
+            self.generate.return_value = SimpleNamespace(text=answer)
+            with self.assertRaises(ValueError):
+                await self.chat.collection_comment(facts)
+
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！","lucky_item":"赤いハンカチ"}')

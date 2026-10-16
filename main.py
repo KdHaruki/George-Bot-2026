@@ -11,9 +11,8 @@ from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
-from fun_features import TimerManager, draw_fortune, parse_duration, FORTUNES
-from registered_memory import MemoryStore, MemoryUnavailable
-from reminders import ReminderStore, ReminderScheduler, parse_schedule, JST, REPEAT_LABELS
+from fun_features import draw_fortune, FORTUNES
+from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
 from command_help import command_help, HELP_CATEGORIES
 from health_check import HealthCheck
@@ -21,6 +20,8 @@ from image_inputs import ImageSource, load_images, ambient_image_sources
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
 from gacha_commands import register_gacha_commands
+from dm_history import DMStore, archive_dm, register_dm_history
+from command_permissions import require_administrator
 
 ########################################
 # Botクラス
@@ -36,19 +37,15 @@ class MyClient(discord.Client):
         self.tree = app_commands.CommandTree(self)
         self.george_chat = GeorgeChat()
         self.ambient = AmbientChat()
-        self.timers = TimerManager()
-        self.memories = MemoryStore()
-        self.reminder_store = ReminderStore()
-        self.reminders = ReminderScheduler(self.reminder_store)
         self.seasonal_store = SeasonalStore()
         self.seasonal = SeasonalScheduler(self.seasonal_store)
         self.cleaned_guilds = set()
         self.health = HealthCheck()
+        self.dm_store = DMStore()
 
     async def setup_hook(self):
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
-        self.reminders.start(self)
         self.seasonal.start(self)
 
     async def clear_guild_commands(self, guild):
@@ -66,23 +63,15 @@ class MyClient(discord.Client):
     async def close(self):
         try:
             await self.seasonal.close()
-            await self.reminders.close()
-            await self.timers.close()
             await self.george_chat.close()
         finally:
             await super().close()
 
-    def clear_server_context(self, guild):
-        for key in list(self.george_chat.sessions):
-            channel = self.get_channel(key[0])
-            if getattr(getattr(channel, "guild", None), "id", None) == guild.id:
-                self.george_chat.sessions.pop(key, None)
-        for channel in [*guild.channels, *guild.threads]:
-            self.ambient.states.pop(channel.id, None)
 
 client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
+register_dm_history(client, client.dm_store)
 
 ########################################
 # 起動確認
@@ -172,15 +161,19 @@ async def progress(interaction: discord.Interaction, name: str):
 ########################################
 
 @client.tree.command(name="ヘルプ", description="やりたいことからコマンドを探す（分類で詳しい使い方）")
-@app_commands.describe(分類="会話・ガチャ・予定など、やりたいことを選ぶ")
+@app_commands.describe(分類="会話・ガチャ・季節通知など、やりたいことを選ぶ")
 @app_commands.choices(分類=[app_commands.Choice(name=label, value=key) for key, label in HELP_CATEGORIES.items()])
 async def show_help(interaction: discord.Interaction, 分類: str = 'overview'):
     await interaction.response.send_message(embed=command_help(interaction.guild_id is not None, 分類),
                                             ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
 
-@client.tree.command(name="状態", description="Gemini・DB・予定通知の健康診断（APIテストは5分に1回まで）")
+@client.tree.command(name="状態", description="Gemini・DB・季節通知の健康診断（管理者用）")
+@app_commands.guild_only()
+@app_commands.default_permissions(administrator=True)
 async def show_health(interaction: discord.Interaction):
+    if not await require_administrator(interaction):
+        return
     await interaction.response.defer(ephemeral=True)
     embed = await client.health.report(client)
     await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
@@ -200,128 +193,10 @@ async def omikuji(interaction: discord.Interaction):
     await interaction.followup.send(result, allowed_mentions=discord.AllowedMentions.none())
 
 
-@client.tree.command(name="記憶登録", description="サーバー全員で共有する設定を登録・更新（管理者用）")
-@app_commands.guild_only()
-@app_commands.default_permissions(manage_guild=True)
-@app_commands.describe(タイトル="1〜40文字。同じタイトルなら更新", 内容="覚えてほしい設定。1〜300文字")
-async def register_memory(interaction: discord.Interaction, タイトル: str, 内容: str):
-    if not interaction.permissions.manage_guild:
-        await interaction.response.send_message("サーバー管理権限が必要だぜ。", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True)
-    try:
-        await asyncio.to_thread(client.memories.save, interaction.guild_id, 0, タイトル, 内容)
-        client.clear_server_context(interaction.guild)
-        answer = "共有設定を保存したぜ！ このサーバーの会話で参照するぞ。反映のため、このサーバーの短期会話履歴もクリアしたぜ。"
-    except (MemoryUnavailable, ValueError) as exc:
-        answer = str(exc)
-    await interaction.followup.send(answer, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
-
-
-@client.tree.command(name="記憶一覧", description="このサーバーの共有登録設定を確認")
-@app_commands.guild_only()
-async def list_memory(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        notes = await asyncio.to_thread(client.memories.list, interaction.guild_id, 0)
-        text = "共有登録設定：\n" + "\n\n".join(f"【{title}】\n{content}" for title, content in notes) if notes else "まだ共有設定は登録されてないぜ。"
-    except MemoryUnavailable as exc:
-        text = str(exc)
-    for offset in range(0, len(text), 1800):
-        await interaction.followup.send(text[offset:offset + 1800], ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
-
-
-@client.tree.command(name="記憶削除", description="共有登録設定をタイトルで削除（管理者用）")
-@app_commands.guild_only()
-@app_commands.default_permissions(manage_guild=True)
-async def delete_memory(interaction: discord.Interaction, タイトル: str):
-    if not interaction.permissions.manage_guild:
-        await interaction.response.send_message("サーバー管理権限が必要だぜ。", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True)
-    try:
-        deleted = await asyncio.to_thread(client.memories.delete, interaction.guild_id, 0, タイトル)
-        if deleted:
-            client.clear_server_context(interaction.guild)
-        answer = "共有設定を削除して、このサーバーの短期会話履歴もクリアしたぜ。" if deleted else "そのタイトルの設定は見つからなかったぜ。"
-    except MemoryUnavailable as exc:
-        answer = str(exc)
-    await interaction.followup.send(answer, ephemeral=True)
-
-
-@client.tree.command(name="予定", description="再起動後も残る予定リマインダーを登録（日本時間）")
-@app_commands.guild_only()
-@app_commands.describe(日時="最初の通知日時。例：明日21時、2026-10-16 21:00", 内容="1〜300文字。通知はこのチャンネルに送信", 繰り返し="毎週は初回の曜日、毎月は初回の日付。存在しない日は月末")
-@app_commands.choices(繰り返し=[app_commands.Choice(name=label, value=value) for value, label in REPEAT_LABELS.items()])
-async def schedule_reminder(interaction: discord.Interaction, 日時: str, 内容: str, 繰り返し: str = "none"):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        due_at = parse_schedule(日時)
-        rid = await asyncio.to_thread(client.reminder_store.add, interaction.guild_id, interaction.channel_id, interaction.user.id, due_at, 内容, 繰り返し)
-        client.reminders.notify_changed()
-        stamp = due_at.astimezone(JST).strftime("%Y/%m/%d %H:%M")
-        repeat_note = "毎月は存在しない日をその月の末日にするぜ。\n" if 繰り返し == "monthly" else ""
-        text = f"予定ID {rid}：初回 {stamp}（日本時間）｜{REPEAT_LABELS[繰り返し]}\nこのチャンネルで呼ぶぜ！\n{内容}\n{repeat_note}通常は予定時刻から約1分以内、停止中の分は復帰後に1回通知して、次の未来の日程に進むぞ。"
-    except (ValueError, MemoryUnavailable) as exc:
-        text = str(exc)
-    await interaction.followup.send(text, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
-
-
-@client.tree.command(name="予定一覧", description="このサーバーで自分が登録した未通知・失敗した予定を確認")
-@app_commands.guild_only()
-async def list_reminders(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        rows = await asyncio.to_thread(client.reminder_store.list, interaction.guild_id, interaction.user.id)
-        statuses = {"pending": "待機中", "processing": "通知処理中", "failed": "通知失敗"}
-        text = "\n\n".join(f"ID {rid}｜次回 {due.astimezone(JST):%Y/%m/%d %H:%M}（日本時間）｜{statuses.get(status, status)}｜{REPEAT_LABELS.get(repeat, repeat)}\n<#{channel_id}> {content}" for rid, due, content, status, channel_id, repeat in rows) or "未通知の予定はないぜ。"
-    except MemoryUnavailable as exc:
-        text = str(exc)
-    for offset in range(0, len(text), 1800):
-        await interaction.followup.send(text[offset:offset + 1800], ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
-
-
-@client.tree.command(name="予定取消", description="このサーバーで自分が登録した予定をIDで取り消す")
-@app_commands.guild_only()
-async def cancel_reminder(interaction: discord.Interaction, id: app_commands.Range[int, 1, 9007199254740991]):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        cancelled = await asyncio.to_thread(client.reminder_store.cancel, interaction.guild_id, interaction.user.id, id)
-        if cancelled:
-            client.reminders.notify_changed()
-        text = "予定を取り消したぜ。通知の送信直前だった場合は届くことがあるぞ。" if cancelled else "取り消せる自分の予定が見つからなかったぜ。"
-    except MemoryUnavailable as exc:
-        text = str(exc)
-    await interaction.followup.send(text, ephemeral=True)
-
-
-@client.tree.command(name="タイマー", description="指定した時間にジョージが呼びかける（再起動で解除）")
-@app_commands.describe(時間="例：10分、1時間30分、30秒（最大24時間）", 内容="何のタイマーか（省略可）")
-async def timer(interaction: discord.Interaction, 時間: str, 内容: str = "タイマー終了"):
-    try:
-        seconds = parse_duration(時間)
-        if interaction.channel is None:
-            raise ValueError("この場所ではタイマーを使えないぜ。")
-        if len(内容) > 200:
-            raise ValueError("内容は200文字以内で頼むぜ！")
-        task = client.timers.start(interaction.channel, interaction.user.id, seconds, 内容)
-    except ValueError as exc:
-        await interaction.response.send_message(str(exc), ephemeral=True)
-        return
-    try:
-        await interaction.response.send_message(f"⏰ {seconds}秒後に呼ぶぜ！ 内容：{内容}\n再起動や停止で解除されるぞ。取消は /タイマー取消 だ。", allowed_mentions=discord.AllowedMentions.none())
-    except Exception:
-        task.cancel()
-        raise
-
-
-@client.tree.command(name="タイマー取消", description="このチャンネルで自分が設定したタイマーをすべて取り消す")
-async def cancel_timer(interaction: discord.Interaction):
-    count = client.timers.cancel(interaction.channel_id, interaction.user.id)
-    await interaction.response.send_message(f"自分のタイマーを{count}件取り消したぜ。", ephemeral=True)
-
 @client.event
 async def on_message(message):
+    if not message.author.bot and message.guild is None:
+        await archive_dm(client.dm_store, message)
 
     if message.author.bot:
         return
@@ -371,7 +246,7 @@ async def on_message(message):
                         if attachments and not bundle.images and not text:
                             answer = "\n".join(bundle.notices)
                         else:
-                            notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if message.guild and client.memories.url else []
+                            notes = []
                             image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if attachments else {}
                             answer = await client.george_chat.reply(key, text or "添付画像について一言お願い。", notes,
                                                                    reply_to=target.content if target is not None else "", **image_options)
@@ -411,7 +286,7 @@ async def on_message(message):
             return
         if not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
             return
-        notes = await asyncio.to_thread(client.memories.list, message.guild.id, 0) if client.memories.url else []
+        notes = []
         image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if sources else {}
         answer = await client.george_chat.ambient_reply(context, notes, **image_options)
         # If users have moved on or the context was evicted, stay quiet.

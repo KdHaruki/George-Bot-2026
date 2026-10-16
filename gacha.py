@@ -22,6 +22,8 @@ RULES = {
                     (('★3', 400), ('★2', 9600), ('★1', 0))),
 }
 
+BATCH_GUARANTEE = {'vierge': 4, 'relink': 10}
+
 
 @dataclass(frozen=True)
 class Card:

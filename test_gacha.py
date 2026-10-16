@@ -93,7 +93,8 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
         interaction.response.send_message.reset_mock()
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 10)
-        self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.splitlines()), 10)
+        self.assertIn('DATABASE_URL', interaction.response.send_message.call_args.args[0])
+        interaction.followup.send.assert_not_called()
         await client.close()
 
 

@@ -3,7 +3,8 @@ from contextlib import contextmanager
 from dataclasses import asdict
 import json
 
-from gacha import Card
+from gacha import BATCH_GUARANTEE, RULES, Card, Gacha
+import random
 from registered_memory import MemoryStore, MemoryUnavailable
 
 
@@ -21,6 +22,9 @@ class CollectionStore(MemoryStore):
                     game TEXT NOT NULL, result JSONB NOT NULL,
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
                 connection.execute("CREATE INDEX IF NOT EXISTS george_gacha_draws_owner_idx ON george_gacha_draws(user_id,created_at)")
+                connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_batches (
+                    user_id BIGINT NOT NULL, game TEXT NOT NULL, batches BIGINT NOT NULL DEFAULT 0,
+                    PRIMARY KEY(user_id,game))""")
                 connection.execute("""CREATE TABLE IF NOT EXISTS george_gacha_favorites (
                     user_id BIGINT PRIMARY KEY, game TEXT NOT NULL, card_id TEXT NOT NULL,
                     FOREIGN KEY(user_id,game,card_id) REFERENCES george_gacha_cards(user_id,game,card_id))""")
@@ -36,6 +40,14 @@ class CollectionStore(MemoryStore):
                 if previous[:2] != (user_id, game):
                     raise ValueError('Draw owner mismatch')
                 return previous[2]
+            cards = list(cards)
+            if len(cards) == RULES[game].batch_size:
+                batches = connection.execute("""INSERT INTO george_gacha_batches(user_id,game,batches)
+                    VALUES (%s,%s,1) ON CONFLICT(user_id,game) DO UPDATE SET
+                    batches=george_gacha_batches.batches+1 RETURNING batches""", (user_id, game)).fetchone()[0]
+                if batches % BATCH_GUARANTEE[game] == 0:
+                    highest = RULES[game].normal[0][0]
+                    cards[-1] = random.SystemRandom().choice(Gacha().pools[game][highest])
             result = []
             for card in cards:
                 payload = asdict(card)
@@ -50,6 +62,11 @@ class CollectionStore(MemoryStore):
             # Receipts only prevent short-term redelivery; owned cards never expire.
             connection.execute("DELETE FROM george_gacha_draws WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
         return result
+
+    def batch_counts(self, user_id):
+        with self.connect() as connection:
+            rows = connection.execute('SELECT game,batches FROM george_gacha_batches WHERE user_id=%s', (user_id,)).fetchall()
+        return {game: count for game, count in rows}
 
     def owned(self, user_id, game=None):
         with self.connect() as connection:

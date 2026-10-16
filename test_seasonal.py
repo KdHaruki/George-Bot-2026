@@ -59,7 +59,7 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
         bot = main.client
         store = SimpleNamespace(configure=Mock())
         command = bot.tree.get_command("季節通知").get_command("設定")
-        interaction = SimpleNamespace(permissions=SimpleNamespace(manage_guild=False),
+        interaction = SimpleNamespace(permissions=SimpleNamespace(manage_guild=False, administrator=False),
                                       response=SimpleNamespace(send_message=AsyncMock(), defer=AsyncMock()),
                                       followup=SimpleNamespace(send=AsyncMock()), guild_id=123, channel_id=456,
                                       channel=SimpleNamespace(), app_permissions=SimpleNamespace(view_channel=True, send_messages=True))
@@ -67,8 +67,28 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
             await command.callback(interaction)
             store.configure.assert_not_called()
             interaction.permissions.manage_guild = True
+            interaction.permissions.administrator = True
             await command.callback(interaction)
         store.configure.assert_called_once_with(123, 456)
+
+    async def test_custom_events_use_seasonal_group_and_removed_features_are_absent(self):
+        import main
+        bot = main.client
+        for name in ('タイマー', 'タイマー取消', '予定', '予定一覧', '予定取消', '記憶登録', '記憶一覧', '記憶削除', '行事追加', '行事一覧', '行事削除', '行事切替'):
+            self.assertIsNone(bot.tree.get_command(name))
+        for attribute in ('timers', 'reminders', 'reminder_store', 'memories'):
+            self.assertFalse(hasattr(bot, attribute))
+        group = bot.tree.get_command('季節通知')
+        store = SimpleNamespace(put_event=Mock(), delete_event=Mock(return_value=True))
+        scheduler = SimpleNamespace(notify_changed=Mock())
+        interaction = SimpleNamespace(permissions=SimpleNamespace(administrator=True), guild_id=123,
+            response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        with patch.object(bot, 'seasonal_store', store), patch.object(bot, 'seasonal', scheduler):
+            await group.get_command('行事登録').callback(interaction, '04-01', '設立記念日')
+            store.put_event.assert_called_once_with(123, '設立記念日', 4, 1)
+            await group.get_command('行事削除').callback(interaction, '設立記念日')
+            store.delete_event.assert_called_once_with(123, '設立記念日')
+        self.assertEqual(scheduler.notify_changed.call_count, 2)
 
     def objects(self, current=None):
         clock = [current or datetime(2026, 10, 31, 10, 0, tzinfo=JST)]

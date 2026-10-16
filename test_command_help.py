@@ -23,8 +23,13 @@ class HelpTests(unittest.TestCase):
                     self.assertIn('サーバー専用', str(embed.to_dict()))
         overview = str(command_help(True).to_dict())
         self.assertNotIn('/記憶削除', overview)
+        self.assertEqual(len(command_help(True).fields), 4)
+        for field in command_help(True).fields:
+            self.assertIn('詳しく：`/ヘルプ 分類:', field.value)
+            self.assertGreater(len(field.value.splitlines()[0]), 10)
         gacha = str(command_help(True, 'gacha').to_dict())
         self.assertIn('/所持カード', gacha)
+        self.assertIn('両作品合わせて1人1枚', gacha)
         self.assertNotIn('/予定取消', gacha)
 
 
