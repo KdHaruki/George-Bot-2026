@@ -88,7 +88,8 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
         text = discord.utils.escape_markdown(card.label)
         is_new = saved is not None and saved[index - 1]['new']
         ownership = '←NEW！' if is_new else ''
-        lines.append(f'【{card.rarity}】{text}' + ownership)
+        rarity = f'`【{card.rarity}】` ' if game == 'relink' else f'【{card.rarity}】'
+        lines.append(f'{rarity}{text}' + ownership)
     embed = discord.Embed(title=f'{rules.name}：{len(cards)}回ガチャ',
                           description='\n'.join(lines), color=0xB06FE0)
     embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(gacha_comment(game, cards, saved, favorite)), inline=False)

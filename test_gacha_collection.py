@@ -246,7 +246,7 @@ class ResultCommentTests(unittest.TestCase):
         saved = [dict(new=index == 0, quantity=index + 1) for index in range(10)]
         embed = result_embed(engine, 'relink', [card] * 10, saved)
         for index, line in enumerate(embed.description.splitlines(), 1):
-            self.assertTrue(line.startswith('【★2】'))
+            self.assertTrue(line.startswith('`【★2】` '))
             self.assertNotIn(f'`{index:02d}`', line)
         self.assertNotIn('【確定枠】', embed.description)
         self.assertEqual(embed.description.count('←NEW！'), 1)
