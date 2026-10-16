@@ -32,6 +32,8 @@ class HelpTests(unittest.TestCase):
         from main import client
         text = '\n'.join(str(command_help(True, key).to_dict()) for key in HELP_CATEGORIES)
         for command in client.tree.walk_commands():
+            if command.qualified_name.split()[0] == '季節通知':
+                continue  # Administrator seasonal commands are intentionally outside help.
             self.assertIn('/' + command.qualified_name, text)
 
     def test_category_views_fit_discord_limits_and_explain_dm_scope(self):
@@ -45,7 +47,9 @@ class HelpTests(unittest.TestCase):
                     self.assertIn('サーバー専用', str(embed.to_dict()))
         overview = str(command_help(True).to_dict())
         self.assertNotIn('/記憶削除', overview)
-        self.assertEqual(len(command_help(True).fields), 4)
+        self.assertEqual(len(command_help(True).fields), 3)
+        self.assertNotIn('seasonal', HELP_CATEGORIES)
+        self.assertNotIn('季節・祝日の通知', overview)
         for field in command_help(True).fields:
             self.assertIn('詳しく：`/ヘルプ 分類:', field.value)
             self.assertGreater(len(field.value.splitlines()[0]), 10)
