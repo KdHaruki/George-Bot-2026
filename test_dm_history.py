@@ -42,6 +42,7 @@ class DMTests(unittest.IsolatedAsyncioTestCase):
         store = SimpleNamespace(history=Mock(return_value=[(42, 'sender', datetime.now(timezone.utc), 'x' * 2000)]))
         register_dm_history(bot, store)
         command = bot.tree.get_command('dm履歴')
+        self.assertEqual(command.parameters[0].display_name, 'ユーザーid')
         interaction = SimpleNamespace(user=SimpleNamespace(id=9), response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
         with patch.dict('os.environ', {'BOT_OWNER_IDS': '1'}):
             await command.callback(interaction)

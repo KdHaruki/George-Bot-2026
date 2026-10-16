@@ -6,6 +6,17 @@ from command_help import command_help, HELP_CATEGORIES
 
 
 class HelpTests(unittest.TestCase):
+    def test_all_uploaded_command_and_option_names_are_lowercase(self):
+        from main import client
+        def check(payload):
+            name = payload['name']
+            self.assertEqual(name, name.lower(), name)
+            self.assertTrue(1 <= len(name) <= 32, name)
+            for option in payload.get('options', []):
+                check(option)
+        for command in client.tree.get_commands():
+            check(command.to_dict(client.tree))
+
     def test_every_registered_command_has_a_help_entry(self):
         from main import client
         text = '\n'.join(str(command_help(True, key).to_dict()) for key in HELP_CATEGORIES)

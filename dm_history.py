@@ -52,6 +52,7 @@ async def archive_dm(store, message):
 
 def register_dm_history(bot, store):
     @bot.tree.command(name='dm履歴', description='Bot管理者専用：受信したDM本文を確認する')
+    @app_commands.rename(ユーザーID='ユーザーid')
     @app_commands.describe(ユーザーID='省略で全員。DiscordのユーザーID', ページ='1ページ5件、新しい順')
     async def history(interaction: discord.Interaction, ユーザーID: str = None,
                       ページ: app_commands.Range[int, 1, 1000000] = 1):
