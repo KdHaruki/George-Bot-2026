@@ -87,7 +87,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
     for index, card in enumerate(cards, 1):
         text = discord.utils.escape_markdown(card.label)
         is_new = saved is not None and saved[index - 1]['new']
-        ownership = '←NEW！' if is_new else ''
+        ownership = ' **✨ NEW**' if is_new else ''
         rarity = f'`【{card.rarity}】` ' if game == 'relink' else f'【{card.rarity}】'
         lines.append(f'{rarity}{text}' + ownership)
     embed = discord.Embed(title=f'{rules.name}：{len(cards)}回ガチャ',
