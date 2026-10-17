@@ -10,6 +10,10 @@ from seasonal_notifications import SeasonalScheduler, SeasonalStore
 
 
 class CalendarTests(unittest.TestCase):
+    def test_progress_birthdays_are_not_seasonal_events(self):
+        self.assertEqual(events_for(date(2026, 11, 26), {}, []), [])
+        self.assertEqual(events_for(date(2026, 12, 25), {}, []), ['クリスマス'])
+
     def test_seasonal_toggle_turns_on_off_and_keeps_channel_on_stop(self):
         state = [None]
         connection = Mock()
@@ -132,7 +136,8 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
         text = ''.join(call.args[0] for call in interaction.followup.send.call_args_list)
         self.assertIn('未設定', text)
         self.assertIn('ハロウィン', text)
-        self.assertIn('04-01 設立記念日', text)
+        self.assertIn('4月1日 設立記念日', text)
+        self.assertNotIn('ロザリーの誕生日', text)
         self.assertNotIn('｜有効', text)
         self.assertTrue(all(call.kwargs['ephemeral'] for call in interaction.followup.send.call_args_list))
         store.events.assert_called_once_with(123)

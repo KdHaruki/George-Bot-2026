@@ -13,6 +13,7 @@ DEFAULT_EVENTS = {(1, 1): "元日", (2, 14): "バレンタイン", (3, 14): "ホ
                   (12, 24): "クリスマスイブ", (12, 25): "クリスマス", (12, 31): "大晦日"}
 
 
+
 def parse_holidays(data):
     if len(data) > 256 * 1024:
         raise ValueError("Holiday data too large")

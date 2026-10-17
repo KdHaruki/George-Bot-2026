@@ -146,9 +146,5 @@ class Gacha:
         lines = []
         for rarity, rate in rules.normal:
             size = len(self.pools[game][rarity])
-            lines.append(f'**{rarity}**：通常 {rate / 100:g}% ／ 確定枠 {guarantee[rarity] / 100:g}%（{size}種）')
-        lines.append(f'{rules.batch_size}連＝通常抽選{rules.batch_size - 1}枠＋確定枠1枠。')
-        lines.append('レアリティを抽選後、そのレアリティの収録カードから均等に抽選するぜ。')
-        if game == 'relink':
-            lines[-1] = 'レアリティを抽選後にカードを選ぶぞ。★3は誕生日ピックアップ中のみ通常の均等抽選と異なるぜ。'
+            lines.append(f'【{rarity}】：通常 {rate / 100:g}% ／ 確定枠 {guarantee[rarity] / 100:g}%（{size}種）')
         return '\n'.join(lines)

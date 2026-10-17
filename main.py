@@ -208,6 +208,12 @@ async def on_message(message):
     target = await george_reply_target(message, client.user.id)
     # Replies to George work even when Discord's reply mention is disabled.
     if client.user in message.mentions or target is not None or isinstance(message.channel, discord.DMChannel):
+        help_text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
+        if help_text.lower() in ('ヘルプ', 'help'):
+            await message.channel.send(embed=command_help(message.guild is not None),
+                                       allowed_mentions=discord.AllowedMentions.none())
+            client.ambient.note_reply(message.channel.id)
+            return
         parts = message.content.split()
         if len(parts) >= 3 and parts[1].lower() in ["pro", "progress", "プロ", "プログレス"]:
             keyword = parts[2]

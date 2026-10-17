@@ -28,10 +28,10 @@ def register_seasonal_commands(bot):
         try:
             overrides = await asyncio.to_thread(bot.seasonal_store.events, guild_id)
             muted = {name for name, _, _, enabled in overrides if not enabled}
-            text = "【共通の季節行事】\n" + "\n".join(f"{month:02d}-{day:02d} {name}" + ('｜無効' if name in muted else '') for (month, day), name in DEFAULT_EVENTS.items())
+            text = "【共通の季節行事】\n" + "\n".join(f"{month}月{day}日 {name}" + ('｜無効' if name in muted else '') for (month, day), name in DEFAULT_EVENTS.items())
             text += "\n\n【日本の祝日・休日】\n内閣府の公開データをBot全体で自動取得するぜ。振替休日なども公表名で扱うぞ。"
             if overrides:
-                text += "\n\n【このサーバーの追加・切替】\n" + "\n".join(f"{f'{month:02d}-{day:02d}' if month is not None else '共通行事・祝日'} {name}" + ('' if enabled else '｜無効') for name, month, day, enabled in overrides)
+                text += "\n\n【このサーバーの追加・切替】\n" + "\n".join(f"{f'{month}月{day}日' if month is not None else '共通行事・祝日'} {name}" + ('' if enabled else '｜無効') for name, month, day, enabled in overrides)
         except MemoryUnavailable as exc:
             text = str(exc)
         return text

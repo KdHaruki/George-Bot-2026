@@ -108,6 +108,11 @@ class GachaTests(unittest.TestCase):
 
     def test_embeds_fit_discord_limits_and_disclose_scope(self):
         for game, rules in RULES.items():
+            rates = rates_embed(self.engine, game)
+            self.assertNotIn('通常抽選', rates.description)
+            self.assertNotIn('レアリティを抽選後', rates.description)
+            self.assertNotIn('**', rates.description)
+            self.assertTrue(all(field.name.startswith('【') and field.name.endswith('】') for field in rates.fields))
             self.assertNotIn('https://', str(rates_embed(self.engine, game).to_dict()))
             for embed in (rates_embed(self.engine, game), result_embed(self.engine, game, self.engine.draw(game, rules.batch_size, random.Random(7)))):
                 self.assertLessEqual(len(embed), 6000)
