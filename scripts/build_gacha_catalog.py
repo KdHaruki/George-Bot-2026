@@ -11,7 +11,7 @@ import unicodedata
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from progress import progressData
-from gacha import vierge_character_card, RULES
+from gacha import vierge_character_card, RULES, VIERGE_CHARACTERS
 from dataclasses import asdict
 from scripts.fetch_gacha_sources import SOURCES
 
@@ -37,7 +37,7 @@ def rows(name):
 def build():
     outfits = json.loads(Path('relink_outfits.json').read_text(encoding='utf-8'))
     cards = [asdict(vierge_character_card(record['progressName'], rarity))
-             for rarity, _ in RULES['vierge'].normal for record in progressData]
+             for rarity, _ in RULES['vierge'].normal for record in VIERGE_CHARACTERS]
     relink = []
     for row in rows('relink'):
         if len(row) != 8 or row[2] not in ('★1', '★2', '★3'):
@@ -61,7 +61,7 @@ def build():
     Path('relink_birthdays.json').write_text(json.dumps({'source': SOURCES['relink'], 'checked': '2026-10-16',
                                                       'birthdays': birthdays}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     catalog = {'schema': 1, 'games': {
-        'vierge': {'sources': [], 'note': '全213人×4レアリティのBot独自ガチャ。各レアリティ内はキャラごとに均等。',
+        'vierge': {'sources': [], 'note': f'全{len(VIERGE_CHARACTERS)}人×4レアリティのBot独自ガチャ。各レアリティ内はキャラごとに均等。',
                    'missing_characters': [], 'cards': cards},
         'relink': {'sources': [SOURCES['relink'], 'https://gamerch.com/ange-relink/895716'],
                    'note': '公開攻略表の恒常カードと限定衣装の★3を収録。通常は同レアリティ内のカードごとに均等、誕生日当日の★3は対象キャラ合計50％。原作の開催期間・個別ピックアップは再現しません。',

@@ -202,7 +202,7 @@ class SeasonalScheduler:
                 try:
                     comment = await bot.george_chat.seasonal_comment(names)
                 except Exception:
-                    comment = "今日は「" + event_header(names) + "」だぜ！ 無理せず、いい一日を過ごしてくれよな！"
+                    comment = "みんな、今日は「" + event_header(names) + "」だぜ！ 無理せず、いい一日を過ごしてくれよな！"
                 # A slow generation must not post yesterday's greeting after midnight.
                 if self.clock().astimezone(JST).date() != day:
                     continue

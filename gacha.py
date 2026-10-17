@@ -28,6 +28,9 @@ RULES = {
 
 BATCH_GUARANTEE = {'vierge': 4, 'relink': 10}
 RELINK_OUTFITS = json.loads(Path(__file__).with_name('relink_outfits.json').read_text(encoding='utf-8'))
+VIERGE_EXCLUDED = frozenset(('久遠空', 'シンシア', 'ヒメガミノミコト', 'ナクル・クルルシファー'))
+VIERGE_CHARACTERS = tuple(record for record in progressData
+                          if re.sub(r'\s+', '', record['progressName']) not in VIERGE_EXCLUDED)
 
 
 @dataclass(frozen=True)
@@ -86,10 +89,10 @@ class Gacha:
         # Vierge is a character simulator, independent of historical card variants.
         self.catalog['games']['vierge'] = {
             'sources': [], 'missing_characters': [],
-            'note': f'全{len(progressData)}人×UR・SR・HR・R。キャラクターとレアリティだけのBot独自ガチャ。各レアリティ内はキャラごとに均等。',
+            'note': f'全{len(VIERGE_CHARACTERS)}人×UR・SR・HR・R。キャラクターとレアリティだけのBot独自ガチャ。各レアリティ内はキャラごとに均等。',
             'cards': [dict(id=card.id, character=card.character, name=card.name, rarity=card.rarity)
                       for rarity, _ in RULES['vierge'].normal
-                      for record in progressData
+                      for record in VIERGE_CHARACTERS
                       for card in [vierge_character_card(record['progressName'], rarity)]]}
         self.pools = {}
         for game, rules in RULES.items():

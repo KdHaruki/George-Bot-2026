@@ -3,7 +3,7 @@
   "games": {
     "vierge": {
       "sources": [],
-      "note": "全213人×4レアリティのBot独自ガチャ。各レアリティ内はキャラごとに均等。",
+      "note": "全209人×4レアリティのBot独自ガチャ。各レアリティ内はキャラごとに均等。",
       "missing_characters": [],
       "cards": [
         {
@@ -406,15 +406,6 @@
           "id": "vierge-character-UR-4d1aa38134114cae7450",
           "character": "扶瀬みちる",
           "name": "扶瀬みちる",
-          "rarity": "UR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-UR-cc6c306f36813c9af77b",
-          "character": "久遠空",
-          "name": "久遠空",
           "rarity": "UR",
           "cost": null,
           "skill": "",
@@ -1249,24 +1240,6 @@
           "source": ""
         },
         {
-          "id": "vierge-character-UR-88475ce844ae61100e6b",
-          "character": "ヒメガミノミコト",
-          "name": "ヒメガミノミコト",
-          "rarity": "UR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-UR-602fff20513205b40de9",
-          "character": "シンシア",
-          "name": "シンシア",
-          "rarity": "UR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
           "id": "vierge-character-UR-0e6ce8f2afe891d6b54c",
           "character": "アクエリア",
           "name": "アクエリア",
@@ -1915,15 +1888,6 @@
           "source": ""
         },
         {
-          "id": "vierge-character-UR-c3b07713a83a8af8bcff",
-          "character": "ナクル・クルルシファー",
-          "name": "ナクル・クルルシファー",
-          "rarity": "UR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
           "id": "vierge-character-SR-50cc3101acf0f9f20ba4",
           "character": "東条遥",
           "name": "東条遥",
@@ -2323,15 +2287,6 @@
           "id": "vierge-character-SR-4d1aa38134114cae7450",
           "character": "扶瀬みちる",
           "name": "扶瀬みちる",
-          "rarity": "SR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-SR-cc6c306f36813c9af77b",
-          "character": "久遠空",
-          "name": "久遠空",
           "rarity": "SR",
           "cost": null,
           "skill": "",
@@ -3166,24 +3121,6 @@
           "source": ""
         },
         {
-          "id": "vierge-character-SR-88475ce844ae61100e6b",
-          "character": "ヒメガミノミコト",
-          "name": "ヒメガミノミコト",
-          "rarity": "SR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-SR-602fff20513205b40de9",
-          "character": "シンシア",
-          "name": "シンシア",
-          "rarity": "SR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
           "id": "vierge-character-SR-0e6ce8f2afe891d6b54c",
           "character": "アクエリア",
           "name": "アクエリア",
@@ -3832,15 +3769,6 @@
           "source": ""
         },
         {
-          "id": "vierge-character-SR-c3b07713a83a8af8bcff",
-          "character": "ナクル・クルルシファー",
-          "name": "ナクル・クルルシファー",
-          "rarity": "SR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
           "id": "vierge-character-HR-50cc3101acf0f9f20ba4",
           "character": "東条遥",
           "name": "東条遥",
@@ -4240,15 +4168,6 @@
           "id": "vierge-character-HR-4d1aa38134114cae7450",
           "character": "扶瀬みちる",
           "name": "扶瀬みちる",
-          "rarity": "HR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-HR-cc6c306f36813c9af77b",
-          "character": "久遠空",
-          "name": "久遠空",
           "rarity": "HR",
           "cost": null,
           "skill": "",
@@ -5083,24 +5002,6 @@
           "source": ""
         },
         {
-          "id": "vierge-character-HR-88475ce844ae61100e6b",
-          "character": "ヒメガミノミコト",
-          "name": "ヒメガミノミコト",
-          "rarity": "HR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-HR-602fff20513205b40de9",
-          "character": "シンシア",
-          "name": "シンシア",
-          "rarity": "HR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
           "id": "vierge-character-HR-0e6ce8f2afe891d6b54c",
           "character": "アクエリア",
           "name": "アクエリア",
@@ -5749,15 +5650,6 @@
           "source": ""
         },
         {
-          "id": "vierge-character-HR-c3b07713a83a8af8bcff",
-          "character": "ナクル・クルルシファー",
-          "name": "ナクル・クルルシファー",
-          "rarity": "HR",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
           "id": "vierge-character-R-50cc3101acf0f9f20ba4",
           "character": "東条遥",
           "name": "東条遥",
@@ -6157,15 +6049,6 @@
           "id": "vierge-character-R-4d1aa38134114cae7450",
           "character": "扶瀬みちる",
           "name": "扶瀬みちる",
-          "rarity": "R",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-R-cc6c306f36813c9af77b",
-          "character": "久遠空",
-          "name": "久遠空",
           "rarity": "R",
           "cost": null,
           "skill": "",
@@ -7000,24 +6883,6 @@
           "source": ""
         },
         {
-          "id": "vierge-character-R-88475ce844ae61100e6b",
-          "character": "ヒメガミノミコト",
-          "name": "ヒメガミノミコト",
-          "rarity": "R",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-R-602fff20513205b40de9",
-          "character": "シンシア",
-          "name": "シンシア",
-          "rarity": "R",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
           "id": "vierge-character-R-0e6ce8f2afe891d6b54c",
           "character": "アクエリア",
           "name": "アクエリア",
@@ -7660,15 +7525,6 @@
           "id": "vierge-character-R-3af213d79b05063094f7",
           "character": "エルゼ・ツァールト",
           "name": "エルゼ・ツァールト",
-          "rarity": "R",
-          "cost": null,
-          "skill": "",
-          "source": ""
-        },
-        {
-          "id": "vierge-character-R-c3b07713a83a8af8bcff",
-          "character": "ナクル・クルルシファー",
-          "name": "ナクル・クルルシファー",
           "rarity": "R",
           "cost": null,
           "skill": "",

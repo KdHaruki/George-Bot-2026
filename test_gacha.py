@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import discord
 from discord import app_commands
 
-from gacha import Gacha, RULES, choose_rarity, RELINK_OUTFITS, current_card, Card, outfit_display_name
+from gacha import Gacha, RULES, choose_rarity, RELINK_OUTFITS, current_card, Card, outfit_display_name, VIERGE_CHARACTERS
 from gacha_commands import register_gacha_commands, rates_embed, result_embed
 from command_help import command_help
 from progress import progressData
@@ -75,7 +75,9 @@ class GachaTests(unittest.TestCase):
                 self.engine.draw(game, count)
 
     def test_card_membership_and_distinct_rarities_for_one_character(self):
-        allowed = {p['progressName'] for p in progressData}
+        allowed = {p['progressName'] for p in VIERGE_CHARACTERS}
+        self.assertEqual(len(allowed), 209)
+        self.assertFalse({'久遠空', '久遠 空', 'シンシア', 'ヒメガミノミコト', 'ナクル・クルルシファー'} & allowed)
         cards = [card for group in self.engine.pools['vierge'].values() for card in group]
         self.assertTrue(all(card.character in allowed for card in cards))
         self.assertEqual(len({card.id for card in cards}), len(cards))
@@ -85,7 +87,7 @@ class GachaTests(unittest.TestCase):
         self.assertEqual(allowed, {card.character for card in cards} | missing)
         self.assertFalse({card.character for card in cards} & missing)
         self.assertFalse(missing)
-        self.assertEqual(len(cards), 213 * 4)
+        self.assertEqual(len(cards), 209 * 4)
         self.assertTrue(all(card.name == card.character and card.cost is None and not card.skill for card in cards))
         for pool in self.engine.pools['vierge'].values():
             self.assertEqual({card.character for card in pool}, allowed)

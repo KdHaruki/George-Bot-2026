@@ -148,6 +148,11 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text="今日はハロウィンだぜ！")
         self.assertEqual(await self.chat.seasonal_comment(["ハロウィン"]), "今日はハロウィンだぜ！")
+        self.assertIn('呼びかけは「みんな」', self.generate.call_args.kwargs['config'].system_instruction)
+        for answer in ('オマエも新しいことに挑戦するのか？', 'キミも楽しんでくれ！'):
+            self.generate.return_value = SimpleNamespace(text=answer)
+            with self.assertRaises(ValueError):
+                await self.chat.seasonal_comment(['テスト投稿の日'])
         self.assertNotIn("個人の会話", self.generate.call_args.kwargs["contents"])
         self.assertEqual(len(self.chat.sessions[(1, 1)].history), 2)
         self.generate.return_value = SimpleNamespace(text="")
