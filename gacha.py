@@ -83,6 +83,7 @@ def choose_rarity(weights, rng):
 
 class Gacha:
     def __init__(self, catalog_path=None):
+        self.vierge_birthdays = json.loads(Path(__file__).with_name('vierge_birthdays.json').read_text(encoding='utf-8'))['birthdays']
         self.birthdays = json.loads(Path(__file__).with_name('relink_birthdays.json').read_text(encoding='utf-8'))['birthdays']
         path = Path(catalog_path) if catalog_path else Path(__file__).with_name('gacha_catalog.json')
         self.catalog = json.loads(path.read_text(encoding='utf-8'))
@@ -109,16 +110,19 @@ class Gacha:
                 raise ValueError('空のレアリティがあるため抽選できません。')
             self.pools[game] = pool
 
-    def birthday_targets(self, on_day=None):
-        day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
-        eligible = {card.character for card in self.pools['relink']['★3']}
-        return sorted(name for name in eligible if self.birthdays.get(name) == day.strftime('%m-%d'))
+    def birthday_map(self, game):
+        return self.vierge_birthdays if game == 'vierge' else self.birthdays
 
-    def next_birthday(self, on_day=None):
+    def birthday_targets(self, on_day=None, game='relink'):
+        day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
+        eligible = {card.character for card in self.pools[game][RULES[game].normal[0][0]]}
+        return sorted(name for name in eligible if self.birthday_map(game).get(name) == day.strftime('%m-%d'))
+
+    def next_birthday(self, on_day=None, game='relink'):
         day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
         upcoming = {}
-        for name in {card.character for card in self.pools['relink']['★3']}:
-            birthday = self.birthdays.get(name)
+        for name in {card.character for card in self.pools[game][RULES[game].normal[0][0]]}:
+            birthday = self.birthday_map(game).get(name)
             if not birthday:
                 continue
             month, number = map(int, birthday.split('-'))
@@ -138,9 +142,9 @@ class Gacha:
     def choose_card(self, game, rarity, rng=None, on_day=None):
         rng = rng or random.SystemRandom()
         pool = self.pools[game][rarity]
-        if game == 'relink' and rarity == '★3':
+        if rarity == RULES[game].normal[0][0]:
             day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
-            names = set(self.birthday_targets(day))
+            names = set(self.birthday_targets(day, game))
             featured = [card for card in pool if card.character in names]
             others = [card for card in pool if card.character not in names]
             if featured and others:

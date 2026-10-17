@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 import discord
 
-from command_help import command_help, HELP_CATEGORIES
+from command_help import command_help
 
 
 class HelpTests(unittest.TestCase):
@@ -11,7 +11,7 @@ class HelpTests(unittest.TestCase):
         from main import client
         self.assertIsNone(client.tree.get_command('dm履歴'))
         self.assertFalse(hasattr(client, 'dm_store'))
-        self.assertIn('DMではそのまま', str(command_help(False, 'chat').to_dict()))
+        self.assertIn('DMならそのまま', str(command_help(False).to_dict()))
 
     def test_progress_command_uses_japanese_name(self):
         from main import client
@@ -31,39 +31,23 @@ class HelpTests(unittest.TestCase):
 
     def test_every_registered_command_has_a_help_entry(self):
         from main import client
-        text = '\n'.join(str(command_help(True, key).to_dict()) for key in HELP_CATEGORIES)
+        text = str(command_help(True).to_dict())
         for command in client.tree.walk_commands():
             if command.qualified_name.split()[0] in ('季節通知', '状態', 'ヘルプ'):
                 continue  # Administrator seasonal commands are intentionally outside help.
             self.assertIn('/' + command.qualified_name, text)
 
-    def test_category_views_fit_discord_limits_and_explain_dm_scope(self):
+    def test_help_has_spaced_headings_and_no_categories(self):
+        from main import show_help
+        self.assertEqual(show_help.parameters, [])
         for in_guild in (True, False):
-            for key in HELP_CATEGORIES:
-                embed = command_help(in_guild, key)
-                self.assertLessEqual(len(embed), 6000)
-                self.assertLessEqual(len(embed.fields), 25)
-                self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-                if not in_guild and key != 'overview':
-                    self.assertIn('サーバー専用', str(embed.to_dict()))
-        overview = str(command_help(True).to_dict())
-        self.assertNotIn('/記憶削除', overview)
-        self.assertNotIn('seasonal', HELP_CATEGORIES)
-        self.assertNotIn('system', HELP_CATEGORIES)
-        self.assertNotIn('/未所持カード', overview)
-        for example in ('/プログレス ロザリー', '/ガチャ アンジュ・ヴィエルジュ', '/ガチャ アンジュ・リリンク', '/所持カード ロザリー', '/お気に入り ロザリー'):
-            self.assertIn('`' + example + '`', overview)
-        embed = command_help(True)
-        self.assertFalse(embed.title)
-        self.assertEqual(embed.fields[0].value, '面白そうな話題にはリアクションしたり、口を挟むぜ！')
-        self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド】', '【DM・メンション】'])
-        self.assertNotIn('> ', '\n'.join(field.value for field in embed.fields))
-        self.assertIn('`/所持カード ロザリー`\nプログレス', embed.fields[1].value)
-        self.assertNotIn('- ', '\n'.join(field.value for field in embed.fields))
-        gacha = str(command_help(True, 'gacha').to_dict())
-        self.assertIn('/所持カード', gacha)
-        self.assertIn('両作品合わせて1人1枚', gacha)
-        self.assertNotIn('/予定取消', gacha)
+            embed = command_help(in_guild)
+            self.assertLessEqual(len(embed), 6000)
+            self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
+            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド】', '【メンション】'])
+            self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
+            self.assertTrue(embed.fields[1].value.endswith('\n\u200b'))
+            self.assertNotIn('分類:', str(embed.to_dict()))
 
 
 class HelpCommandTests(unittest.IsolatedAsyncioTestCase):
@@ -89,6 +73,4 @@ class HelpCommandTests(unittest.IsolatedAsyncioTestCase):
         interaction = SimpleNamespace(guild_id=123, response=SimpleNamespace(send_message=AsyncMock()))
         await show_help.callback(interaction)
         self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
-        await show_help.callback(interaction, 'gacha')
-        embed = interaction.response.send_message.call_args.kwargs['embed']
-        self.assertIn('ガチャ・コレクション', embed.title)
+        self.assertEqual(interaction.response.send_message.call_args.kwargs['embed'].to_dict(), command_help(True).to_dict())

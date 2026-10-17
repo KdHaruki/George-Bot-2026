@@ -84,7 +84,7 @@ class CollectionStore(MemoryStore):
                     batches=george_gacha_batches.batches+1 RETURNING batches""", (user_id, game)).fetchone()[0]
                 if batches % BATCH_GUARANTEE[game] == 0:
                     highest = RULES[game].normal[0][0]
-                    cards[-1] = random.SystemRandom().choice(Gacha().pools[game][highest])
+                    cards[-1] = Gacha().choose_card(game, highest)
                 elif game == 'vierge' and batches % BATCH_GUARANTEE[game] == 1:
                     # Raise the existing guaranteed slot to SR; never downgrade UR.
                     if cards[-1].rarity not in ('UR', 'SR'):

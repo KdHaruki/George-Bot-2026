@@ -27,6 +27,19 @@ class Ticket:
 
 
 class GachaTests(unittest.TestCase):
+    def test_vierge_birthday_pickup_uses_confirmed_eligible_characters(self):
+        engine = Gacha()
+        day = date(2026, 11, 26)
+        self.assertIn('ロザリー', engine.birthday_targets(day, 'vierge'))
+        self.assertEqual(len(set(engine.vierge_birthdays) & {record['progressName'] for record in VIERGE_CHARACTERS}), 33)
+        self.assertNotIn('シンシア', engine.birthday_targets(date(2026, 12, 20), 'vierge'))
+        names = set(engine.birthday_targets(day, 'vierge'))
+        for ticket, expected in ((0, True), (4999, True), (5000, False), (9999, False)):
+            card = engine.choose_card('vierge', 'UR', Ticket(ticket), day)
+            self.assertEqual(card.character in names, expected)
+        rates = rates_embed(engine, 'vierge', day)
+        self.assertTrue(any('UR抽選内' in field.value and '50％' in field.value for field in rates.fields))
+
     def test_birthday_notices_are_relink_only_and_next_date_wraps_year(self):
         engine = Gacha()
         day = date(2026, 11, 26)
@@ -39,7 +52,7 @@ class GachaTests(unittest.TestCase):
         plain = result_embed(engine, 'relink', [card], on_day=date(2026, 10, 18))
         self.assertFalse(any('今日の誕生日' in field.name for field in plain.fields))
         vierge = result_embed(engine, 'vierge', engine.draw('vierge', 7), on_day=day)
-        self.assertFalse(any('誕生日' in field.name for field in vierge.fields))
+        self.assertTrue(any('誕生日' in field.name and 'ロザリー' in field.value for field in vierge.fields))
         next_day, names = engine.next_birthday(date(2026, 12, 31))
         self.assertEqual(next_day, date(2027, 1, 6))
         self.assertEqual(names, ['ミルドレッド'])
