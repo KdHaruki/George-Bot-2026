@@ -123,17 +123,13 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
         client = discord.Client(intents=discord.Intents.none())
         bot = SimpleNamespace(tree=app_commands.CommandTree(client))
         register_gacha_commands(bot, store=SimpleNamespace(url=''))
-        autocomplete = bot.tree.get_command('ガチャ')._params['回数'].autocomplete
-        for game, expected in [('vierge', [1, 7]), ('relink', [1, 10]), (None, [1])]:
-            choices = await autocomplete(SimpleNamespace(namespace=SimpleNamespace(作品=game)), 0)
-            self.assertEqual([choice.value for choice in choices], expected)
-        self.assertEqual({command.name for command in bot.tree.get_commands()}, {'ガチャ', 'ガチャ確率', '所持カード', '未所持カード', '収集率', 'お気に入り'})
+        self.assertEqual([p.name for p in bot.tree.get_command('ガチャ').parameters], ['作品'])
         interaction = SimpleNamespace(response=SimpleNamespace(send_message=AsyncMock(), defer=AsyncMock()),
                                       followup=SimpleNamespace(send=AsyncMock()))
-        await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 7)
+        await bot.tree.get_command('ガチャ').callback(interaction, 'invalid')
         self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
         interaction.response.send_message.reset_mock()
-        await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 10)
+        await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertIn('DATABASE_URL', interaction.response.send_message.call_args.args[0])
         interaction.followup.send.assert_not_called()
         await client.close()

@@ -73,7 +73,7 @@ class PresentationCommandTests(unittest.IsolatedAsyncioTestCase):
         register_gacha_commands(bot, store)
         interaction = SimpleNamespace(id=10, user=SimpleNamespace(id=1), response=SimpleNamespace(defer=AsyncMock()),
                                       followup=SimpleNamespace(send=AsyncMock(side_effect=[None, RuntimeError('art failure')])))
-        await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         calls = interaction.followup.send.call_args_list
         self.assertIn(card.name, calls[0].kwargs['embed'].description)
         self.assertEqual(calls[1].kwargs['embeds'][1].description, PRESENTATIONS[card.id]['quote'])

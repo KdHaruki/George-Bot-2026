@@ -132,7 +132,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
                    + ('1枚確定！' if game == 'vierge' else '確定！')) if progress == limit - 1 else f'確定まであと{limit - progress}回'
         if game == 'relink':
             remaining = 100 - progress
-            message = '次回1回で★3確定！' if remaining == 1 else ('次回10連で★3確定！' if remaining <= 10 else f'★3確定まであと{remaining}')
+            message = '次回10連で★3確定！' if remaining <= 10 else f'★3確定まであと{remaining}'
         unit = '' if game == 'relink' else '回'
         embed.add_field(name='ガチャカウント', value=f'{progress}/{limit}{unit}：**{message}**', inline=False)
     if saved is None:
@@ -144,9 +144,9 @@ def rates_embed(engine, game):
     rules = RULES[game]
     embed = discord.Embed(title=f'{rules.name}：排出率',
                           description=engine.rates_text(game), color=0xB06FE0)
-    embed.add_field(name='連続ガチャの累計保証', value=f'{rules.batch_size}連を{BATCH_GUARANTEE[game]}回引くごとに、最後の1枚が{rules.normal[0][0]}確定。途中で最高レアが出ても回数はリセットしないぞ。1回ガチャは対象外。', inline=False)
+    embed.add_field(name='連続ガチャの累計保証', value=f'{rules.batch_size}連を{BATCH_GUARANTEE[game]}回引くごとに、最後の1枚が{rules.normal[0][0]}確定。途中で最高レアが出ても回数はリセットしないぞ。', inline=False)
     if game == 'relink':
-        embed.set_field_at(0, name='累計カウント保証', value='単発は1、10連は10カウント。100カウント到達ごとの1枚が★3確定。途中の★3ではリセットせず、端数も繰り越すぞ。', inline=False)
+        embed.set_field_at(0, name='累計カウント保証', value='10連1回で10カウント。100カウント到達ごとの1枚が★3確定。途中の★3ではリセットせず、端数も繰り越すぞ。', inline=False)
         embed.add_field(name='誕生日ピックアップ', value='日本時間の誕生日当日は、★3抽選内で対象の子が合計50％。同日が複数なら均等に分け、残り50％は対象外の★3から抽選。100カウント保証にも適用。★3全体の排出率は変わらないぞ。', inline=False)
     if game == 'vierge':
         embed.add_field(name='7連の周期初回保証', value='カウントが1/4になる7連（累計1・5・9回目…）は最後の1枚がSR以上。UR・SRはそのまま、HR以下ならSRに引き上げるぞ。', inline=False)
@@ -172,18 +172,17 @@ def register_gacha_commands(bot, store=None):
             return fallback
 
     @bot.tree.command(name='ガチャ', description='2作品のカードガチャを無料で試す')
-    @app_commands.describe(作品='引きたい作品', 回数='1回／ヴィエルジュ7連／リリンク10連')
+    @app_commands.describe(作品='ヴィエルジュは7連、リリンクは10連')
     @app_commands.choices(作品=GAME_CHOICES)
     @app_commands.checks.cooldown(1, 5, key=lambda interaction: interaction.user.id)
-    async def draw(interaction: discord.Interaction, 作品: str, 回数: int = 1):
-        if not store.url and 作品 in RULES and (作品 == 'relink' or 回数 == RULES[作品].batch_size):
+    async def draw(interaction: discord.Interaction, 作品: str):
+        if not store.url and 作品 in RULES:
             await interaction.response.send_message('連続ガチャの保証回数を保存するため、DATABASE_URLの設定が必要だぜ。', ephemeral=True)
             return
         try:
-            cards = engine.draw(作品, 回数)
+            cards = engine.draw(作品, RULES[作品].batch_size)
         except (ValueError, KeyError):
-            size = RULES[作品].batch_size if 作品 in RULES else None
-            message = f'この作品は1回か{size}連で引いてくれ！' if size else '作品を選び直してくれ！'
+            message = '作品を選び直してくれ！'
             await interaction.response.send_message(message, ephemeral=True)
             return
         await interaction.response.defer()
@@ -229,13 +228,6 @@ def register_gacha_commands(bot, store=None):
             except Exception as exc:
                 # The saved result was already delivered; optional art must not hide it.
                 logging.warning('Relink presentation skipped: type=%s', type(exc).__name__)
-
-    @draw.autocomplete('回数')
-    async def draw_count(interaction: discord.Interaction, current: int):
-        game = getattr(interaction.namespace, '作品', None)
-        if game not in RULES:
-            return [app_commands.Choice(name='1回（先に作品を選択）', value=1)]
-        return [app_commands.Choice(name=f'{count}回', value=count) for count in (1, RULES[game].batch_size)]
 
     @draw.error
     async def on_draw_error(interaction: discord.Interaction, error):

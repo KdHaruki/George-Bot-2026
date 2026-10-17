@@ -282,6 +282,16 @@ class ResultCommentTests(unittest.TestCase):
 
 
 class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
+    async def test_draw_always_saves_game_batch_size(self):
+        def save(uid, game, interaction_id, cards):
+            return [dict(card=asdict(card), quantity=2, new=False) for card in cards]
+        store = SimpleNamespace(url='test', save_draw=Mock(side_effect=save))
+        client, tree, interaction = self.objects(store)
+        for game, size in [('vierge', 7), ('relink', 10)]:
+            await tree.get_command('ガチャ').callback(interaction, game)
+            self.assertEqual(len(store.save_draw.call_args.args[3]), size)
+        await client.close()
+
     async def test_list_buttons_are_owner_only_and_page_argument_is_removed(self):
         client, tree, _ = self.objects(SimpleNamespace(url='test'))
         for name in ('所持カード', '未所持カード'):
@@ -311,14 +321,14 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         store.batch_counts = Mock(return_value={})
         register_gacha_commands(bot, store)
         interaction = SimpleNamespace(id=100, user=SimpleNamespace(id=10), response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
-        await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         facts = bot.george_chat.collection_comment.call_args.args[0]
         self.assertEqual(facts['favorite_relation'], 'exact_card')
         self.assertEqual(facts['new_count'], 1)
         self.assertEqual(facts['cards'][0]['character'], card.character)
         self.assertEqual(interaction.followup.send.call_args.kwargs['embed'].fields[0].value, 'お気に入りも増えて楽しいな！')
         bot.george_chat.collection_comment.side_effect = ValueError('invalid')
-        await bot.tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertIn(card.character, interaction.followup.send.call_args.kwargs['embed'].fields[0].value)
         command = bot.tree.get_command('お気に入り')
         bot.george_chat.collection_comment.side_effect = None
@@ -401,15 +411,15 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         saved = [dict(card=asdict(card), quantity=1, new=True)]
         store = SimpleNamespace(url='test', save_draw=Mock(return_value=saved))
         client, tree, interaction = self.objects(store)
-        await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        await tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertEqual(store.save_draw.call_args.args[:3], (10, 'relink', 100))
         self.assertIn('**✨ NEW**', interaction.followup.send.call_args.kwargs['embed'].description)
         store.favorite.side_effect = MemoryUnavailable('offline')
-        await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        await tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertIn('**✨ NEW**', interaction.followup.send.call_args.kwargs['embed'].description)
         store.save_draw.side_effect = MemoryUnavailable('offline')
         interaction.followup.send.reset_mock()
-        await tree.get_command('ガチャ').callback(interaction, 'relink', 1)
+        await tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
         self.assertNotIn('embed', interaction.followup.send.call_args.kwargs)
         await client.close()
