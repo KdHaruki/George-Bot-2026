@@ -7,7 +7,7 @@ import random
 from discord import app_commands
 
 from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
-from gacha_collection import CollectionStore, collection_summary, unowned_cards
+from gacha_collection import CollectionStore, collection_summary
 from registered_memory import MemoryUnavailable
 from progress import progressData
 from relink_presentations import star3_embeds, presentation_files
@@ -116,9 +116,10 @@ def gacha_comment(game, cards, saved=None, favorite=None):
 def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=None):
     rules = RULES[game]
     lines = []
-    for index, card in enumerate(cards, 1):
+    rank = {rarity: index for index, (rarity, _) in enumerate(rules.normal)}
+    for index, card in sorted(enumerate(cards), key=lambda item: rank.get(item[1].rarity, 99)):
         text = discord.utils.escape_markdown(card.label)
-        is_new = saved is not None and saved[index - 1]['new']
+        is_new = saved is not None and saved[index]['new']
         ownership = ' **✨ NEW**' if is_new else ''
         rarity = f'`【{card.rarity}】` ' if game == 'relink' else f'【{card.rarity}】'
         lines.append(f'{rarity}{text}' + ownership)
@@ -245,64 +246,32 @@ def register_gacha_commands(bot, store=None):
             return
         await interaction.response.send_message(embed=rates_embed(engine, 作品), ephemeral=True)
 
-    @bot.tree.command(name='所持カード', description='自分のコレクションを見る（サーバー・DM共通）')
-    @app_commands.describe(作品='省略すると両作品', キャラ='名前の一部で絞り込み', レアリティ='省略すると全レアリティ')
-    @app_commands.choices(作品=GAME_CHOICES, レアリティ=[app_commands.Choice(name=r, value=r) for r in ('UR', 'SR', 'HR', 'R', '★3', '★2', '★1')])
-    async def owned(interaction: discord.Interaction, 作品: str = None, キャラ: app_commands.Range[str, 0, 100] = '',
-                    レアリティ: str = None):
-        await show_cards(interaction, 作品, キャラ, レアリティ)
+    @bot.tree.command(name='所持カード', description='プログレス名で自分の所持カードを確認（省略で全所持）')
+    @app_commands.describe(プログレス='名前の一部で絞り込み。省略すると両作品の全所持カード')
+    async def owned(interaction: discord.Interaction, プログレス: app_commands.Range[str, 0, 100] = ''):
+        await show_cards(interaction, プログレス)
 
-    @bot.tree.command(name='未所持カード', description='今のガチャでまだ持っていないカードを探す')
-    @app_commands.describe(作品='省略すると両作品', キャラ='名前の一部で絞り込み', レアリティ='省略すると全レアリティ')
-    @app_commands.choices(作品=GAME_CHOICES, レアリティ=[app_commands.Choice(name=r, value=r) for r in ('UR', 'SR', 'HR', 'R', '★3', '★2', '★1')])
-    async def missing(interaction: discord.Interaction, 作品: str = None, キャラ: app_commands.Range[str, 0, 100] = '',
-                      レアリティ: str = None):
-        await show_cards(interaction, 作品, キャラ, レアリティ, unowned=True)
-
-    async def show_cards(interaction, 作品, キャラ, レアリティ, unowned=False):
+    async def show_cards(interaction, プログレス):
         await interaction.response.defer(ephemeral=True)
-        if 作品 is not None and 作品 not in RULES:
-            await interaction.followup.send('作品を選び直してくれ！', ephemeral=True)
-            return
         try:
-            rows = await asyncio.to_thread(store.owned, interaction.user.id, 作品)
-            favorite = None if unowned else await asyncio.to_thread(store.favorite, interaction.user.id)
+            rows = await asyncio.to_thread(store.owned, interaction.user.id)
+            favorite = await asyncio.to_thread(store.favorite, interaction.user.id)
         except MemoryUnavailable as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
             return
-        if unowned:
-            rows = unowned_cards(engine, rows, 作品)
-        query = キャラ.strip().casefold()
+        query = プログレス.strip().casefold()
         rows = [(game, card, count) for game, card, count in rows
-                if (not query or query in (card.character + card.name).casefold())
-                and (レアリティ is None or card.rarity == レアリティ)]
+                if (not query or query in (card.character + card.name).casefold())]
         rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
         favorite_key = (favorite[0], favorite[1].id) if favorite else None
         rows.sort(key=lambda row: ((row[0], row[1].id) != favorite_key, row[0], rank.get(row[1].rarity, 9), row[1].character, row[1].label, row[1].id))
-        lines = [('⭐ ' if (game, card.id) == favorite_key else '') + f"**{card.rarity}** {discord.utils.escape_markdown(card.label)}" + ('' if unowned else f' — **{count}枚**')
+        lines = [('⭐ ' if (game, card.id) == favorite_key else '') + f"**{card.rarity}** {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
                  for game, card, count in rows]
-        empty = ('この条件の未所持カードはないぜ！' if query or レアリティ else '今のガチャ対象は全部そろってるぜ！') if unowned else '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
-        view = CardListView(interaction.user.id, lines, '未所持カード' if unowned else '所持カード') if len(lines) > 10 else None
-        embed = view.embed() if view else discord.Embed(title='未所持カード' if unowned else '所持カード', description='\n'.join(lines) or empty, color=0xB06FE0)
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
-
-    async def favorite_autocomplete(interaction: discord.Interaction, current: str):
-        try:
-            rows = await asyncio.wait_for(asyncio.to_thread(store.owned, interaction.user.id), timeout=2)
-        except (MemoryUnavailable, asyncio.TimeoutError):
-            return []
-        query = current.strip().casefold()
-        namespace = getattr(interaction, 'namespace', None)
-        character = (getattr(namespace, 'プログレス', None) or '').strip().casefold()
-        if not character:
-            return []
-        rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
-        rows = sorted(rows, key=lambda row: (0 if row[0] == 'vierge' else 1,
-                      rank.get(row[1].rarity, 9), row[1].character, row[1].label, row[1].id))
-        return [app_commands.Choice(name=f"{card.rarity} {card.label}（{'ヴィエルジュ' if game == 'vierge' else 'リリンク'}）"[:100],
-                                    value=f'{game}:{card.id}') for game, card, _ in rows
-                if character in card.character.casefold()
-                and (not query or query in (card.character + card.label).casefold())][:25]
+        empty = '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
+        view = CardListView(interaction.user.id, lines, '所持カード') if len(lines) > 10 else None
+        embed = view.embed() if view else discord.Embed(title='所持カード', description='\n'.join(lines) or empty, color=0xB06FE0)
+        options = {'view': view} if view is not None else {}
+        await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none(), **options)
 
     async def progress_autocomplete(interaction: discord.Interaction, current: str):
         try:
@@ -313,35 +282,39 @@ def register_gacha_commands(bot, store=None):
         names = sorted({card.character for _, card, _ in rows if query in card.character.casefold()})
         return [app_commands.Choice(name=name[:100], value=name) for name in names[:25]]
 
-    @bot.tree.command(name='お気に入り', description='プログレスと所持候補から登録・確認（同じカードの再選択で解除）')
-    @app_commands.describe(プログレス='先にプログレス名を選ぶ。両項目とも省略すると現在のお気に入りを確認', 選択='プログレスに合う両作品の所持候補から選ぶ')
-    @app_commands.autocomplete(プログレス=progress_autocomplete, 選択=favorite_autocomplete)
-    async def favorite_command(interaction: discord.Interaction, プログレス: app_commands.Range[str, 1, 100] = None,
-                               選択: app_commands.Range[str, 1, 100] = None):
+    @bot.tree.command(name='お気に入り', description='名前でお気に入りを登録・確認（同じプログレスの再指定で解除）')
+    @app_commands.describe(プログレス='所持しているプログレス名。省略すると現在のお気に入りを確認')
+    @app_commands.autocomplete(プログレス=progress_autocomplete)
+    async def favorite_command(interaction: discord.Interaction, プログレス: app_commands.Range[str, 1, 100] = None):
         await interaction.response.defer(ephemeral=True)
-        if (プログレス is None) != (選択 is None):
-            await interaction.followup.send('先に「プログレス」を入力して、「選択」の候補から選んでくれ！ 確認だけなら両方省略だ。', ephemeral=True)
-            return
         try:
-            if 選択 is not None:
-                game, separator, card_id = 選択.partition(':')
-                if not separator or game not in RULES or not card_id:
-                    raise ValueError('カード名を入力して、表示される所持カードの候補から選んでくれ！')
-                owned_rows = await asyncio.to_thread(store.owned, interaction.user.id)
-                if not any(row_game == game and card.id == card_id and プログレス.strip().casefold() in card.character.casefold()
-                           for row_game, card, _ in owned_rows):
-                    raise ValueError('指定したプログレスに合う自分の所持候補から選んでくれ！')
-                selected = await asyncio.to_thread(store.set_favorite, interaction.user.id, game, card_id, toggle=True)
+            if プログレス is not None:
+                rows = await asyncio.to_thread(store.owned, interaction.user.id)
+                query = プログレス.strip().casefold()
+                exact = [row for row in rows if row[1].character.casefold() == query]
+                matches = exact or [row for row in rows if query and query in row[1].character.casefold()]
+                names = {row[1].character for row in matches}
+                if not matches:
+                    raise ValueError('そのプログレスはまだ持っていないぜ。所持している名前を指定してくれ！')
+                if len(names) > 1:
+                    raise ValueError('複数のプログレスが見つかったぜ。候補から名前を選び直してくれ！')
+                current = await asyncio.to_thread(store.favorite, interaction.user.id)
+                if current and current[1].character in names:
+                    game, card, _ = current
+                else:
+                    rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
+                    game, card, _ = min(matches, key=lambda row: (rank.get(row[1].rarity, 9), 0 if row[0] == 'vierge' else 1, row[1].label, row[1].id))
+                selected = await asyncio.to_thread(store.set_favorite, interaction.user.id, game, card.id, toggle=True)
                 if selected is None:
                     await interaction.followup.send('お気に入りを解除したぜ。所持カードや枚数はそのままだぞ！', ephemeral=True)
                     return
             else:
                 selected = await asyncio.to_thread(store.favorite, interaction.user.id)
             if selected is None:
-                await interaction.followup.send('お気に入りはまだないぜ。`/お気に入り`の「プログレス」に名前を入れて、「選択」の候補から選んでくれ！', ephemeral=True)
+                await interaction.followup.send('お気に入りはまだないぜ。`/お気に入り`の「プログレス」に名前を入れてくれ！', ephemeral=True)
                 return
             game, card, count = selected
-            embed = discord.Embed(title='⭐ お気に入り' + ('を登録したぜ！' if 選択 else ''),
+            embed = discord.Embed(title='⭐ お気に入り' + ('を登録したぜ！' if プログレス else ''),
                                   description=f'**{card.rarity}** {discord.utils.escape_markdown(card.label)}\n{RULES[game].name}｜所持{count}枚', color=0xB06FE0)
             introduction, comment = favorite_details(card)
             comment = await ai_comment(collection_facts(game, [card], favorite=selected, viewing=True), comment)

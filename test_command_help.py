@@ -47,14 +47,11 @@ class HelpTests(unittest.TestCase):
                     self.assertIn('サーバー専用', str(embed.to_dict()))
         overview = str(command_help(True).to_dict())
         self.assertNotIn('/記憶削除', overview)
-        self.assertEqual(len(command_help(True).fields), 2)
         self.assertNotIn('seasonal', HELP_CATEGORIES)
         self.assertNotIn('system', HELP_CATEGORIES)
-        self.assertNotIn('使い方・動作確認', overview)
-        self.assertNotIn('季節・祝日の通知', overview)
-        for field in command_help(True).fields:
-            self.assertIn('詳しく：`/ヘルプ 分類:', field.value)
-            self.assertGreater(len(field.value.splitlines()[0]), 10)
+        self.assertNotIn('/未所持カード', overview)
+        for example in ('/プログレス ロザリー', '/ガチャ アンジュ・ヴィエルジュ', '/ガチャ アンジュ・リリンク', '/所持カード ロザリー', '/お気に入り ロザリー'):
+            self.assertIn('**' + example + '**', command_help(True).description)
         gacha = str(command_help(True, 'gacha').to_dict())
         self.assertIn('/所持カード', gacha)
         self.assertIn('両作品合わせて1人1枚', gacha)
