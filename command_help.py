@@ -6,14 +6,28 @@ HELP_CATEGORIES = {
     'gacha': 'ガチャ・コレクション',
 }
 
-OVERVIEW = """- **/プログレス ロザリー**：名前でプロフィールを検索。世界名でも探せるぞ。
-- **/おみくじ**：今日の運勢とラッキーアイテム。
-- **/ガチャ アンジュ・ヴィエルジュ**：ヴィエルジュの7連ガチャ。
-- **/ガチャ アンジュ・リリンク**：リリンクの10連ガチャ。
-- **/所持カード ロザリー**：そのプログレスの所持カードと枚数を確認。
-- **/お気に入り ロザリー**：名前でお気に入りを登録。同じ名前を再指定すると解除。
-- **/収集率**：コレクションの完成度を確認。
-- **/ガチャ確率**：排出率と保証を確認。"""
+SLASH_COMMANDS = [
+    ('/プログレス ロザリー', '名前でプロフィールを検索。世界名でも探せるぞ。'),
+    ('/おみくじ', '今日の運勢とラッキーアイテム。'),
+    ('/ガチャ アンジュ・ヴィエルジュ', '7連ガチャ。'),
+    ('/ガチャ アンジュ・リリンク', '10連ガチャ。'),
+    ('/所持カード ロザリー', 'プログレスの所持カードと枚数を確認。'),
+    ('/お気に入り ロザリー', 'お気に入りを登録。再指定すると解除。'),
+    ('/収集率 アンジュ・ヴィエルジュ', 'コレクションの完成度を確認。'),
+    ('/収集率 アンジュ・リリンク', 'コレクションの完成度を確認。'),
+    ('/ガチャ確率', '排出率と保証を確認。'),
+    ('/ヘルプ', ''),
+]
+DM_COMMANDS = [
+    ('@ジョージ ロザリーのことどう思う？', 'サーバーで話しかける。俺の発言への返信でもOKだ。'),
+    ('@ジョージ 画像添付', '画像を参照。PNG・JPEG・WebPの最大2枚、各4MiBまで。'),
+    ('@ジョージ リセット', 'この場所のオマエとの短期会話履歴を消す。'),
+]
+
+
+def quoted_commands(entries):
+    return '\n\n'.join('> ' + command + ('\n\n' + explanation if explanation else '') for command, explanation in entries)
+
 
 SECTIONS = {
     'chat': [
@@ -30,13 +44,14 @@ SECTIONS = {
 
 def command_help(in_guild, category='overview'):
     category = category if category in HELP_CATEGORIES else 'overview'
-    embed = discord.Embed(title='ジョージのコマンド案内｜' + HELP_CATEGORIES[category], color=0xE2AD48)
+    embed = discord.Embed(title='ジョージの機能一覧' if category == 'overview' else 'ジョージのコマンド案内｜' + HELP_CATEGORIES[category], color=0xE2AD48)
     if category == 'overview':
-        embed.description = OVERVIEW
-        embed.add_field(name='詳しい使い方', value='- **/ヘルプ 分類:会話・画像・キャラ検索**\n- **/ヘルプ 分類:ガチャ・コレクション**', inline=False)
+        embed.description = '面白そうな話題にはリアクションしたり、口を挟むぜ！'
+        embed.add_field(name='ジョージのスラッシュコマンド一覧', value=quoted_commands(SLASH_COMMANDS), inline=False)
+        embed.add_field(name='ジョージのDM・メンション一覧', value=quoted_commands(DM_COMMANDS), inline=False)
     else:
         for name, value in SECTIONS[category]:
             embed.add_field(name=name, value=value, inline=False)
-    if not in_guild:
+    if not in_guild and category != 'overview':
         embed.add_field(name='DMで使うとき', value='ここに載せているコマンドはDMでも使えるぞ。季節通知はサーバー専用だ。', inline=False)
     return embed

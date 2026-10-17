@@ -43,7 +43,7 @@ class HelpTests(unittest.TestCase):
                 self.assertLessEqual(len(embed), 6000)
                 self.assertLessEqual(len(embed.fields), 25)
                 self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-                if not in_guild:
+                if not in_guild and key != 'overview':
                     self.assertIn('サーバー専用', str(embed.to_dict()))
         overview = str(command_help(True).to_dict())
         self.assertNotIn('/記憶削除', overview)
@@ -51,7 +51,12 @@ class HelpTests(unittest.TestCase):
         self.assertNotIn('system', HELP_CATEGORIES)
         self.assertNotIn('/未所持カード', overview)
         for example in ('/プログレス ロザリー', '/ガチャ アンジュ・ヴィエルジュ', '/ガチャ アンジュ・リリンク', '/所持カード ロザリー', '/お気に入り ロザリー'):
-            self.assertIn('**' + example + '**', command_help(True).description)
+            self.assertIn('> ' + example, overview)
+        embed = command_help(True)
+        self.assertEqual(embed.title, 'ジョージの機能一覧')
+        self.assertEqual(embed.description, '面白そうな話題にはリアクションしたり、口を挟むぜ！')
+        self.assertEqual([field.name for field in embed.fields], ['ジョージのスラッシュコマンド一覧', 'ジョージのDM・メンション一覧'])
+        self.assertNotIn('- ', '\n'.join(field.value for field in embed.fields))
         gacha = str(command_help(True, 'gacha').to_dict())
         self.assertIn('/所持カード', gacha)
         self.assertIn('両作品合わせて1人1枚', gacha)
