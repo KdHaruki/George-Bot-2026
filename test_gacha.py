@@ -27,6 +27,26 @@ class Ticket:
 
 
 class GachaTests(unittest.TestCase):
+    def test_birthday_notices_are_relink_only_and_next_date_wraps_year(self):
+        engine = Gacha()
+        day = date(2026, 11, 26)
+        card = engine.pools['relink']['★1'][0]
+        embed = result_embed(engine, 'relink', [card], on_day=day)
+        notice = next(field for field in embed.fields if '今日の誕生日' in field.name)
+        self.assertIn('ロザリー', notice.value)
+        self.assertIn('リゼリッタ', notice.value)
+        self.assertIn('合計50％', notice.value)
+        plain = result_embed(engine, 'relink', [card], on_day=date(2026, 10, 18))
+        self.assertFalse(any('今日の誕生日' in field.name for field in plain.fields))
+        vierge = result_embed(engine, 'vierge', engine.draw('vierge', 7), on_day=day)
+        self.assertFalse(any('誕生日' in field.name for field in vierge.fields))
+        next_day, names = engine.next_birthday(date(2026, 12, 31))
+        self.assertEqual(next_day, date(2027, 1, 6))
+        self.assertEqual(names, ['ミルドレッド'])
+        rates = rates_embed(engine, 'relink', on_day=date(2026, 11, 25))
+        self.assertIn('11月26日', rates.fields[-1].value)
+        self.assertIn('ロザリー', rates.fields[-1].value)
+
     def test_birthday_is_exactly_half_and_shared_birthdays_split_pool(self):
         engine = Gacha()
         self.assertTrue({card.character for card in engine.pools['relink']['★3']} <= engine.birthdays.keys())

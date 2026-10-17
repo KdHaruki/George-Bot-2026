@@ -3,7 +3,7 @@ from dataclasses import dataclass, replace
 import json
 from pathlib import Path
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import re
 from progress import progressData
@@ -109,12 +109,38 @@ class Gacha:
                 raise ValueError('空のレアリティがあるため抽選できません。')
             self.pools[game] = pool
 
+    def birthday_targets(self, on_day=None):
+        day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
+        eligible = {card.character for card in self.pools['relink']['★3']}
+        return sorted(name for name in eligible if self.birthdays.get(name) == day.strftime('%m-%d'))
+
+    def next_birthday(self, on_day=None):
+        day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
+        upcoming = {}
+        for name in {card.character for card in self.pools['relink']['★3']}:
+            birthday = self.birthdays.get(name)
+            if not birthday:
+                continue
+            month, number = map(int, birthday.split('-'))
+            for year in range(day.year, day.year + 5):
+                try:
+                    candidate = date(year, month, number)
+                except ValueError:
+                    continue
+                if candidate > day:
+                    upcoming.setdefault(candidate, []).append(name)
+                    break
+        if not upcoming:
+            return None
+        nearest = min(upcoming)
+        return nearest, sorted(upcoming[nearest])
+
     def choose_card(self, game, rarity, rng=None, on_day=None):
         rng = rng or random.SystemRandom()
         pool = self.pools[game][rarity]
         if game == 'relink' and rarity == '★3':
             day = on_day or datetime.now(timezone(timedelta(hours=9))).date()
-            names = {name for name, birthday in self.birthdays.items() if birthday == day.strftime('%m-%d')}
+            names = set(self.birthday_targets(day))
             featured = [card for card in pool if card.character in names]
             others = [card for card in pool if card.character not in names]
             if featured and others:

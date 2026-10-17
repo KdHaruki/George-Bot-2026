@@ -113,7 +113,7 @@ def gacha_comment(game, cards, saved=None, favorite=None):
     return random.choice(['今回はこんな顔ぶれだぜ！ 気になる子はいたか？', '結果が出たぜ！ どのかわいこちゃんもじっくり見てみな！'])
 
 
-def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=None):
+def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=None, on_day=None):
     rules = RULES[game]
     lines = []
     rank = {rarity: index for index, (rarity, _) in enumerate(rules.normal)}
@@ -138,10 +138,15 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
         embed.add_field(name='ガチャカウント', value=f'{progress}/{limit}{unit}：**{message}**', inline=False)
     if saved is None:
         embed.add_field(name='保存なし', value='DATABASE_URL未設定のため、この結果はコレクションに保存されないぞ。', inline=False)
+    if game == 'relink':
+        names = engine.birthday_targets(on_day)
+        if names:
+            month, day = map(int, engine.birthdays[names[0]].split('-'))
+            embed.add_field(name='【🎂 今日の誕生日ピックアップ】', value=f'{month}月{day}日｜' + '・'.join(names) + '\n★3抽選内で対象キャラが合計50％！', inline=False)
     return embed
 
 
-def rates_embed(engine, game):
+def rates_embed(engine, game, on_day=None):
     rules = RULES[game]
     embed = discord.Embed(title=f'【{rules.name}：排出率】',
                           description=engine.rates_text(game), color=0xB06FE0)
@@ -149,6 +154,10 @@ def rates_embed(engine, game):
     if game == 'relink':
         embed.set_field_at(0, name='【累計カウント保証】', value='10連1回で10カウント。100カウント到達ごとの1枚が★3確定。途中の★3ではリセットせず、端数も繰り越すぞ。', inline=False)
         embed.add_field(name='【誕生日ピックアップ】', value='日本時間の誕生日当日は、★3抽選内で対象の子が合計50％。同日が複数なら均等に分け、残り50％は対象外の★3から抽選。100カウント保証にも適用。★3全体の排出率は変わらないぞ。', inline=False)
+        upcoming = engine.next_birthday(on_day)
+        if upcoming:
+            day, names = upcoming
+            embed.add_field(name='【🎂 次の誕生日】', value=f'{day.month}月{day.day}日｜' + '・'.join(names), inline=False)
     if game == 'vierge':
         embed.add_field(name='【7連の周期初回保証】', value='カウントが1/4になる7連（累計1・5・9回目…）は最後の1枚がSR以上。UR・SRはそのまま、HR以下ならSRに引き上げるぞ。', inline=False)
     return embed
