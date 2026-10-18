@@ -16,12 +16,12 @@ from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
 from command_help import command_help
 from health_check import HealthCheck
-from image_inputs import ImageSource, load_images, ambient_image_sources
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
 from gacha_commands import register_gacha_commands, favorite_details
 from command_permissions import require_administrator
 from command_history import CommandHistory
+from link_battle import register_link_battle
 
 ########################################
 # Botクラス
@@ -72,6 +72,7 @@ class MyClient(discord.Client):
 client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
+register_link_battle(client)
 
 
 async def conversation_favorite(bot, user_id):
@@ -271,26 +272,16 @@ async def on_message(message):
             await message.channel.send(result)
         else:
             text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
-            attachments = tuple(getattr(message, "attachments", ()))
             key = (message.channel.id, message.author.id)
             try:
-                if not text and not attachments:
+                if not text:
                     answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /プログレス だぜ。"
                 else:
                     async with message.channel.typing():
-                        bundle = await load_images([ImageSource(item, f"今回の発言の添付画像{index + 1}") for index, item in enumerate(attachments)])
-                        if attachments and not bundle.images and not text:
-                            answer = "\n".join(bundle.notices)
-                        else:
-                            notes = []
-                            favorite = await conversation_favorite(client, message.author.id)
-                            image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if attachments else {}
-                            if favorite:
-                                image_options['favorite'] = favorite
-                            answer = await client.george_chat.reply(key, text or "添付画像について一言お願い。", notes,
-                                                                   reply_to=target.content if target is not None else "", **image_options)
-                            if bundle.notices:
-                                answer += "\n※" + " ".join(bundle.notices)
+                        favorite = await conversation_favorite(client, message.author.id)
+                        options = {'favorite': favorite} if favorite else {}
+                        answer = await client.george_chat.reply(key, text, [],
+                                                               reply_to=target.content if target is not None else '', **options)
             except MemoryUnavailable as exc:
                 answer = str(exc)
             except ChatUnavailable:
@@ -319,15 +310,9 @@ async def on_message(message):
         context = await load_ambient_history(message)
         if not context or not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
             return
-        sources = ambient_image_sources(context)
-        bundle = await load_images(sources)
-        if sources and not bundle.images:
-            return
         if not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
             return
-        notes = []
-        image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if sources else {}
-        answer = await client.george_chat.ambient_reply(context, notes, **image_options)
+        answer = await client.george_chat.ambient_reply(context, [])
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
