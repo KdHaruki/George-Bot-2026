@@ -22,6 +22,7 @@ from gacha_commands import register_gacha_commands, favorite_details
 from command_permissions import require_administrator
 from command_history import CommandHistory
 from link_battle import register_link_battle
+from equipment import register_equipment
 
 ########################################
 # Botクラス
@@ -73,6 +74,7 @@ client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
 register_link_battle(client)
+register_equipment(client)
 
 
 async def conversation_favorite(bot, user_id):
