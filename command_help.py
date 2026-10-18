@@ -29,7 +29,7 @@ def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
     intro = introduction or 'よう、みんな！ 楽しそうな雑談には俺もたまに混ざるし、俺が絵文字でリアクションすることもあるぜ！'
     embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n\u200b', inline=False)
-    entries = [(command, explanation + ('' if command.split()[0][1:] in PUBLIC_COMMANDS else '（あなただけ見えます）'))
+    entries = [(command, explanation + ('' if command.split()[0][1:] in PUBLIC_COMMANDS else '（あなただけに表示されます）'))
                for command, explanation in SLASH_COMMANDS]
     embed.add_field(name='【スラッシュコマンド一覧】', value=format_commands(entries) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション一覧】', value=format_commands(DM_COMMANDS), inline=False)
