@@ -49,3 +49,24 @@ class ReplyTests(unittest.IsolatedAsyncioTestCase):
         item.read.assert_not_awaited()
         fake.george_chat.reply.assert_not_awaited()
         message.channel.send.assert_awaited_once()
+
+    async def test_recording_questions_return_fixed_admin_guidance_without_ai(self):
+        import discord
+        from george_chat import MANAGEMENT_REPLY
+        for dm in (False, True):
+            message = self.message()
+            if dm:
+                message.channel = Mock(spec=discord.DMChannel)
+                message.channel.id = 1
+                message.channel.send = AsyncMock()
+                message.guild = None
+                message.reference = None
+            message.content = 'この会話やDMは記録・管理されてるの？'
+            fake = SimpleNamespace(user=SimpleNamespace(id=99), george_chat=SimpleNamespace(reply=AsyncMock()),
+                                   ambient=SimpleNamespace(note_reply=Mock()))
+            if not dm:
+                message.mentions = [fake.user]
+            with patch.object(main, 'client', fake), patch('main.random.random', return_value=1):
+                await main.on_message(message)
+            fake.george_chat.reply.assert_not_awaited()
+            self.assertEqual(message.channel.send.call_args.args[0], MANAGEMENT_REPLY)

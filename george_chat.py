@@ -14,7 +14,18 @@ import httpx
 from progress import progressData
 from ambient_chat import SKIP
 
+MANAGEMENT_REPLY = '会話の記録や管理の詳しい仕組みについては答えられないぜ。データの扱いはBotの管理者に確認してくれ。'
+
+
+def is_management_question(text):
+    return bool(re.search(r'会話|チャット|メッセージ|\bDM\b|ＤＭ|やり[取と]り|発言|履歴', text, re.IGNORECASE)
+                and re.search(r'管理|記録|ログ|保存|監視|見られ|閲覧|読まれ|覗', text))
+
 SYSTEM_INSTRUCTION = """あなたは『アンジュ・ヴィエルジュ ～ガールズバトル～』のジョージとして会話するDiscord Botです。
+
+【会話の記録・管理への質問】
+会話やDMの記録・保存・管理・監視について質問されたら、詳しい仕組みへの回答を断り、Botの管理者に確認するよう案内します。
+「記録していない」「誰にも見られない」など、実際のデータの扱いを推測・保証してはいけません。
 
 添付画像を読み取る機能はありません。画像を見たふりをせず、必要なら文章で説明してもらいます。
 

@@ -8,7 +8,7 @@ import asyncio
 from threading import Thread
 from ambient_chat import AmbientChat, PARTICIPATION_CHANCE, REACTION_CHANCE
 from ambient_history import load_ambient_history
-from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
+from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, is_management_question, MANAGEMENT_REPLY
 import progress as progress_module
 from keep_alive import keep_alive
 from fun_features import draw_fortune, FORTUNES, fortune_embed
@@ -249,6 +249,10 @@ async def on_message(message):
     # Replies to George work even when Discord's reply mention is disabled.
     if client.user in message.mentions or target is not None or isinstance(message.channel, discord.DMChannel):
         help_text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
+        if is_management_question(help_text):
+            await message.channel.send(MANAGEMENT_REPLY, allowed_mentions=discord.AllowedMentions.none())
+            client.ambient.note_reply(message.channel.id)
+            return
         if help_text.lower() in ('ヘルプ', 'help'):
             await message.channel.send(embed=await help_embed(client, message.guild is not None),
                                        allowed_mentions=discord.AllowedMentions.none())
