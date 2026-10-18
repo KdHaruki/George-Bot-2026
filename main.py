@@ -6,7 +6,7 @@ import logging
 import re
 import asyncio
 from threading import Thread
-from ambient_chat import AmbientChat, PARTICIPATION_CHANCE
+from ambient_chat import AmbientChat, PARTICIPATION_CHANCE, REACTION_CHANCE
 from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
@@ -14,7 +14,7 @@ from keep_alive import keep_alive
 from fun_features import draw_fortune, FORTUNES, fortune_embed
 from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
-from command_help import command_help
+from command_help import command_help, PUBLIC_COMMANDS
 from health_check import HealthCheck
 from image_inputs import ImageSource, load_images, ambient_image_sources
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
@@ -42,6 +42,10 @@ class MyClient(discord.Client):
         self.health = HealthCheck()
 
     async def setup_hook(self):
+        for command in self.tree.walk_commands():
+            visibility = 'みんなに表示' if command.qualified_name.split()[0] in PUBLIC_COMMANDS else '自分だけ'
+            if not command.description.startswith('【' + visibility + '】'):
+                command.description = ('【' + visibility + '】' + command.description)[:100]
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
         self.seasonal.start(self)
@@ -83,6 +87,17 @@ async def conversation_favorite(bot, user_id):
     except Exception as exc:
         logging.warning('Conversation favorite skipped: type=%s', type(exc).__name__)
     return None
+
+
+async def help_embed(bot, in_guild):
+    introduction = None
+    chat = getattr(bot, 'george_chat', None)
+    if chat is not None and hasattr(chat, 'help_comment'):
+        try:
+            introduction = await asyncio.wait_for(chat.help_comment(), timeout=12)
+        except Exception as exc:
+            logging.warning('Help introduction fallback: type=%s', type(exc).__name__)
+    return command_help(in_guild, introduction or None)
 
 ########################################
 # 起動確認
@@ -185,7 +200,8 @@ async def progress(interaction: discord.Interaction, name: str):
 
 @client.tree.command(name="ヘルプ", description="ジョージの機能とコマンドの使い方を表示")
 async def show_help(interaction: discord.Interaction):
-    await interaction.response.send_message(embed=command_help(interaction.guild_id is not None),
+    await interaction.response.defer(ephemeral=True)
+    await interaction.followup.send(embed=await help_embed(client, interaction.guild_id is not None),
                                             ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
 
@@ -221,7 +237,7 @@ async def on_message(message):
         return
 
     # Keep the original random reactions independent of ambient participation.
-    if random.random() < 0.2:
+    if random.random() < REACTION_CHANCE:
         emojis = ["😆", "😂", "😍", "😭", "🤔", "😎", "🥺", "👍", "🎉", "👀"]
         try:
             await message.add_reaction(random.choice(emojis))
@@ -234,7 +250,7 @@ async def on_message(message):
     if client.user in message.mentions or target is not None or isinstance(message.channel, discord.DMChannel):
         help_text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
         if help_text.lower() in ('ヘルプ', 'help'):
-            await message.channel.send(embed=command_help(message.guild is not None),
+            await message.channel.send(embed=await help_embed(client, message.guild is not None),
                                        allowed_mentions=discord.AllowedMentions.none())
             client.ambient.note_reply(message.channel.id)
             return

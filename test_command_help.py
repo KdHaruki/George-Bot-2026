@@ -70,7 +70,8 @@ class HelpCommandTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_default_and_selected_category_are_private(self):
         from main import show_help
-        interaction = SimpleNamespace(guild_id=123, response=SimpleNamespace(send_message=AsyncMock()))
-        await show_help.callback(interaction)
-        self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
-        self.assertEqual(interaction.response.send_message.call_args.kwargs['embed'].to_dict(), command_help(True).to_dict())
+        interaction = SimpleNamespace(guild_id=123, response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        with patch('main.help_embed', AsyncMock(return_value=command_help(True))):
+            await show_help.callback(interaction)
+        self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
+        self.assertEqual(interaction.followup.send.call_args.kwargs['embed'].to_dict(), command_help(True).to_dict())

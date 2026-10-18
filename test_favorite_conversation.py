@@ -38,3 +38,30 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         await chat.collection_comment({'action': 'character_line', 'character': 'ロザリー', 'profile': '幻影の魔女'})
         self.assertIn('本人として', generate.call_args.kwargs['config'].system_instruction)
         self.assertNotIn('俺はジョージ', generate.call_args.kwargs['config'].system_instruction)
+
+    async def test_help_intro_is_cached_and_retried_after_failure(self):
+        with patch.dict(os.environ, {'GEMINI_API_KEY': ''}):
+            chat = GeorgeChat()
+        chat.collection_comment = AsyncMock(return_value='楽しそうな話なら俺も混ぜてくれよな！')
+        first = await chat.help_comment()
+        self.assertEqual(await chat.help_comment(), first)
+        chat.collection_comment.assert_awaited_once_with({'action': 'help_intro'})
+        chat.help_cache = ('', 0)
+        chat.collection_comment.side_effect = ValueError('offline')
+        with self.assertRaises(ValueError):
+            await chat.help_comment()
+        self.assertEqual(await chat.help_comment(), '')
+        self.assertEqual(chat.collection_comment.await_count, 2)
+
+    async def test_help_visibility_and_generation_fallback(self):
+        from main import help_embed
+        from command_help import command_help
+        bot = SimpleNamespace(george_chat=SimpleNamespace(help_comment=AsyncMock(return_value='みんな、いい調子か？')))
+        embed = await help_embed(bot, True)
+        self.assertIn('みんな、いい調子か？', embed.fields[0].value)
+        self.assertIn('会話への参加', embed.fields[0].value)
+        text = embed.fields[1].value
+        self.assertIn('`/おみくじ`\n【みんなに表示】', text)
+        self.assertIn('`/お気に入り ロザリー`\n【自分だけ】', text)
+        bot.george_chat.help_comment.side_effect = ValueError('offline')
+        self.assertEqual((await help_embed(bot, True)).to_dict(), command_help(True).to_dict())

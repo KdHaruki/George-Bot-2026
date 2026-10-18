@@ -19,13 +19,19 @@ DM_COMMANDS = [
 ]
 
 
+PUBLIC_COMMANDS = frozenset(('プログレス', 'おみくじ', 'ガチャ'))
+
+
 def format_commands(entries):
     return '\n\n'.join('`' + command + '`' + ('\n' + explanation if explanation else '') for command, explanation in entries)
 
 
-def command_help(in_guild):
+def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
-    embed.add_field(name='【ジョージの機能一覧】', value='よう！ みんな、いい調子か？ 楽しそうな話なら俺も混ぜてくれよな！\n\u200b', inline=False)
-    embed.add_field(name='【スラッシュコマンド】', value=format_commands(SLASH_COMMANDS) + '\n\u200b', inline=False)
+    intro = introduction or 'よう！ 楽しそうな話なら俺も混ぜてくれよな！ リアクションもするし、みんなと話せるのを楽しみにしてるぜ！'
+    embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n会話への参加・絵文字リアクションもするぜ！\n\u200b', inline=False)
+    entries = [(command, ('【みんなに表示】' if command.split()[0][1:] in PUBLIC_COMMANDS else '【自分だけ】') + '\n' + explanation)
+               for command, explanation in SLASH_COMMANDS]
+    embed.add_field(name='【スラッシュコマンド】', value=format_commands(entries) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション】', value=format_commands(DM_COMMANDS), inline=False)
     return embed

@@ -3,8 +3,9 @@ import time
 from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 
-COOLDOWN = 30 * 60
-PARTICIPATION_CHANCE = 0.10
+COOLDOWN = 60 * 60
+REACTION_CHANCE = 0.20
+PARTICIPATION_CHANCE = REACTION_CHANCE
 SKIP = "__SKIP__"
 SERIOUS = ("相談", "真剣", "深刻", "つらい", "辛い", "死", "病", "事故", "災害", "訃報", "助けて", "喧嘩", "けんか", "仕事", "政治", "戦争")
 

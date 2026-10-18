@@ -372,6 +372,9 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('saved', facts)
         details = next(call.kwargs['embed'] for call in reversed(interaction.followup.send.call_args_list) if 'embed' in call.kwargs)
         self.assertFalse(details.footer.text)
+        self.assertTrue(any('からの一言' in field.name for field in details.fields))
+        self.assertNotIn('（原作台詞）', str(details.to_dict()))
+        self.assertNotIn('（AI生成）', str(details.to_dict()))
         self.assertTrue(interaction.followup.send.call_args.kwargs['files'])
         await client.close()
 
@@ -452,6 +455,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
         self.assertEqual(len(call.kwargs['embed'].description.splitlines()), 4)
+        self.assertTrue(call.kwargs['embed'].description.startswith('**【'))
         self.assertNotIn('ヴィエルジュ', call.kwargs['embed'].description)
         self.assertNotIn('リリンク', call.kwargs['embed'].description)
         self.assertFalse(call.kwargs['embed'].footer.text)
