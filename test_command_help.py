@@ -33,7 +33,7 @@ class HelpTests(unittest.TestCase):
         from main import client
         text = str(command_help(True).to_dict())
         for command in client.tree.walk_commands():
-            if command.qualified_name.split()[0] in ('季節通知', '状態', 'ヘルプ'):
+            if command.qualified_name.split()[0] in ('季節通知', '状態', 'ヘルプ', 'コマンド履歴'):
                 continue  # Administrator seasonal commands are intentionally outside help.
             self.assertIn('/' + command.qualified_name, text)
 

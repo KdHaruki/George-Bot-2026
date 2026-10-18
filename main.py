@@ -21,6 +21,7 @@ from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
 from gacha_commands import register_gacha_commands, favorite_details
 from command_permissions import require_administrator
+from command_history import CommandHistory, register_command_history
 
 ########################################
 # Botクラス
@@ -40,6 +41,7 @@ class MyClient(discord.Client):
         self.seasonal = SeasonalScheduler(self.seasonal_store)
         self.cleaned_guilds = set()
         self.health = HealthCheck()
+        self.command_history = CommandHistory()
 
     async def setup_hook(self):
         for command in self.tree.walk_commands():
@@ -65,6 +67,7 @@ class MyClient(discord.Client):
     async def close(self):
         try:
             await self.seasonal.close()
+            await self.command_history.close()
             await self.george_chat.close()
         finally:
             await super().close()
@@ -73,6 +76,12 @@ class MyClient(discord.Client):
 client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
+register_command_history(client)
+
+
+@client.event
+async def on_interaction(interaction):
+    client.command_history.observe(interaction)
 
 
 async def conversation_favorite(bot, user_id):
