@@ -29,8 +29,8 @@ def format_commands(entries):
 def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
     intro = introduction or 'よう！ 楽しそうな話なら俺も混ぜてくれよな！ リアクションもするし、みんなと話せるのを楽しみにしてるぜ！'
-    embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n会話への参加・絵文字リアクションもするぜ！\n\u200b', inline=False)
-    entries = [(command, ('【みんなに表示】' if command.split()[0][1:] in PUBLIC_COMMANDS else '【自分だけ】') + '\n' + explanation)
+    embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n\u200b', inline=False)
+    entries = [(command, explanation + ('（みんなに表示）' if command.split()[0][1:] in PUBLIC_COMMANDS else '（自分だけ表示）'))
                for command, explanation in SLASH_COMMANDS]
     embed.add_field(name='【スラッシュコマンド】', value=format_commands(entries) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション】', value=format_commands(DM_COMMANDS), inline=False)

@@ -43,7 +43,7 @@ class MyClient(discord.Client):
 
     async def setup_hook(self):
         for command in self.tree.walk_commands():
-            visibility = 'みんなに表示' if command.qualified_name.split()[0] in PUBLIC_COMMANDS else '自分だけ'
+            visibility = 'みんなに表示' if command.qualified_name.split()[0] in PUBLIC_COMMANDS else '自分だけ表示'
             if not command.description.startswith('【' + visibility + '】'):
                 command.description = ('【' + visibility + '】' + command.description)[:100]
         commands = await self.tree.sync()

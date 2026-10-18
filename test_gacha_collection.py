@@ -455,7 +455,9 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
         self.assertEqual(len(call.kwargs['embed'].description.splitlines()), 4)
-        self.assertTrue(call.kwargs['embed'].description.startswith('**【'))
+        self.assertTrue(call.kwargs['embed'].description.startswith('`【'))
+        self.assertEqual([line.split('`')[1] for line in call.kwargs['embed'].description.splitlines()],
+                         ['【UR】', '【SR】', '【HR】', '【R 】'])
         self.assertNotIn('ヴィエルジュ', call.kwargs['embed'].description)
         self.assertNotIn('リリンク', call.kwargs['embed'].description)
         self.assertFalse(call.kwargs['embed'].footer.text)

@@ -59,9 +59,22 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         bot = SimpleNamespace(george_chat=SimpleNamespace(help_comment=AsyncMock(return_value='みんな、いい調子か？')))
         embed = await help_embed(bot, True)
         self.assertIn('みんな、いい調子か？', embed.fields[0].value)
-        self.assertIn('会話への参加', embed.fields[0].value)
+        self.assertNotIn('会話への参加・絵文字リアクションもするぜ！', embed.fields[0].value)
         text = embed.fields[1].value
-        self.assertIn('`/おみくじ`\n【みんなに表示】', text)
-        self.assertIn('`/お気に入り ロザリー`\n【自分だけ】', text)
+        self.assertIn('`/おみくじ`\n今日の運勢・ラッキーアイテム・ラッキープログレス。（みんなに表示）', text)
+        self.assertIn('`/お気に入り ロザリー`\nお気に入りを登録。再指定すると解除。（自分だけ表示）', text)
+        self.assertNotIn('【みんなに表示】', text)
+        self.assertNotIn('【自分だけ表示】', text)
         bot.george_chat.help_comment.side_effect = ValueError('offline')
         self.assertEqual((await help_embed(bot, True)).to_dict(), command_help(True).to_dict())
+
+    async def test_help_rejects_individual_address_and_uses_fallback(self):
+        from main import help_embed
+        with patch.dict(os.environ, {'GEMINI_API_KEY': ''}):
+            chat = GeorgeChat()
+        chat.collection_comment = AsyncMock(return_value='よう、オマエ。俺もリアクションするぜ！')
+        embed = await help_embed(SimpleNamespace(george_chat=chat), True)
+        text = embed.fields[0].value
+        self.assertNotIn('オマエ', text)
+        self.assertEqual(text.count('リアクション'), 1)
+        self.assertEqual(chat.help_cache[0], '')

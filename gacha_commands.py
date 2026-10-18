@@ -280,7 +280,7 @@ def register_gacha_commands(bot, store=None):
         rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
         favorite_key = (favorite[0], favorite[1].id) if favorite else None
         rows.sort(key=lambda row: ((row[0], row[1].id) != favorite_key, row[0], rank.get(row[1].rarity, 9), row[1].character, row[1].label, row[1].id))
-        lines = [f"**【{card.rarity}】** {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
+        lines = [f"`【{card.rarity:<2}】` {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
                  for game, card, count in rows]
         empty = '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
         view = CardListView(interaction.user.id, lines, '所持カード') if len(lines) > 10 else None
