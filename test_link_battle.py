@@ -266,7 +266,7 @@ class BattleCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.battle.points,1)
         await view.play(interaction,'attack')
         self.assertEqual(store.finish.call_count,2)
-        self.assertIn('ロザリーからの一言',[f.name for f in view.embed().fields])
+        self.assertNotIn('ジョージの一言',[f.name for f in view.embed().fields])
         self.assertFalse(view.children)
         view.stop()
 
@@ -310,7 +310,8 @@ class BattleCommandTests(unittest.IsolatedAsyncioTestCase):
             self.assertGreaterEqual(view.battle.enemy_max_hp,round(max_hp*.85)-1)
             self.assertLessEqual(view.battle.enemy_max_hp,round(max_hp*1.15)+1)
             self.assertIn('個体差：',field.value)
-            self.assertIn(f'適正：絆Lv.{level}',field.value)
+            self.assertNotIn('適正',field.value)
+            self.assertEqual(view.embed().fields[0].name,view.battle.character)
             await view.on_timeout()
             view.stop()
         await client.close()
@@ -327,3 +328,62 @@ class BattleCommandTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(f'絆経験値 {reward}EXP',view.embed().description)
             self.assertNotIn('あと5勝',view.embed().description)
             view.stop()
+
+    async def test_character_ai_hint_warns_and_is_cached_per_turn(self):
+        card=next(c for c in Gacha().pools['relink']['★3'] if c.character=='ロザリー')
+        chat=SimpleNamespace(collection_comment=AsyncMock(return_value='大きな攻撃が来るよ！ ここは守りを固めよっ！'))
+        view=BattleView(SimpleNamespace(george_chat=chat),SimpleNamespace(),{},7,1,card,0,1)
+        view.battle.turn=2
+        await view.turn_hint()
+        await view.turn_hint()
+        chat.collection_comment.assert_awaited_once()
+        facts=chat.collection_comment.call_args.args[0]
+        self.assertTrue(facts['next_strong_attack'])
+        self.assertEqual(facts['character'],'ロザリー')
+        embed=view.embed()
+        self.assertTrue(any('⚠️' in f.name and '大きな攻撃' in f.value for f in embed.fields))
+        text=str(embed.to_dict())
+        self.assertNotIn('適正',text);self.assertNotIn('リンク側',text)
+        self.assertNotIn('次は通常攻撃',text);self.assertNotIn('次は強攻撃',text)
+        view.stop()
+
+    async def test_ai_failure_or_missing_warning_keeps_strong_attack_alert(self):
+        card=Gacha().pools['relink']['★3'][0]
+        for response in ('一緒に頑張ろう！',RuntimeError('offline')):
+            generator=AsyncMock(side_effect=response) if isinstance(response,Exception) else AsyncMock(return_value=response)
+            view=BattleView(SimpleNamespace(george_chat=SimpleNamespace(collection_comment=generator)),SimpleNamespace(),{},7,1,card,0,1)
+            view.battle.turn=2
+            await view.turn_hint()
+            self.assertIn('大きな攻撃が来る',view.character_line)
+            self.assertTrue(any('⚠️' in f.name for f in view.embed().fields))
+            view.stop()
+
+    async def test_battle_result_uses_new_character_speech_and_no_george_comment(self):
+        card=next(c for c in Gacha().pools['relink']['★3'] if c.character=='ロザリー')
+        chat=SimpleNamespace(collection_comment=AsyncMock(return_value='やったじゃん！ キミとの連携、最高だったよ！'))
+        view=BattleView(SimpleNamespace(george_chat=chat),SimpleNamespace(finish=Mock(return_value=BattleReward(10,10))),{},7,1,card,0,1)
+        view.battle.enemy_hp=1
+        interaction=self.interaction()
+        await view.play(interaction,'attack')
+        facts=chat.collection_comment.call_args.args[0]
+        self.assertEqual(facts['action'],'battle_character_result')
+        self.assertEqual(facts['character'],'ロザリー')
+        self.assertEqual(facts['result'],'勝利')
+        self.assertEqual(facts['experience'],10)
+        self.assertEqual(view.character_line,'やったじゃん！ キミとの連携、最高だったよ！')
+        self.assertNotIn('ジョージの一言',[f.name for f in view.embed().fields])
+        await view.play(interaction,'attack')
+        chat.collection_comment.assert_awaited_once()
+        view.stop()
+
+    async def test_result_generation_failure_omits_speech_instead_of_old_quote(self):
+        card=Gacha().pools['relink']['★3'][0]
+        chat=SimpleNamespace(collection_comment=AsyncMock(side_effect=RuntimeError('offline')))
+        view=BattleView(SimpleNamespace(george_chat=chat),SimpleNamespace(),{},7,1,card,0,1)
+        view.character_line='古いターンの台詞'
+        view.battle.hp=0
+        await view.remarks()
+        self.assertEqual(view.character_line,'')
+        self.assertEqual(chat.collection_comment.call_args.args[0]['result'],'敗北')
+        self.assertFalse(any('からの一言' in f.name or 'ジョージ' in f.name for f in view.embed().fields))
+        view.stop()

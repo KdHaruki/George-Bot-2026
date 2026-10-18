@@ -61,8 +61,8 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('みんな、いい調子か？', embed.fields[0].value)
         self.assertNotIn('会話への参加・絵文字リアクションもするぜ！', embed.fields[0].value)
         text = embed.fields[1].value
-        self.assertIn('`/おみくじ`\n今日の運勢・ラッキーアイテム・ラッキープログレス。', text)
-        self.assertIn('`/お気に入り ロザリー`\nお気に入りを登録。再指定すると解除。（あなただけに表示されます）', text)
+        self.assertIn('`/おみくじ`\n今日の運勢', text)
+        self.assertIn('`/お気に入り ロザリー`\nお気に入りのプログレスを登録。再指定すると解除。（あなただけに表示されます）', text)
         self.assertNotIn('（公開情報）', text)
         self.assertNotIn('（非公開情報）', text)
         self.assertNotIn('【公開情報】', text)

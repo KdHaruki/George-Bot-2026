@@ -12,7 +12,6 @@ from discord import app_commands
 from registered_memory import MemoryStore, MemoryUnavailable
 from progress import progressData
 from gacha_commands import favorite_details
-from gacha import Gacha
 from relink_presentations import PRESENTATIONS
 from equipment import ITEMS, roll_drop, max_hp
 
@@ -101,7 +100,7 @@ class Battle:
     enemy_hp: int | None = None
     turn: int = 0
     exceed_used: bool = False
-    last: str = 'お気に入りとリンク完了！ 行動を選んでくれ。'
+    last: str = 'プログレスとリンク完了！ 行動を選んでくれ。'
     enemy_level: int = 1
     enemy_hp_percent: int = 100
     enemy_attack_percent: int = 100
@@ -362,7 +361,9 @@ class BattleView(discord.ui.View):
         self.reward = None
         self.pending_checkpoint = False
         self.attempt, self.lock, self.message = attempt, asyncio.Lock(), None
-        self.saved, self.george_line, self.character_line = False, '', ''
+        self.saved, self.character_line = False, ''
+        self.hint_turn = -1
+        self.expired = False
         self.action_buttons()
 
     def action_buttons(self):
@@ -400,23 +401,26 @@ class BattleView(discord.ui.View):
     def embed(self):
         state = self.battle
         title = 'エクシーズバトル' if state.result == 'active' else 'エクシーズバトル｜勝利！' if state.result == 'won' else 'エクシーズバトル｜敗北'
+        if self.expired and state.result == 'active':
+            title = 'エクシーズバトル｜時間切れ'
         embed = discord.Embed(title=title, description=f'**{discord.utils.escape_markdown(state.character)}とリンク**\n絆Lv.{state.level}｜絆経験値 {state.points}EXP\n本日 {self.attempt}/{DAILY_LIMIT}回目', color=0xB06FE0)
         needed = level_progress(state.points)[1]
         if needed:
             embed.description += f'\n次の絆レベルまであと{needed}EXP'
         item = ITEMS.get(state.equipment_id)
         embed.description += '\n装備：' + (item.name if item else 'なし')
-        embed.add_field(name='リンク側', value=f'HP {state.hp}/{state.max_hp}', inline=True)
-        enemy = f'HP {state.enemy_hp}/{state.enemy_max_hp}\n適正：絆Lv.{state.enemy_level}（HP100目安）\n勝利で{ENEMY_EXP[state.enemy_level]}EXP'
+        embed.add_field(name=state.character, value=f'HP {state.hp}/{state.max_hp}', inline=True)
+        enemy = f'HP {state.enemy_hp}/{state.enemy_max_hp}\n勝利で{ENEMY_EXP[state.enemy_level]}EXP'
         enemy += f'\n個体差：HP {state.enemy_hp_percent}％・攻撃 {state.enemy_attack_percent}％・防御 {state.enemy_defense_percent}％'
-        if state.result == 'active':
-            enemy += '\n次は強攻撃！ 防御で軽減できるぜ。' if (state.turn + 1) % 3 == 0 else '\n次は通常攻撃'
         embed.add_field(name=f'{ENEMY_NAMES[state.enemy_level]} Lv.{state.enemy_level}', value=enemy, inline=True)
         embed.add_field(name=f'ターン {state.turn}', value=state.last, inline=False)
-        if self.george_line:
-            embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(self.george_line), inline=False)
-        if self.character_line:
-            embed.add_field(name=f'{state.character}からの一言', value=discord.utils.escape_markdown(self.character_line), inline=False)
+        line = self.character_line
+        if state.result == 'active' and not self.expired and self.hint_turn != state.turn:
+            line = '大きな攻撃が来る！ 守りを固めて！' if (state.turn + 1) % 3 == 0 else '相手の動きを見て、息を合わせていこう！'
+        if line:
+            warning = state.result == 'active' and (state.turn + 1) % 3 == 0
+            name = f'⚠️ {state.character}の警告' if warning else f'{state.character}からの一言'
+            embed.add_field(name=name, value=discord.utils.escape_markdown(line), inline=False)
         if self.reward and self.reward.item_id in ITEMS:
             dropped = ITEMS[self.reward.item_id]
             status = '初入手！' if self.reward.new_item else '所持済み'
@@ -424,28 +428,55 @@ class BattleView(discord.ui.View):
         embed.set_footer(text=f'HPは持ち越し・戦闘外で3分ごとに1回復｜エクシード残り{(2 if state.equipment_id == "resonance" else 1) - state.exceed_uses}回')
         return embed
 
-    async def remarks(self):
-        won = self.battle.result == 'won'
-        self.george_line = 'いい連携だったぜ！ お疲れさん！' if won else '今回は相手が一枚上だったな。次に向けてひと息つこうぜ！'
+    async def turn_hint(self):
+        state = self.battle
+        if state.result != 'active' or self.expired or self.hint_turn == state.turn:
+            return
+        self.hint_turn = state.turn
+        strong = (state.turn + 1) % 3 == 0
+        fallback = '大きな攻撃が来る！ 守りを固めて！' if strong else '相手の動きを見て、息を合わせていこう！'
+        self.character_line = fallback
         chat = getattr(self.bot, 'george_chat', None)
-        introduction = favorite_details(self.card)[0]
-        candidates = Gacha().pools['relink']['★3']
-        art = self.card if self.card.id in PRESENTATIONS else next(
-            (card for card in candidates if character_identity(card) == self.battle.character and card.id in PRESENTATIONS), None)
-        self.character_line = PRESENTATIONS[art.id]['quote'] if art else ''
         if chat is None:
             return
+        profile = next((record for record in progressData if record['progressName'] == state.character), favorite_details(self.card)[0])
+        facts = dict(action='battle_hint', character=state.character, profile=profile,
+                     voice_sample=PRESENTATIONS.get(self.card.id, {}).get('quote', ''),
+                     enemy=ENEMY_NAMES[state.enemy_level], turn=state.turn, next_strong_attack=strong,
+                     hp=state.hp, exceed_remaining=(2 if state.equipment_id == 'resonance' else 1) - state.exceed_uses)
+        async def generate():
+            slots = getattr(self.bot, 'battle_hint_slots', None)
+            if slots is None:
+                return await chat.collection_comment(facts)
+            async with slots:
+                return await chat.collection_comment(facts)
         try:
-            self.george_line = await asyncio.wait_for(chat.collection_comment(dict(action='battle_result', character=self.battle.character,
-                                                                                  result='勝利' if won else '敗北', enemy_name=ENEMY_NAMES[self.battle.enemy_level], enemy_level=self.battle.enemy_level, profile=introduction)), timeout=12)
+            line = await asyncio.wait_for(generate(), timeout=10)
+            if strong:
+                if not any(word in line for word in ('大き', '強攻撃', '強烈', '強い攻撃')) or not any(word in line for word in ('防御', '守', '備え', '防い')):
+                    return
+            if not strong and any(word in line for word in ('強攻撃', '大きな攻撃', '大きい攻撃')):
+                return
+            self.character_line = line
         except Exception as exc:
-            logging.warning('Battle comment fallback: type=%s', type(exc).__name__)
-        if not self.character_line:
-            try:
-                self.character_line = await asyncio.wait_for(chat.collection_comment(dict(action='character_line', character=self.battle.character,
-                                                                                          profile=introduction, result='模擬戦の勝利' if won else '模擬戦の敗北')), timeout=12)
-            except Exception as exc:
-                logging.warning('Battle character line skipped: type=%s', type(exc).__name__)
+            logging.warning('Battle hint fallback: type=%s', type(exc).__name__)
+
+    async def remarks(self):
+        self.character_line = ''
+        chat = getattr(self.bot, 'george_chat', None)
+        if chat is None:
+            return
+        state = self.battle
+        profile = next((record for record in progressData if record['progressName'] == state.character), favorite_details(self.card)[0])
+        facts = dict(action='battle_character_result', character=state.character, profile=profile,
+                     voice_sample=PRESENTATIONS.get(self.card.id, {}).get('quote', ''),
+                     result='勝利' if state.result == 'won' else '敗北',
+                     enemy_name=ENEMY_NAMES[state.enemy_level], enemy_level=state.enemy_level,
+                     hp=state.hp, experience=self.reward.experience if self.reward else 0)
+        try:
+            self.character_line = await asyncio.wait_for(chat.collection_comment(facts), timeout=12)
+        except Exception as exc:
+            logging.warning('Battle character line skipped: type=%s', type(exc).__name__)
 
     async def play(self, interaction, action):
         await interaction.response.defer()
@@ -481,18 +512,21 @@ class BattleView(discord.ui.View):
                 except MemoryUnavailable:
                     await self.save_error(interaction)
                     return
-                if not self.george_line:
-                    await self.remarks()
+                await self.remarks()
+            else:
+                await self.turn_hint()
             await interaction.edit_original_response(embed=self.embed(), view=self)
             if self.saved:
                 self.stop()
 
     async def on_timeout(self):
         async with self.lock:
+            self.expired = True
             self.release()
             for button in self.children:
                 button.disabled = True
             if self.battle.result == 'active':
+                self.character_line = ''
                 self.battle.last = '時間切れでリンク解除。経験値の獲得はないぜ。'
                 try:
                     await asyncio.to_thread(self.store.finish, self.battle_id, self.user_id, self.battle.character, 'abandoned', self.battle.hp)
@@ -511,10 +545,11 @@ def register_link_battle(bot, store=None):
     bot.battle_store = store
     active = {}
     bot.battle_active = active
+    bot.battle_hint_slots = asyncio.Semaphore(2)
 
-    @bot.tree.command(name='エクシーズバトル', description='お気に入りとリンクして模擬戦に挑む（1日3回）')
-    @app_commands.describe(敵='戦う相手。適正は同じ絆レベル・HP100が目安')
-    @app_commands.choices(敵=[app_commands.Choice(name=f'{ENEMY_NAMES[level]}Lv{level}（適正：絆Lv.{level}）', value=level) for level in ENEMY_HP])
+    @bot.tree.command(name='エクシーズバトル', description='プログレスとリンクして模擬戦に挑む（1日3回）')
+    @app_commands.describe(敵='戦う相手を選択')
+    @app_commands.choices(敵=[app_commands.Choice(name=f'{ENEMY_NAMES[level]}Lv{level}', value=level) for level in ENEMY_HP])
     async def battle_command(interaction: discord.Interaction, 敵: int = 1):
         await interaction.response.defer(ephemeral=True)
         if 敵 not in ENEMY_HP:
@@ -534,6 +569,7 @@ def register_link_battle(bot, store=None):
             view = BattleView(bot, store, active, interaction.user.id, interaction.id, card, points, attempt, hp, 敵, item_id)
             active[interaction.user.id] = view
             try:
+                await view.turn_hint()
                 view.message = await interaction.followup.send(embed=view.embed(), view=view, ephemeral=True, wait=True,
                                                                allowed_mentions=discord.AllowedMentions.none())
             except Exception:
