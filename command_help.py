@@ -28,7 +28,7 @@ def format_commands(entries):
 
 def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
-    intro = introduction or 'よう！ 楽しそうな話なら俺も混ぜてくれよな！ リアクションもするし、みんなと話せるのを楽しみにしてるぜ！'
+    intro = introduction or 'よう、みんな！ 楽しそうな雑談には俺もたまに混ざるし、俺が絵文字でリアクションすることもあるぜ！'
     embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n\u200b', inline=False)
     entries = [(command, explanation + ('（みんなに表示）' if command.split()[0][1:] in PUBLIC_COMMANDS else '（自分だけ表示）'))
                for command, explanation in SLASH_COMMANDS]

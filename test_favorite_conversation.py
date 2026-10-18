@@ -42,7 +42,7 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
     async def test_help_intro_is_cached_and_retried_after_failure(self):
         with patch.dict(os.environ, {'GEMINI_API_KEY': ''}):
             chat = GeorgeChat()
-        chat.collection_comment = AsyncMock(return_value='楽しそうな話なら俺も混ぜてくれよな！')
+        chat.collection_comment = AsyncMock(return_value='みんな、俺も雑談に混ざるし、俺が絵文字でリアクションするぜ！')
         first = await chat.help_comment()
         self.assertEqual(await chat.help_comment(), first)
         chat.collection_comment.assert_awaited_once_with({'action': 'help_intro'})
@@ -78,3 +78,14 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('オマエ', text)
         self.assertEqual(text.count('リアクション'), 1)
         self.assertEqual(chat.help_cache[0], '')
+
+    async def test_help_rejects_asking_users_for_reactions(self):
+        from main import help_embed
+        for answer in ('みんな、絵文字でリアクションしてくれたら嬉しいぜ！',
+                       '俺が絵文字でリアクションするぜ。みんなもリアクションをお願いするぜ！'):
+            with patch.dict(os.environ, {'GEMINI_API_KEY': ''}):
+                chat = GeorgeChat()
+            chat.collection_comment = AsyncMock(return_value=answer)
+            embed = await help_embed(SimpleNamespace(george_chat=chat), True)
+            self.assertIn('俺が絵文字でリアクションする', embed.fields[0].value)
+            self.assertEqual(chat.help_cache[0], '')
