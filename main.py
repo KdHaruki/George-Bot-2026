@@ -14,7 +14,7 @@ from keep_alive import keep_alive
 from fun_features import draw_fortune, FORTUNES, fortune_embed
 from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
-from command_help import command_help, PUBLIC_COMMANDS
+from command_help import command_help
 from health_check import HealthCheck
 from image_inputs import ImageSource, load_images, ambient_image_sources
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
@@ -44,10 +44,6 @@ class MyClient(discord.Client):
         self.command_history = CommandHistory()
 
     async def setup_hook(self):
-        for command in self.tree.walk_commands():
-            visibility = '公開情報' if command.qualified_name.split()[0] in PUBLIC_COMMANDS else '非公開情報'
-            if not command.description.startswith('【' + visibility + '】'):
-                command.description = ('【' + visibility + '】' + command.description)[:100]
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
         self.seasonal.start(self)
