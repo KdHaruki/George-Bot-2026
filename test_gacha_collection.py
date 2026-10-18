@@ -306,10 +306,10 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         interaction.followup.send.side_effect = validate_send
         for rows in ([], [('vierge', card, 1)]):
             store.owned.return_value = rows
-            await tree.get_command('所持カード').callback(interaction)
+            await tree.get_command('所持カード').callback(interaction, 'ロザリー')
             self.assertNotIn('view', interaction.followup.send.call_args.kwargs)
-        store.owned.return_value = [('vierge', value, 1) for value in Gacha().pools['vierge']['UR'][:11]]
-        await tree.get_command('所持カード').callback(interaction)
+        store.owned.return_value = [('vierge', value, 1) for value in [card for card in Gacha().pools['vierge']['UR'] if 'ア' in card.character][:11]]
+        await tree.get_command('所持カード').callback(interaction, 'ア')
         view = interaction.followup.send.call_args.kwargs['view']
         self.assertIsInstance(view, CardListView)
         view.stop()
@@ -370,7 +370,9 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         facts = bot.george_chat.collection_comment.call_args.args[0]
         self.assertNotIn('cards', facts)
         self.assertNotIn('saved', facts)
-        self.assertFalse(interaction.followup.send.call_args.kwargs['embed'].footer.text)
+        details = next(call.kwargs['embed'] for call in reversed(interaction.followup.send.call_args_list) if 'embed' in call.kwargs)
+        self.assertFalse(details.footer.text)
+        self.assertTrue(interaction.followup.send.call_args.kwargs['files'])
         await client.close()
 
     async def test_favorite_name_only_selects_highest_and_repeating_name_removes(self):
@@ -401,6 +403,8 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('まだ持っていない', interaction.followup.send.call_args.args[0])
         self.assertIsNone(tree.get_command('未所持カード'))
         self.assertIn('プログレス', [p.name for p in tree.get_command('所持カード').parameters])
+        self.assertTrue(tree.get_command('所持カード').parameters[0].required)
+        self.assertEqual(tree.get_command('収集率').parameters, [])
         self.assertNotIn('キャラ', [p.name for p in tree.get_command('所持カード').parameters])
         await client.close()
 
@@ -451,8 +455,8 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('ヴィエルジュ', call.kwargs['embed'].description)
         self.assertNotIn('リリンク', call.kwargs['embed'].description)
         self.assertFalse(call.kwargs['embed'].footer.text)
-        await tree.get_command('所持カード').callback(interaction)
-        self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.splitlines()), 10)
+        await tree.get_command('所持カード').callback(interaction, 'ロザリー')
+        self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.splitlines()), 4)
         await tree.get_command('収集率').callback(interaction)
         embed = interaction.followup.send.call_args.kwargs['embed']
         self.assertIn('100.0%', embed.fields[0].value)
@@ -465,6 +469,6 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         store = SimpleNamespace(url='', owned=Mock(side_effect=MemoryUnavailable('保存先を利用できません')))
         client, tree, interaction = self.objects(store)
         for name in ('所持カード', '収集率'):
-            await tree.get_command(name).callback(interaction)
+            await tree.get_command(name).callback(interaction, *(['ロザリー'] if name == '所持カード' else []))
             self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
         await client.close()

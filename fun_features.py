@@ -1,4 +1,12 @@
 import random
+import discord
+
+
+def fortune_embed(fortune, comment, item):
+    embed = discord.Embed(title='🎍 今日のおみくじ', description=f'## 【{fortune}】', color=0xE2AD48)
+    embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
+    embed.add_field(name='🍀 ラッキーアイテム', value=discord.utils.escape_markdown(item)[:1024], inline=False)
+    return embed
 
 
 

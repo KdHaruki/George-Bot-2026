@@ -11,7 +11,7 @@ from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error
 import progress as progress_module
 from keep_alive import keep_alive
-from fun_features import draw_fortune, FORTUNES
+from fun_features import draw_fortune, FORTUNES, fortune_embed
 from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
 from command_help import command_help
@@ -19,7 +19,7 @@ from health_check import HealthCheck
 from image_inputs import ImageSource, load_images, ambient_image_sources
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
-from gacha_commands import register_gacha_commands
+from gacha_commands import register_gacha_commands, favorite_details
 from command_permissions import require_administrator
 
 ########################################
@@ -70,6 +70,20 @@ client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
 
+
+async def conversation_favorite(bot, user_id):
+    store = getattr(bot, 'collection_store', None)
+    if store is None or not store.url:
+        return None
+    try:
+        selected = await asyncio.wait_for(asyncio.to_thread(store.favorite, user_id), timeout=12)
+        if selected:
+            _, card, _ = selected
+            return {'character': card.character, 'profile': favorite_details(card)[0]}
+    except Exception as exc:
+        logging.warning('Conversation favorite skipped: type=%s', type(exc).__name__)
+    return None
+
 ########################################
 # 起動確認
 ########################################
@@ -116,7 +130,8 @@ async def progress_autocomplete(interaction: discord.Interaction, current: str):
         elif current in name_lower:
             contains.append(name)
 
-    results = starts + contains
+    worlds = [color + 'の世界' for color in '青黒赤白緑'] + ['全ての世界']
+    results = [world for world in worlds if current.strip() in world] + starts + contains
 
     return [
         app_commands.Choice(name=r, value=r)
@@ -151,7 +166,18 @@ async def progress(interaction: discord.Interaction, name: str):
     else:
         result = progress_module.progressSearch(name)
 
-    await interaction.response.send_message(result)
+    # Discord limits a plain message to 2,000 characters (all worlds can exceed it).
+    chunks = []
+    chunk = ''
+    for line in result.splitlines(keepends=True):
+        if len(chunk) + len(line) > 1900:
+            chunks.append(chunk)
+            chunk = ''
+        chunk += line
+    chunks.append(chunk)
+    await interaction.response.send_message(chunks[0])
+    for chunk in chunks[1:]:
+        await interaction.followup.send(chunk, allowed_mentions=discord.AllowedMentions.none())
 
 ########################################
 # メッセージイベント
@@ -180,12 +206,12 @@ async def omikuji(interaction: discord.Interaction):
     fortune = random.choice(FORTUNES)[0]
     try:
         comment, item = await client.george_chat.fortune_details(fortune)
-        result = f"🎍 今日のおみくじ：**{fortune}**\n{comment}\nラッキーアイテム：{item}"
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Fortune generation failed: %s", diagnostic)
-        result = draw_fortune(fortune) + "\n※今回はAIの返事を用意できなかったので、定型の結果だぜ。"
-    await interaction.followup.send(result, allowed_mentions=discord.AllowedMentions.none())
+        fallback = draw_fortune(fortune).splitlines()
+        comment, item = fallback[1], fallback[2].split('：', 1)[1]
+    await interaction.followup.send(embed=fortune_embed(fortune, comment, item), allowed_mentions=discord.AllowedMentions.none())
 
 
 @client.event
@@ -246,7 +272,10 @@ async def on_message(message):
                             answer = "\n".join(bundle.notices)
                         else:
                             notes = []
+                            favorite = await conversation_favorite(client, message.author.id)
                             image_options = {"images": bundle.images, "image_notice": " ".join(bundle.notices)} if attachments else {}
+                            if favorite:
+                                image_options['favorite'] = favorite
                             answer = await client.george_chat.reply(key, text or "添付画像について一言お願い。", notes,
                                                                    reply_to=target.content if target is not None else "", **image_options)
                             if bundle.notices:

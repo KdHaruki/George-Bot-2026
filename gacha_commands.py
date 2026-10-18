@@ -10,7 +10,7 @@ from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
 from gacha_collection import CollectionStore, collection_summary
 from registered_memory import MemoryUnavailable
 from progress import progressData
-from relink_presentations import star3_embeds, presentation_files
+from relink_presentations import star3_embeds, presentation_files, PRESENTATIONS
 
 
 GAME_CHOICES = [app_commands.Choice(name=rules.name, value=key) for key, rules in RULES.items()]
@@ -168,6 +168,7 @@ def rates_embed(engine, game, on_day=None):
 def register_gacha_commands(bot, store=None):
     engine = Gacha()
     store = store if store is not None else CollectionStore()
+    bot.collection_store = store
     comment_slots = asyncio.Semaphore(2)
 
     async def ai_comment(facts, fallback):
@@ -257,9 +258,12 @@ def register_gacha_commands(bot, store=None):
             return
         await interaction.response.send_message(embed=rates_embed(engine, 作品), ephemeral=True)
 
-    @bot.tree.command(name='所持カード', description='プログレス名で自分の所持カードを確認（省略で全所持）')
-    @app_commands.describe(プログレス='名前の一部で絞り込み。省略すると両作品の全所持カード')
-    async def owned(interaction: discord.Interaction, プログレス: app_commands.Range[str, 0, 100] = ''):
+    @bot.tree.command(name='所持カード', description='指定したプログレスの所持カードと枚数を確認')
+    @app_commands.describe(プログレス='確認したいプログレスの名前')
+    async def owned(interaction: discord.Interaction, プログレス: app_commands.Range[str, 1, 100]):
+        if not プログレス.strip():
+            await interaction.response.send_message('プログレスの名前を指定してくれ！', ephemeral=True)
+            return
         await show_cards(interaction, プログレス)
 
     async def show_cards(interaction, プログレス):
@@ -276,7 +280,7 @@ def register_gacha_commands(bot, store=None):
         rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
         favorite_key = (favorite[0], favorite[1].id) if favorite else None
         rows.sort(key=lambda row: ((row[0], row[1].id) != favorite_key, row[0], rank.get(row[1].rarity, 9), row[1].character, row[1].label, row[1].id))
-        lines = [('⭐ ' if (game, card.id) == favorite_key else '') + f"**{card.rarity}** {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
+        lines = [f"**{card.rarity}** {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
                  for game, card, count in rows]
         empty = '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
         view = CardListView(interaction.user.id, lines, '所持カード') if len(lines) > 10 else None
@@ -331,25 +335,41 @@ def register_gacha_commands(bot, store=None):
             comment = await ai_comment(collection_facts(game, [card], favorite=selected, viewing=True), comment)
             embed.add_field(name='ジョージのプログレス紹介', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
             embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
+            # Show existing local art only; never fetch the Wiki during a command.
+            art = card if game == 'relink' and card.rarity == '★3' else next(
+                (candidate for candidate in engine.pools['relink']['★3']
+                 if candidate.character == card.character or
+                 ('\n' in introduction and favorite_details(candidate)[0].partition('\n')[2] == introduction.partition('\n')[2])), None)
+            original = PRESENTATIONS.get(art.id, {}).get('quote', '') if art else ''
+            line = original or await ai_comment(dict(action='character_line', character=card.character, profile=introduction), '')
+            if line:
+                label = '原作台詞' if original else 'AI生成'
+                embed.add_field(name=f'{card.character}からの一言（{label}）', value=discord.utils.escape_markdown(line)[:1024], inline=False)
             await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+            if art is not None:
+                files = presentation_files([art])
+                try:
+                    if files:
+                        await interaction.followup.send(embeds=star3_embeds([art])[:1], files=files, ephemeral=True,
+                                                        allowed_mentions=discord.AllowedMentions.none())
+                except Exception as exc:
+                    logging.warning('Favorite presentation skipped: type=%s', type(exc).__name__)
+                finally:
+                    for file in files:
+                        file.close()
         except (ValueError, MemoryUnavailable) as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
 
     @bot.tree.command(name='収集率', description='現在のガチャ収録カードを何種類集めたか確認する')
-    @app_commands.describe(作品='省略すると両作品')
-    @app_commands.choices(作品=GAME_CHOICES)
-    async def completion(interaction: discord.Interaction, 作品: str = None):
+    async def completion(interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        if 作品 is not None and 作品 not in RULES:
-            await interaction.followup.send('作品を選び直してくれ！', ephemeral=True)
-            return
         try:
-            rows = await asyncio.to_thread(store.owned, interaction.user.id, 作品)
+            rows = await asyncio.to_thread(store.owned, interaction.user.id)
         except MemoryUnavailable as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
             return
         embed = discord.Embed(title='カード収集率', color=0xB06FE0)
-        for game in ([作品] if 作品 else RULES):
+        for game in RULES:
             unique, total, copies, archived = collection_summary(engine, rows, game)
             text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）\n重複込みの所持数：{copies}枚'
             if archived:

@@ -7,8 +7,7 @@ SLASH_COMMANDS = [
     ('/ガチャ アンジュ・リリンク', '10連ガチャ。'),
     ('/所持カード ロザリー', 'プログレスの所持カードと枚数を確認。'),
     ('/お気に入り ロザリー', 'お気に入りを登録。再指定すると解除。'),
-    ('/収集率 アンジュ・ヴィエルジュ', 'コレクションの完成度を確認。'),
-    ('/収集率 アンジュ・リリンク', 'コレクションの完成度を確認。'),
+    ('/収集率', '両作品のコレクションの完成度をまとめて確認。'),
     ('/ガチャ確率', '排出率と保証を確認。'),
     ('/ヘルプ', 'この案内を表示。'),
 ]
@@ -26,7 +25,7 @@ def format_commands(entries):
 
 def command_help(in_guild):
     embed = discord.Embed(color=0xE2AD48)
-    embed.add_field(name='【ジョージの機能一覧】', value='面白そうな話題にはリアクションしたり、口を挟むぜ！\n\u200b', inline=False)
+    embed.add_field(name='【ジョージの機能一覧】', value='よう！ みんな、いい調子か？ 楽しそうな話なら俺も混ぜてくれよな！\n\u200b', inline=False)
     embed.add_field(name='【スラッシュコマンド】', value=format_commands(SLASH_COMMANDS) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション】', value=format_commands(DM_COMMANDS), inline=False)
     return embed
