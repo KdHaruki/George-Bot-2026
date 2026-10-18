@@ -78,7 +78,7 @@ class BattleStore(MemoryStore):
     @contextmanager
     def connect(self):
         if not self.url:
-            raise MemoryUnavailable('リンクバトルにはDATABASE_URLの設定が必要だぜ。')
+            raise MemoryUnavailable('エクシーズバトルにはDATABASE_URLの設定が必要だぜ。')
         try:
             import psycopg
             with psycopg.connect(self.url, connect_timeout=10) as connection:
@@ -159,7 +159,7 @@ class BattleView(discord.ui.View):
 
     def embed(self):
         state = self.battle
-        title = 'リンクバトル' if state.result == 'active' else 'リンクバトル｜勝利！' if state.result == 'won' else 'リンクバトル｜敗北'
+        title = 'エクシーズバトル' if state.result == 'active' else 'エクシーズバトル｜勝利！' if state.result == 'won' else 'エクシーズバトル｜敗北'
         embed = discord.Embed(title=title, description=f'**{discord.utils.escape_markdown(state.character)}とリンク**\n絆Lv.{state.level}｜絆ポイント {state.points}\n本日 {self.attempt}/{DAILY_LIMIT}回目', color=0xB06FE0)
         embed.add_field(name='リンク側', value=f'HP {state.hp}/65', inline=True)
         enemy = f'HP {state.enemy_hp}/90'
@@ -248,7 +248,7 @@ def register_link_battle(bot, store=None):
     store = store if store is not None else BattleStore()
     active = {}
 
-    @bot.tree.command(name='リンクバトル', description='お気に入りとリンクして模擬戦に挑む（1日3回）')
+    @bot.tree.command(name='エクシーズバトル', description='お気に入りとリンクして模擬戦に挑む（1日3回）')
     async def battle_command(interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         if interaction.user.id in active:

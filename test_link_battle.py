@@ -86,7 +86,7 @@ class BattleCommandTests(unittest.IsolatedAsyncioTestCase):
         store = SimpleNamespace(start=Mock(return_value=(0,1)), finish=Mock(return_value=1))
         register_link_battle(bot,store)
         interaction = self.interaction()
-        command = bot.tree.get_command('リンクバトル')
+        command = bot.tree.get_command('エクシーズバトル')
         await command.callback(interaction)
         store.start.assert_not_called()
         favorites.return_value=('relink',card,1)
