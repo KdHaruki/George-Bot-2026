@@ -21,7 +21,7 @@ from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
 from gacha_commands import register_gacha_commands, favorite_details
 from command_permissions import require_administrator
-from command_history import CommandHistory, register_command_history
+from command_history import CommandHistory
 
 ########################################
 # Botクラス
@@ -76,12 +76,6 @@ class MyClient(discord.Client):
 client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
-register_command_history(client)
-
-
-@client.event
-async def on_interaction(interaction):
-    client.command_history.observe(interaction)
 
 
 async def conversation_favorite(bot, user_id):
@@ -126,6 +120,7 @@ async def on_guild_join(guild):
 
 @client.event
 async def on_interaction(interaction):
+    client.command_history.observe(interaction)
     # Never log interaction tokens or message contents.
     print(f"Interaction received: type={interaction.type.name}", flush=True)
 

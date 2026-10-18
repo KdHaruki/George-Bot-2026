@@ -4,7 +4,6 @@ from contextlib import contextmanager
 import json
 import logging
 import discord
-from discord import app_commands
 from registered_memory import MemoryStore, MemoryUnavailable
 
 
@@ -53,12 +52,6 @@ class CommandHistoryStore(MemoryStore):
                 ON CONFLICT(interaction_id) DO NOTHING''', record)
             connection.execute("DELETE FROM george_command_history WHERE created_at < now() - interval '30 days'")
 
-    def recent(self, user_id=None):
-        with self.connect() as connection:
-            return connection.execute('''SELECT created_at,user_id,user_name,guild_id,channel_id,command,arguments
-                FROM george_command_history WHERE created_at >= now() - interval '30 days'
-                AND (%s::bigint IS NULL OR user_id=%s)
-                ORDER BY created_at DESC,interaction_id DESC LIMIT 10''', (user_id, user_id)).fetchall()
 
 
 class CommandHistory:
@@ -89,31 +82,3 @@ class CommandHistory:
     async def close(self):
         if self.tasks:
             await asyncio.gather(*list(self.tasks), return_exceptions=True)
-
-
-def register_command_history(bot):
-    @bot.tree.command(name='コマンド履歴', description='コマンドの受付履歴を最新10件確認（Bot管理者用）')
-    @app_commands.describe(ユーザー='指定したユーザーの履歴に絞り込む')
-    async def history(interaction: discord.Interaction, ユーザー: discord.User = None):
-        await interaction.response.defer(ephemeral=True)
-        try:
-            application = bot.application or await bot.application_info()
-            owner_id = application.team.owner_id if application.team else application.owner.id
-            if interaction.user.id != owner_id:
-                await interaction.followup.send('Botの所有者だけが確認できるぜ。', ephemeral=True)
-                return
-            rows = await asyncio.to_thread(bot.command_history.store.recent, ユーザー.id if ユーザー else None)
-            embed = discord.Embed(title='コマンド履歴（最新10件）', color=0xE2AD48)
-            for created, uid, name, guild, channel, command, arguments in rows:
-                arguments = arguments if isinstance(arguments, dict) else json.loads(arguments)
-                options = ' '.join(f'{key}:{value}' for key, value in arguments.items())[:240]
-                place = f'サーバー:{guild}／チャンネル:{channel}' if guild else 'DM'
-                text = f'<t:{int(created.timestamp())}:f>\n/{command} {options}\n{place}'
-                embed.add_field(name=discord.utils.escape_markdown(f'{name}（{uid}）')[:120],
-                                value=discord.utils.escape_markdown(text)[:400], inline=False)
-            if not rows:
-                embed.description = '履歴はまだないぜ。'
-            embed.set_footer(text='過去30日間の受付履歴。実行の成功・失敗を表すものではありません。')
-            await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
-        except MemoryUnavailable as exc:
-            await interaction.followup.send(str(exc), ephemeral=True)

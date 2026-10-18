@@ -3,13 +3,24 @@ import json
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, MagicMock
+from unittest.mock import AsyncMock, Mock, MagicMock, patch
 from contextlib import contextmanager
 import discord
-from discord import app_commands
-from command_history import CommandHistory, CommandHistoryStore, command_record, register_command_history
+from command_history import CommandHistory, CommandHistoryStore, command_record
 
 class HistoryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_registered_interaction_handler_saves_fortune(self):
+        import main
+        interaction = self.interaction()
+        interaction.data = {'name': 'おみくじ', 'options': []}
+        store = SimpleNamespace(url='test', save=Mock())
+        history = CommandHistory(store)
+        with patch.object(main.client, 'command_history', history):
+            await main.client.on_interaction(interaction)
+            await history.close()
+        store.save.assert_called_once()
+        self.assertEqual(store.save.call_args.args[0][6], 'おみくじ')
+
     def interaction(self):
         return SimpleNamespace(id=123, created_at=datetime.now(timezone.utc), user=SimpleNamespace(id=7), guild_id=8,
             channel_id=9, type=discord.InteractionType.application_command,
@@ -43,24 +54,11 @@ class HistoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('DROP TABLE', sql)
         self.assertEqual(params, record)
         self.assertIn('30 days', connection.execute.call_args_list[1].args[0])
-        store.recent(7)
-        self.assertEqual(connection.execute.call_args.args[1], (7,7))
 
-    async def test_only_owner_can_read_and_response_is_private(self):
-        client = discord.Client(intents=discord.Intents.none())
-        store = SimpleNamespace(recent=Mock(return_value=[]))
-        bot = SimpleNamespace(tree=app_commands.CommandTree(client), command_history=SimpleNamespace(store=store),
-                              application=SimpleNamespace(owner=SimpleNamespace(id=42),team=None))
-        register_command_history(bot)
-        interaction = self.interaction()
-        await bot.tree.get_command('コマンド履歴').callback(interaction)
-        store.recent.assert_not_called()
-        self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
-        interaction.user.id = 42
-        await bot.tree.get_command('コマンド履歴').callback(interaction)
-        store.recent.assert_called_once_with(None)
-        self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
-        await client.close()
+    async def test_history_command_is_removed_but_recording_remains(self):
+        from main import client
+        self.assertIsNone(client.tree.get_command('コマンド履歴'))
+        self.assertIsInstance(client.command_history, CommandHistory)
 
     async def test_failed_storage_does_not_propagate(self):
         history = CommandHistory(SimpleNamespace(url='test', save=Mock(side_effect=RuntimeError('private'))))
