@@ -259,12 +259,6 @@ class GeorgeChat:
                                types.Content(role="model", parts=[types.Part(text=answer)])][-20:]
             return answer
 
-    def reset(self, key):
-        session = self.sessions.get(key)
-        if session and session.lock.locked():
-            raise ChatBusy()
-        self.sessions.pop(key, None)
-
     async def collection_comment(self, facts):
         if self.client is None:
             raise ChatUnavailable()

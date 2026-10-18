@@ -45,7 +45,7 @@ class MyClient(discord.Client):
 
     async def setup_hook(self):
         for command in self.tree.walk_commands():
-            visibility = 'みんなに表示' if command.qualified_name.split()[0] in PUBLIC_COMMANDS else '自分だけ表示'
+            visibility = '公開情報' if command.qualified_name.split()[0] in PUBLIC_COMMANDS else '非公開情報'
             if not command.description.startswith('【' + visibility + '】'):
                 command.description = ('【' + visibility + '】' + command.description)[:100]
         commands = await self.tree.sync()
@@ -283,11 +283,8 @@ async def on_message(message):
             attachments = tuple(getattr(message, "attachments", ()))
             key = (message.channel.id, message.author.id)
             try:
-                if text.lower() in ("reset", "リセット"):
-                    client.george_chat.reset(key)
-                    answer = "会話をリセットしたぜ。"
-                elif not text and not attachments:
-                    answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /プログレス、会話のリセットは「リセット」だぜ。"
+                if not text and not attachments:
+                    answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /プログレス だぜ。"
                 else:
                     async with message.channel.typing():
                         bundle = await load_images([ImageSource(item, f"今回の発言の添付画像{index + 1}") for index, item in enumerate(attachments)])

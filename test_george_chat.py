@@ -62,8 +62,7 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.chat.sessions[(1, 1)].history), 20)
         await self.chat.reply((1, 2), "別の人")
         self.assertEqual(len(self.generate.call_args.kwargs["contents"]), 1)
-        self.chat.reset((1, 1))
-        self.assertNotIn((1, 1), self.chat.sessions)
+        self.assertIn((1, 1), self.chat.sessions)
         self.assertIn((1, 2), self.chat.sessions)
 
     async def test_shared_notes_only_used_when_supplied(self):
@@ -192,13 +191,11 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.chat.sessions[(1, 1)].history), 2)
         self.assertFalse(self.chat.sessions[(1, 1)].lock.locked())
 
-    async def test_busy_reply_and_reset(self):
+    async def test_busy_reply(self):
         session = self.chat._session((1, 1))
         async with session.lock:
             with self.assertRaises(ChatBusy):
                 await self.chat.reply((1, 1), "同時送信")
-            with self.assertRaises(ChatBusy):
-                self.chat.reset((1, 1))
 
     async def test_empty_response_and_missing_key(self):
         self.generate.return_value = SimpleNamespace(text=None)

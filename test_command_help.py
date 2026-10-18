@@ -11,7 +11,11 @@ class HelpTests(unittest.TestCase):
         from main import client
         self.assertIsNone(client.tree.get_command('dm履歴'))
         self.assertFalse(hasattr(client, 'dm_store'))
-        self.assertIn('DMならそのまま', str(command_help(False).to_dict()))
+        text = str(command_help(False).to_dict())
+        self.assertIn('メンションや俺への返信で会話できるぜ。', text)
+        self.assertIn('この案内を表示するぜ。', text)
+        self.assertNotIn('リセット', text)
+        self.assertFalse(hasattr(client.george_chat, 'reset'))
 
     def test_progress_command_uses_japanese_name(self):
         from main import client

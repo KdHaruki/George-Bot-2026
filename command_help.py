@@ -12,10 +12,9 @@ SLASH_COMMANDS = [
     ('/ヘルプ', 'この案内を表示。'),
 ]
 DM_COMMANDS = [
-    ('@ジョージ ヘルプ', 'この案内を表示。サーバーでは全員に見えるぞ。DMでも「ヘルプ」で確認できる。'),
-    ('@ジョージ ロザリーのことどう思う？', 'メンションや俺への返信で会話。DMならそのまま話しかけてくれ。'),
+    ('@ジョージ ヘルプ', 'この案内を表示するぜ。'),
+    ('@ジョージ ロザリーのことどう思う？', 'メンションや俺への返信で会話できるぜ。'),
     ('@ジョージ 画像添付', '画像を参照。PNG・JPEG・WebPの最大2枚、各4MiBまで。'),
-    ('@ジョージ リセット', 'この場所のオマエとの短期会話履歴を消す。'),
 ]
 
 
@@ -30,7 +29,7 @@ def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
     intro = introduction or 'よう、みんな！ 楽しそうな雑談には俺もたまに混ざるし、俺が絵文字でリアクションすることもあるぜ！'
     embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n\u200b', inline=False)
-    entries = [(command, explanation + ('（みんなに表示）' if command.split()[0][1:] in PUBLIC_COMMANDS else '（自分だけ表示）'))
+    entries = [(command, explanation + ('（公開情報）' if command.split()[0][1:] in PUBLIC_COMMANDS else '（非公開情報）'))
                for command, explanation in SLASH_COMMANDS]
     embed.add_field(name='【スラッシュコマンド】', value=format_commands(entries) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション】', value=format_commands(DM_COMMANDS), inline=False)
