@@ -25,3 +25,19 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('大吉', embed.description)
         self.assertEqual(embed.fields[0].value, '今日はいい調子だぜ！')
         self.assertEqual(embed.fields[1].value, '帽子')
+        from fun_features import LUCKY_PROGRESS
+        self.assertEqual(embed.fields[2].name, '🌟 ラッキープログレス')
+        self.assertIn(embed.fields[2].value, LUCKY_PROGRESS)
+
+    async def test_lucky_progress_includes_relink_exclusives_once(self):
+        from fun_features import LUCKY_PROGRESS, fortune_embed
+        from progress import progressData
+        from unittest.mock import patch
+        self.assertEqual(set(LUCKY_PROGRESS), {person['progressName'] for person in progressData})
+        self.assertEqual(len(LUCKY_PROGRESS), len(set(LUCKY_PROGRESS)))
+        for name in ('久遠空', 'シンシア', 'ヒメガミノミコト', 'ナクル・クルルシファー'):
+            self.assertIn(name, LUCKY_PROGRESS)
+            with patch('fun_features.random.choice', return_value=name) as choose:
+                embed = fortune_embed('凶', 'ひと息つこうぜ！', '帽子')
+            choose.assert_called_once_with(LUCKY_PROGRESS)
+            self.assertEqual(embed.fields[2].value, name)

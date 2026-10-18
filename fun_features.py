@@ -1,11 +1,18 @@
 import random
 import discord
+from progress import progressData
+
+
+# The complete profile list includes Relink-only characters too. Do not use
+# the Vierge gacha pool, which deliberately excludes those four characters.
+LUCKY_PROGRESS = tuple(sorted({record['progressName'] for record in progressData}))
 
 
 def fortune_embed(fortune, comment, item):
     embed = discord.Embed(title='🎍 今日のおみくじ', description=f'## 【{fortune}】', color=0xE2AD48)
     embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
     embed.add_field(name='🍀 ラッキーアイテム', value=discord.utils.escape_markdown(item)[:1024], inline=False)
+    embed.add_field(name='🌟 ラッキープログレス', value=discord.utils.escape_markdown(random.choice(LUCKY_PROGRESS)), inline=False)
     return embed
 
 
