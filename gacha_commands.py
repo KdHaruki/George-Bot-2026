@@ -15,7 +15,7 @@ from relink_presentations import star3_embeds, presentation_files, PRESENTATIONS
 
 GAME_CHOICES = [app_commands.Choice(name=rules.name, value=key) for key, rules in RULES.items()]
 
-INVENTORY_RARITY = {'UR': 'ＵＲ', 'SR': 'ＳＲ', 'HR': 'ＨＲ', 'R': ' Ｒ ',
+INVENTORY_RARITY = {'UR': 'ＵＲ', 'SR': 'ＳＲ', 'HR': 'ＨＲ', 'R': 'Ｒ',
                     '★3': '★３', '★2': '★２', '★1': '★１'}
 
 
