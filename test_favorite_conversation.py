@@ -61,8 +61,10 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('みんな、いい調子か？', embed.fields[0].value)
         self.assertNotIn('会話への参加・絵文字リアクションもするぜ！', embed.fields[0].value)
         text = embed.fields[1].value
-        self.assertIn('`/おみくじ`\n今日の運勢・ラッキーアイテム・ラッキープログレス。（公開情報）', text)
-        self.assertIn('`/お気に入り ロザリー`\nお気に入りを登録。再指定すると解除。（非公開情報）', text)
+        self.assertIn('`/おみくじ`\n今日の運勢・ラッキーアイテム・ラッキープログレス。', text)
+        self.assertIn('`/お気に入り ロザリー`\nお気に入りを登録。再指定すると解除。（あなただけ見えます）', text)
+        self.assertNotIn('（公開情報）', text)
+        self.assertNotIn('（非公開情報）', text)
         self.assertNotIn('【公開情報】', text)
         self.assertNotIn('【非公開情報】', text)
         bot.george_chat.help_comment.side_effect = ValueError('offline')

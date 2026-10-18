@@ -48,7 +48,7 @@ class HelpTests(unittest.TestCase):
             embed = command_help(in_guild)
             self.assertLessEqual(len(embed), 6000)
             self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド】', '【メンション】'])
+            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧】', '【メンション一覧】'])
             self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
             self.assertTrue(embed.fields[1].value.endswith('\n\u200b'))
             self.assertNotIn('分類:', str(embed.to_dict()))
