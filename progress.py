@@ -381,11 +381,4 @@ def progressSearchAll(type):
     elif type == 4:
         result += make("緑", green)
 
-    elif type == 5:
-        result += make("青", blue)
-        result += make("黒", black)
-        result += make("赤", red)
-        result += make("白", white)
-        result += make("緑", green)
-
     return result

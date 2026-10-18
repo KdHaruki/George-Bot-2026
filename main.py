@@ -145,7 +145,7 @@ async def progress_autocomplete(interaction: discord.Interaction, current: str):
         elif current in name_lower:
             contains.append(name)
 
-    worlds = [color + 'の世界' for color in '青黒赤白緑'] + ['全ての世界']
+    worlds = [color + 'の世界' for color in '青黒赤白緑']
     results = [world for world in worlds if current.strip() in world] + starts + contains
 
     return [
@@ -173,7 +173,6 @@ async def progress(interaction: discord.Interaction, name: str):
         "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
         "白":3,"白の":3,"白世界":3,"白の世界":3,
         "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
-        "全":5,"全ての":5,"全世界":5,"全ての世界":5
     }
 
     if name in world_map:
@@ -181,7 +180,7 @@ async def progress(interaction: discord.Interaction, name: str):
     else:
         result = progress_module.progressSearch(name)
 
-    # Discord limits a plain message to 2,000 characters (all worlds can exceed it).
+    # Discord limits a plain message to 2,000 characters.
     chunks = []
     chunk = ''
     for line in result.splitlines(keepends=True):
@@ -263,7 +262,6 @@ async def on_message(message):
                 "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
                 "白":3,"白の":3,"白世界":3,"白の世界":3,
                 "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
-                "全":5,"全ての":5,"全世界":5,"全ての世界":5
             }
 
             if keyword in world_map:

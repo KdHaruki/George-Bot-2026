@@ -15,6 +15,9 @@ from relink_presentations import star3_embeds, presentation_files, PRESENTATIONS
 
 GAME_CHOICES = [app_commands.Choice(name=rules.name, value=key) for key, rules in RULES.items()]
 
+INVENTORY_RARITY = {'UR': 'ＵＲ', 'SR': 'ＳＲ', 'HR': 'ＨＲ', 'R': ' Ｒ ',
+                    '★3': '★３', '★2': '★２', '★1': '★１'}
+
 
 class CardListView(discord.ui.View):
     def __init__(self, owner_id, lines, title):
@@ -155,7 +158,7 @@ def rates_embed(engine, game, on_day=None):
         embed.set_field_at(0, name='【累計カウント保証】', value='10連1回で10カウント。100カウント到達ごとの1枚が★3確定。途中の★3ではリセットせず、端数も繰り越すぞ。', inline=False)
         embed.add_field(name='【誕生日ピックアップ】', value='日本時間の誕生日当日は、★3抽選内で対象の子が合計50％。同日が複数なら均等に分け、残り50％は対象外の★3から抽選。100カウント保証にも適用。★3全体の排出率は変わらないぞ。', inline=False)
     if game == 'vierge':
-        embed.add_field(name='【7連の周期初回保証】', value='カウントが1/4になる7連（累計1・5・9回目…）は最後の1枚がSR以上。UR・SRはそのまま、HR以下ならSRに引き上げるぞ。', inline=False)
+        embed.set_field_at(0, name='【7連ガチャの保証】', value='4回を1周期として、最後の1枚に保証が付くぜ！\n1回目（1/4）：SR以上確定。\n4回目（4/4）：UR確定。\n以降も同じ周期で繰り返すぞ。途中でURが出ても回数はリセットしないぜ。', inline=False)
     if game == 'vierge':
         embed.add_field(name='【誕生日ピックアップ】', value='日本時間の誕生日当日は、UR抽選内で対象キャラが合計50％。同日対象は均等、残り50％は対象外から抽選。UR保証にも適用し、UR自体の排出率は変わらないぞ。確認済みの誕生日があるキャラのみ対象。', inline=False)
     upcoming = engine.next_birthday(on_day, game)
@@ -280,7 +283,7 @@ def register_gacha_commands(bot, store=None):
         rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
         favorite_key = (favorite[0], favorite[1].id) if favorite else None
         rows.sort(key=lambda row: ((row[0], row[1].id) != favorite_key, row[0], rank.get(row[1].rarity, 9), row[1].character, row[1].label, row[1].id))
-        lines = [f"`【{card.rarity:<2}】` {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
+        lines = [f"`【{INVENTORY_RARITY[card.rarity]}】` {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
                  for game, card, count in rows]
         empty = '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
         view = CardListView(interaction.user.id, lines, '所持カード') if len(lines) > 10 else None

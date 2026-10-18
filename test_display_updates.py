@@ -15,9 +15,14 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
             for person in progressData:
                 if person['progressWorld'] == color:
                     self.assertIn(person['progressName'], text)
-        await main.progress.callback(interaction, '全ての世界')
-        self.assertLessEqual(len(interaction.response.send_message.call_args.args[0]), 2000)
-        self.assertTrue(all(len(call.args[0]) <= 2000 for call in interaction.followup.send.call_args_list))
+        choices = await main.progress_autocomplete(interaction, '')
+        worlds = [choice.value for choice in choices if '世界' in choice.value]
+        self.assertEqual(worlds, [color + 'の世界' for color in '青黒赤白緑'])
+        from unittest.mock import patch
+        with patch('main.progress_module.progressSearchAll') as search:
+            for query in ('全ての世界', '全世界', '全ての', '全'):
+                await main.progress.callback(interaction, query)
+            search.assert_not_called()
 
     async def test_fortune_layout(self):
         from fun_features import fortune_embed
