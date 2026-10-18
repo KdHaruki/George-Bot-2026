@@ -20,6 +20,13 @@ DM_COMMANDS = [
 
 
 PUBLIC_COMMANDS = frozenset(('プログレス', 'おみくじ', 'ガチャ'))
+PRIVATE_NOTICE = '（あなただけに表示されます）'
+
+
+def annotate_private_commands(tree):
+    for command in tree.walk_commands():
+        if command.qualified_name.split()[0] not in PUBLIC_COMMANDS and not command.description.endswith(PRIVATE_NOTICE):
+            command.description = command.description[:100 - len(PRIVATE_NOTICE)] + PRIVATE_NOTICE
 
 
 def format_commands(entries):
@@ -30,7 +37,7 @@ def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
     intro = introduction or 'よう、みんな！ 楽しそうな雑談には俺もたまに混ざるし、俺が絵文字でリアクションすることもあるぜ！'
     embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n\u200b', inline=False)
-    entries = [(command, explanation + ('' if command.split()[0][1:] in PUBLIC_COMMANDS else '（あなただけに表示されます）'))
+    entries = [(command, explanation + ('' if command.split()[0][1:] in PUBLIC_COMMANDS else PRIVATE_NOTICE))
                for command, explanation in SLASH_COMMANDS]
     embed.add_field(name='【スラッシュコマンド一覧】', value=format_commands(entries) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション一覧】', value=format_commands(DM_COMMANDS), inline=False)

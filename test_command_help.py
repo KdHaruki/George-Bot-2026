@@ -7,6 +7,21 @@ from command_help import command_help
 
 
 class HelpTests(unittest.TestCase):
+    def test_private_command_descriptions_are_annotated_once_within_limit(self):
+        from command_help import annotate_private_commands, PRIVATE_NOTICE
+        commands = [SimpleNamespace(qualified_name=name, description='説明' * 50)
+                    for name in ('ガチャ', 'おみくじ', 'プログレス', '装備', '所持カード', '季節通知 確認')]
+        tree = SimpleNamespace(walk_commands=lambda: iter(commands))
+        annotate_private_commands(tree)
+        annotate_private_commands(tree)
+        for command in commands:
+            if command.qualified_name in ('ガチャ', 'おみくじ', 'プログレス'):
+                self.assertNotIn(PRIVATE_NOTICE, command.description)
+            else:
+                self.assertTrue(command.description.endswith(PRIVATE_NOTICE))
+                self.assertEqual(command.description.count(PRIVATE_NOTICE), 1)
+            self.assertLessEqual(len(command.description), 100)
+
     def test_dm_archive_is_removed_but_dm_conversation_is_available(self):
         from main import client
         self.assertIsNone(client.tree.get_command('dm履歴'))

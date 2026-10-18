@@ -14,7 +14,7 @@ from keep_alive import keep_alive
 from fun_features import draw_fortune, FORTUNES, fortune_embed
 from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
-from command_help import command_help
+from command_help import command_help, annotate_private_commands
 from health_check import HealthCheck
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
@@ -45,6 +45,7 @@ class MyClient(discord.Client):
         self.command_history = CommandHistory()
 
     async def setup_hook(self):
+        annotate_private_commands(self.tree)
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
         self.seasonal.start(self)
