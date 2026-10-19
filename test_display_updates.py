@@ -14,6 +14,8 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
             choices = await main.progress_autocomplete(interaction, color + 'の世界')
             self.assertIn(color + 'の世界', [choice.value for choice in choices])
             await main.progress.callback(interaction, color + 'の世界')
+            self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
+            self.assertTrue(all(call.kwargs['ephemeral'] for call in interaction.followup.send.call_args_list))
             text = interaction.response.send_message.call_args.args[0]
             for person in progressData:
                 if person['progressWorld'] == color:

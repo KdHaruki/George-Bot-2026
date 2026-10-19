@@ -13,6 +13,7 @@ from present_view import PresentView
 from registered_memory import MemoryUnavailable
 from favorite_album import ensure_album, record_registration, album_display
 from title_core import ensure_titles
+from daily_affection import ensure_daily
 
 
 class PresentRulesTests(unittest.TestCase):
@@ -46,12 +47,12 @@ class PresentRulesTests(unittest.TestCase):
                     self.assertEqual(set(rng.choice.call_args.args[0]), set(ITEMS) - {'rare'})
 
     def test_gains_and_character_aliases(self):
-        self.assertEqual(affection_gain('ロザリー', 'magic'), 3)
-        self.assertEqual(affection_gain('ロザリー', 'food'), 1)
+        self.assertEqual(affection_gain('ロザリー', 'magic'), 5)
+        self.assertEqual(affection_gain('ロザリー', 'food'), 2)
         self.assertEqual(affection_gain('ロザリー', 'rare'), 10)
         self.assertEqual(character_key('久遠 空'), '久遠空')
         self.assertEqual(affection_gain('不明な人物', 'rare'), 10)
-        self.assertEqual(affection_gain('不明な人物', 'food'), 1)
+        self.assertEqual(affection_gain('不明な人物', 'food'), 2)
 
     def test_all_relink_characters_resolve_to_shared_profiles(self):
         from gacha import Gacha
@@ -72,6 +73,7 @@ class StorageTests(unittest.TestCase):
         self.db.execute('CREATE TABLE george_gacha_cards(user_id,game,card_id,card)')
         self.db.execute('CREATE TABLE george_gacha_favorites(user_id,game,card_id)')
         ensure_album(self.db)
+        ensure_daily(self.db)
         ensure_titles(self.db)
         self.set_favorite('ロザリー')
         self.store = PresentStore('unused')
@@ -85,6 +87,9 @@ class StorageTests(unittest.TestCase):
                     return None
                 if 'AT TIME ZONE' in sql:
                     return SimpleNamespace(fetchone=lambda: (test.day,))
+                if sql.startswith('SELECT character,last_day'):
+                    row = test.db.execute(sql.replace('%s', '?'), params).fetchone()
+                    return SimpleNamespace(fetchone=lambda: (row[0], date.fromisoformat(row[1])) if row else None)
                 if sql.startswith('SELECT reward_day'):
                     row = test.db.execute(sql.replace('%s', '?'), params).fetchone()
                     return SimpleNamespace(fetchone=lambda: (date.fromisoformat(row[0]), *row[1:]) if row else None)
@@ -100,7 +105,7 @@ class StorageTests(unittest.TestCase):
                 if sql.startswith('SELECT first_registered_at'):
                     row = test.db.execute(sql.replace('%s', '?'), params).fetchone()
                     return SimpleNamespace(fetchone=lambda: tuple(datetime.fromisoformat(v).replace(tzinfo=timezone.utc) if v else None for v in row) if row else None)
-                if sql.startswith(('DELETE FROM george_present_receipts', 'DELETE FROM george_present_exchanges', 'DELETE FROM george_title_events')):
+                if sql.startswith(('DELETE FROM george_present_receipts', 'DELETE FROM george_title_events')):
                     return test.db.execute('DELETE FROM george_present_receipts WHERE 0')
                 sql = sql.replace("CURRENT_TIMESTAMP-INTERVAL '365 days'", "datetime(CURRENT_TIMESTAMP, '-365 days')")
                 params = tuple(value.isoformat() if isinstance(value, date) else value for value in params)
@@ -141,17 +146,17 @@ class StorageTests(unittest.TestCase):
 
     def test_spend_is_idempotent_and_affection_survives_favorite_changes(self):
         self.claim()
-        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (3, 3, False))
-        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (3, 3, False))
+        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (5, 5, False))
+        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (5, 5, False))
         self.assertEqual(self.store.snapshot(42)[1], {})
         with self.assertRaises(ValueError):
             self.store.give(42, 201, 'ロザリー', 'magic')
-        self.assertEqual(self.store.points(42, 'ロザリー'), 3)
+        self.assertEqual(self.store.points(42, 'ロザリー'), 5)
         self.assertEqual(self.store.points(43, 'ロザリー'), 0)
         self.set_favorite('日向美海')
         self.assertEqual(self.store.snapshot(42)[2], 0)
         self.set_favorite('ロザリー')
-        self.assertEqual(self.store.snapshot(42)[2], 3)
+        self.assertEqual(self.store.snapshot(42)[2], 5)
 
     def test_changed_or_missing_favorite_does_not_consume(self):
         self.claim()
@@ -178,7 +183,7 @@ class StorageTests(unittest.TestCase):
         self.fail_on = None
         self.assertEqual(self.store.snapshot(42)[1], {'magic': 1})
         self.assertEqual(self.store.points(42, 'ロザリー'), 0)
-        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (3, 3, False))
+        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (5, 5, False))
 
     def test_parallel_spend_cannot_make_quantity_negative(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -192,8 +197,8 @@ class StorageTests(unittest.TestCase):
 
         with ThreadPoolExecutor(2) as pool:
             results = list(pool.map(give, (200, 201)))
-        self.assertEqual(results.count((3, 3, False)), 1)
-        self.assertEqual(self.store.points(42, 'ロザリー'), 3)
+        self.assertEqual(results.count((5, 5, False)), 1)
+        self.assertEqual(self.store.points(42, 'ロザリー'), 5)
 
     def test_claim_without_favorite_and_alias_shared_across_costumes(self):
         self.set_favorite(None)
@@ -201,7 +206,7 @@ class StorageTests(unittest.TestCase):
         self.set_favorite('美海')
         self.store.give(42, 200, '日向美海', 'magic')
         self.set_favorite('日向美海')
-        self.assertEqual(self.store.snapshot(42)[2], 1)
+        self.assertEqual(self.store.snapshot(42)[2], 2)
 
     def test_cap_and_gifts_at_full_consume_but_add_zero(self):
         self.claim()
@@ -345,45 +350,6 @@ class StorageTests(unittest.TestCase):
             self.assertIsNone(later['bonus_item'])
             self.assertEqual(self.store.snapshot(42)[1], {'food': 1})
 
-    def test_exchange_consumption_retry_and_invalid_requests(self):
-        self.claim()
-        self.db.execute("UPDATE george_present_items SET quantity=6 WHERE user_id=42 AND item='magic'")
-        self.db.commit()
-        self.assertEqual(self.store.exchange(42, 500, 'magic', 'food'), (3, 1))
-        self.assertEqual(self.store.exchange(42, 500, 'magic', 'food'), (3, 1))
-        self.assertEqual(self.store.exchange(42, 501, 'magic', 'food'), (0, 2))
-        for uid, source, target in [(42, 'magic', 'food'), (43, 'food', 'book'),
-                                    (42, 'rare', 'food'), (42, 'food', 'rare'), (42, 'food', 'food')]:
-            with self.assertRaises(ValueError):
-                self.store.exchange(uid, 502, source, target)
-        self.assertEqual(self.store.inventory(42), {'food': 2})
-
-    def test_exchange_receipt_failure_rolls_back_both_inventory_changes(self):
-        self.claim()
-        self.db.execute("UPDATE george_present_items SET quantity=3 WHERE user_id=42")
-        self.db.commit()
-        self.fail_on = 'INSERT INTO george_present_exchanges'
-        with self.assertRaises(MemoryUnavailable):
-            self.store.exchange(42, 500, 'magic', 'food')
-        self.fail_on = None
-        self.assertEqual(self.store.inventory(42), {'magic': 3})
-
-    def test_parallel_exchange_cannot_spend_same_three_twice(self):
-        from concurrent.futures import ThreadPoolExecutor
-        self.claim()
-        self.db.execute("UPDATE george_present_items SET quantity=3 WHERE user_id=42")
-        self.db.commit()
-
-        def exchange(number):
-            try:
-                return self.store.exchange(42, number, 'magic', 'food')
-            except ValueError:
-                return None
-
-        with ThreadPoolExecutor(2) as pool:
-            result = list(pool.map(exchange, (500, 501)))
-        self.assertEqual(result.count((0, 1)), 1)
-        self.assertEqual(self.store.inventory(42), {'food': 1})
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
@@ -425,7 +391,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             edit_original_response=AsyncMock(), followup=SimpleNamespace(send=AsyncMock()))
 
     async def test_pages_spend_and_duplicate_event(self):
-        store = SimpleNamespace(give=Mock(return_value=(3, 3, False)))
+        store = SimpleNamespace(give=Mock(return_value=(5, 5, False)))
         view = PresentView(42, store, 'ロザリー', dict.fromkeys(ITEMS, 1), 0)
         self.assertEqual(len(view.children), 8)
         await view.children[-1].callback(self.interaction())
@@ -436,7 +402,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         await view.give(interaction, 'magic')
         store.give.assert_called_once_with(42, 200, 'ロザリー', 'magic')
         self.assertEqual(view.items['magic'], 0)
-        self.assertEqual(view.points, 3)
+        self.assertEqual(view.points, 5)
         self.assertFalse(await view.interaction_check(self.interaction(user=43)))
         view.stop()
 

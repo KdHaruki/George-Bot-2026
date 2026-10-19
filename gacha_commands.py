@@ -13,7 +13,6 @@ from registered_memory import MemoryUnavailable
 from relink_presentations import star3_embeds, presentation_files
 from presents import PresentStore, affection_display
 from present_view import open_presents
-from present_exchange import open_exchange
 from favorite_album import album_display
 from progress_profiles import character_key, normalize, profile_for
 
@@ -333,10 +332,10 @@ def register_gacha_commands(bot, store=None):
         return [app_commands.Choice(name=favorite_card_label(card)[:100], value=f'{game}:{card.id}')
                 for game, card, _ in rows if query in normalize(favorite_card_label(card))][:25]
 
-    favorite_group = app_commands.Group(name='お気に入り', description='お気に入りの登録・確認・プレゼント')
+    favorite_group = app_commands.Group(name='お気に入り', description='プログレスの登録・確認・プレゼント')
     bot.tree.add_command(favorite_group)
 
-    @favorite_group.command(name='登録', description='プログレスとカードを選んで登録（同じカードの再指定で解除）')
+    @favorite_group.command(name='プログレス登録', description='プログレスとカードを選んで登録（同じカードの再指定で解除）')
     @app_commands.describe(プログレス='所持しているプログレス名。2作品共通の名前で検索',
                           カード='レアリティ・衣装を候補から選択。同じカードを再指定すると解除')
     @app_commands.autocomplete(プログレス=progress_autocomplete, カード=favorite_card_autocomplete)
@@ -344,17 +343,13 @@ def register_gacha_commands(bot, store=None):
                                カード: app_commands.Range[str, 1, 100]):
         await show_favorite(interaction, プログレス, カード)
 
-    @favorite_group.command(name='確認', description='お気に入りのプロフィール・好感度・記念日を確認')
+    @favorite_group.command(name='プログレス確認', description='お気に入りのプロフィール・好感度・記念日を確認')
     async def favorite_view(interaction: discord.Interaction):
         await show_favorite(interaction)
 
     @favorite_group.command(name='プレゼント', description='所持しているプレゼントをお気に入りに贈る')
     async def favorite_present(interaction: discord.Interaction):
         await open_presents(interaction, presents)
-
-    @favorite_group.command(name='交換', description='通常プレゼント3個を別の通常プレゼント1個に交換')
-    async def favorite_exchange(interaction: discord.Interaction):
-        await open_exchange(interaction, presents)
 
     async def show_favorite(interaction, プログレス=None, カード=None):
         await interaction.response.defer(ephemeral=True)
@@ -378,7 +373,7 @@ def register_gacha_commands(bot, store=None):
             else:
                 selected = await asyncio.to_thread(store.favorite, interaction.user.id)
             if selected is None:
-                await interaction.followup.send('お気に入りはまだないぜ。`/お気に入り 登録`でプログレスを選んでくれ！', ephemeral=True)
+                await interaction.followup.send('お気に入りはまだないぜ。`/お気に入り プログレス登録`でプログレスを選んでくれ！', ephemeral=True)
                 return
             game, card, count = selected
             embed = discord.Embed(title='⭐ お気に入り' + ('を登録したぜ！' if プログレス else ''),

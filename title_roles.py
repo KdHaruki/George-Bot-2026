@@ -31,19 +31,25 @@ class TitleRoles:
         if role.permissions.value or role.colour.value or role.hoist or role.mentionable:
             raise ValueError('称号ロールの設定が変更されているぜ。権限・色なし、メンバー分離・メンションOFFに戻してくれ。')
 
-    async def configure(self, guild, enabled):
+    async def retire_exchange(self, guild):
         async with self.lock(guild.id):
-            if enabled:
+            mapping = await asyncio.to_thread(self.store.role_map, guild.id)
+            role_id = mapping.get('exchange10')
+            if role_id is None:
+                return
+            roles = await guild.fetch_roles()
+            role = next((role for role in roles if role.id == role_id), None)
+            if role is not None:
                 self.check_bot(guild)
-            await asyncio.to_thread(self.store.configure, guild.id, enabled)
+                self.safe_role(guild, role, self.bot_top(guild, roles))
+                await role.delete(reason='廃止された交換称号を削除')
+            await asyncio.to_thread(self.store.retire_exchange, guild.id, role_id)
 
     async def equip(self, guild, user_id, key=None):
         async with self.lock(guild.id):
             self.check_bot(guild)
             name = None
             if key is not None:
-                if not await asyncio.to_thread(self.store.enabled, guild.id):
-                    raise ValueError('このサーバーの称号装着はOFFだぜ。管理者に /称号設定 を確認してもらってくれ！')
                 titles = await asyncio.to_thread(self.store.titles, user_id)
                 name = next((row[1] for row in titles if row[0] == key), None)
                 if name is None:

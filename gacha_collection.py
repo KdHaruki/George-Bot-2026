@@ -9,6 +9,7 @@ from registered_memory import MemoryStore, MemoryUnavailable
 from favorite_album import ensure_album, record_registration
 from title_core import ensure_titles, seed_existing_streaks, record_event, change_streak
 from progress_profiles import character_key
+from daily_affection import ensure_daily, seed_daily, settle_daily, start_daily
 
 
 class CollectionStore(MemoryStore):
@@ -35,8 +36,10 @@ class CollectionStore(MemoryStore):
                     FOREIGN KEY(user_id,game,card_id) REFERENCES george_gacha_cards(user_id,game,card_id))""")
                 self.migrate_vierge(connection)
                 ensure_album(connection)
+                ensure_daily(connection)
                 ensure_titles(connection)
                 seed_existing_streaks(connection)
+                seed_daily(connection)
                 yield connection
         except MemoryUnavailable:
             raise MemoryUnavailable('コレクションの保存先を利用できなかったぜ。管理者にDATABASE_URLを確認してもらってくれ。') from None
@@ -132,6 +135,8 @@ class CollectionStore(MemoryStore):
 
     def favorite(self, user_id):
         with self.connect() as connection:
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_daily(connection, user_id)
             row = connection.execute("""SELECT c.game,c.card,c.quantity FROM george_gacha_favorites f
                 JOIN george_gacha_cards c ON (c.user_id,c.game,c.card_id)=(f.user_id,f.game,f.card_id)
                 WHERE f.user_id=%s""", (user_id,)).fetchone()
@@ -143,22 +148,27 @@ class CollectionStore(MemoryStore):
             row = connection.execute("SELECT card,quantity FROM george_gacha_cards WHERE user_id=%s AND game=%s AND card_id=%s", (user_id, game, card_id)).fetchone()
             if row is None:
                 raise ValueError('お気に入りにできるのは、自分が持っているカードだけだぜ。候補から選んでくれ！')
+            settle_daily(connection, user_id)
             if toggle:
                 current = connection.execute('SELECT game,card_id FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).fetchone()
                 if current == (game, card_id):
                     change_streak(connection, user_id, None)
+                    start_daily(connection, user_id, None)
                     connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,))
                     return None
             connection.execute("""INSERT INTO george_gacha_favorites(user_id,game,card_id) VALUES (%s,%s,%s)
                 ON CONFLICT(user_id) DO UPDATE SET game=EXCLUDED.game,card_id=EXCLUDED.card_id""", (user_id, game, card_id))
             record_registration(connection, user_id, current_card(game, Card(**row[0])).character)
             change_streak(connection, user_id, current_card(game, Card(**row[0])).character)
+            start_daily(connection, user_id, current_card(game, Card(**row[0])).character)
         return game, current_card(game, Card(**row[0])), row[1]
 
     def clear_favorite(self, user_id):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_daily(connection, user_id)
             change_streak(connection, user_id, None)
+            start_daily(connection, user_id, None)
             return connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).rowcount > 0
 
 

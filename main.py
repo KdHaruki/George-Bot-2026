@@ -118,11 +118,20 @@ async def on_ready():
     print("ログインしました", flush=True)
     for guild in client.guilds:
         await client.clear_guild_commands(guild)
+        await cleanup_retired_title(guild)
 
 
 @client.event
 async def on_guild_join(guild):
     await client.clear_guild_commands(guild)
+    await cleanup_retired_title(guild)
+
+
+async def cleanup_retired_title(guild):
+    try:
+        await client.title_roles.retire_exchange(guild)
+    except (MemoryUnavailable, ValueError, discord.HTTPException) as exc:
+        logging.warning('Retired title cleanup failed: guild=%s type=%s', guild.id, type(exc).__name__)
 
 
 @client.event
@@ -200,9 +209,9 @@ async def progress(interaction: discord.Interaction, name: str):
             chunk = ''
         chunk += line
     chunks.append(chunk)
-    await interaction.response.send_message(chunks[0])
+    await interaction.response.send_message(chunks[0], ephemeral=True)
     for chunk in chunks[1:]:
-        await interaction.followup.send(chunk, allowed_mentions=discord.AllowedMentions.none())
+        await interaction.followup.send(chunk, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
     if name in world_map:
         try:
             await asyncio.to_thread(client.title_store.world_search, interaction.user.id, interaction.id,

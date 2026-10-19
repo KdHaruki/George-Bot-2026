@@ -55,7 +55,7 @@ class PresentView(discord.ui.View):
             status = 'パーフェクトリンク達成済みだぜ！' if self.perfect else 'ボタンを押すと1個贈るぜ！'
         likes = '、'.join(ITEMS[key][1] for key in preferred_items(self.character)) or '設定なし'
         embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xB06FE0,
-            description=f'{status}\n\n好感度：{affection_display(self.points, self.perfect)}\nプレゼント相性：{likes}\n通常＋1／好物＋3／虹色の花束＋10')
+            description=f'{status}\n\n好感度：{affection_display(self.points, self.perfect)}\nプレゼント相性：{likes}\n通常＋2／好物＋5／虹色の花束＋10')
         if self.perfect:
             embed.description += '\nこの子へのプレゼントは完了したぜ！ これ以上は渡せないぞ。'
         elif self.points >= MAX_AFFECTION:

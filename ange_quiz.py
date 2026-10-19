@@ -61,7 +61,7 @@ class QuizView(discord.ui.View):
 
     async def interaction_check(self, interaction):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message('自分の /アンジュクイズ で挑戦してくれ！', ephemeral=True)
+            await interaction.response.send_message('自分の /クイズ で挑戦してくれ！', ephemeral=True)
             return False
         return True
 
@@ -112,7 +112,7 @@ class QuizView(discord.ui.View):
 
 
 def register_quiz_commands(bot):
-    @bot.tree.command(name='アンジュクイズ', description='ヒント付き4択クイズ。正解で1日1回プレゼント、少ない回答でレア率アップ')
+    @bot.tree.command(name='クイズ', description='ヒント付き4択クイズ。正解で1日1回プレゼント、少ない回答でレア率アップ')
     async def quiz(interaction: discord.Interaction):
         view = QuizView(interaction.user.id, reward_store=bot.present_store, reward_id=interaction.id)
         await interaction.response.send_message(embed=view.embed(), view=view, ephemeral=True,

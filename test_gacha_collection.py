@@ -15,7 +15,7 @@ from registered_memory import MemoryUnavailable
 
 class StoreTests(unittest.TestCase):
     def setUp(self):
-        for name in ('change_streak', 'record_event'):
+        for name in ('change_streak', 'record_event', 'settle_daily', 'start_daily'):
             helper = patch('gacha_collection.' + name)
             helper.start()
             self.addCleanup(helper.stop)
@@ -404,7 +404,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         bot.george_chat.collection_comment.side_effect = ValueError('invalid')
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertIn(card.character, interaction.followup.send.call_args.kwargs['embed'].fields[0].value)
-        command = bot.tree.get_command('お気に入り').get_command('確認')
+        command = bot.tree.get_command('お気に入り').get_command('プログレス確認')
         bot.george_chat.collection_comment.side_effect = None
         await command.callback(interaction)
         self.assertEqual(bot.george_chat.collection_comment.call_args.args[0]['action'], 'favorite_view')
@@ -435,14 +435,14 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
             return state[0]
         store = SimpleNamespace(url='test', owned=Mock(return_value=rows), favorite=Mock(side_effect=lambda uid: state[0]), set_favorite=Mock(side_effect=set_favorite))
         client, tree, interaction = self.objects(store)
-        command = tree.get_command('お気に入り').get_command('登録')
+        command = tree.get_command('お気に入り').get_command('プログレス登録')
         self.assertEqual([p.name for p in command.parameters], ['プログレス', 'カード'])
         autocomplete = command._params['プログレス'].autocomplete
         choices = await autocomplete(interaction, 'ロザ')
         self.assertEqual([choice.value for choice in choices], ['ロザリー'])
         await command.callback(interaction, 'ロザリー', f'relink:{high.id}')
         self.assertEqual(state[0], ('relink', high, 2))
-        await tree.get_command('お気に入り').get_command('確認').callback(interaction)
+        await tree.get_command('お気に入り').get_command('プログレス確認').callback(interaction)
         self.assertEqual(state[0], ('relink', high, 2))
         await command.callback(interaction, 'ロザリー', f'relink:{high.id}')
         self.assertIsNone(state[0])
@@ -487,7 +487,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
             favorite=Mock(side_effect=lambda uid: state[0]), set_favorite=Mock(side_effect=save))
         client, tree, interaction = self.objects(store)
         self.addAsyncCleanup(client.close)
-        command = tree.get_command('お気に入り').get_command('登録')
+        command = tree.get_command('お気に入り').get_command('プログレス登録')
         names = await command._params['プログレス'].autocomplete(interaction, '美海')
         self.assertEqual([c.value for c in names], ['日向美海'])
         interaction.namespace = SimpleNamespace(プログレス='日向美海')

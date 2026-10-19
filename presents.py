@@ -6,11 +6,11 @@ from gacha_collection import CollectionStore
 from progress_profiles import profile_for, character_key
 from favorite_album import record_gift
 from title_core import record_event, refresh_affection
+from daily_affection import MAX_AFFECTION, settle_daily
 
 
 RARE_RATES = {'大吉': 10, '吉': 5, '中吉': 4, '小吉': 3, '末吉': 2, '凶': 1}
 QUIZ_FORTUNES = {1: '大吉', 2: '吉', 3: '中吉', 4: '小吉'}
-MAX_AFFECTION = 100
 
 
 class PerfectLinkReached(ValueError):
@@ -51,7 +51,7 @@ def preferred_items(character):
 def affection_gain(character, item):
     if item not in ITEMS:
         raise ValueError('そのプレゼントは見つからないぜ。')
-    return 10 if item == 'rare' else 3 if item in preferred_items(character) else 1
+    return 10 if item == 'rare' else 5 if item in preferred_items(character) else 2
 
 
 def draw_present(fortune, rng=random):
@@ -79,10 +79,6 @@ class PresentStore(CollectionStore):
             connection.execute('''CREATE TABLE IF NOT EXISTS george_fortune_details (
                 user_id BIGINT PRIMARY KEY, interaction_id BIGINT NOT NULL,
                 lucky_progress TEXT, bonus_item TEXT)''')
-            connection.execute('''CREATE TABLE IF NOT EXISTS george_present_exchanges (
-                interaction_id BIGINT PRIMARY KEY, user_id BIGINT NOT NULL,
-                source TEXT NOT NULL, target TEXT NOT NULL, source_quantity BIGINT NOT NULL,
-                target_quantity BIGINT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())''')
             connection.execute('''CREATE TABLE IF NOT EXISTS george_present_items (
                 user_id BIGINT NOT NULL, item TEXT NOT NULL, quantity BIGINT NOT NULL CHECK(quantity>=0),
                 PRIMARY KEY(user_id,item))''')
@@ -158,12 +154,13 @@ class PresentStore(CollectionStore):
         if not row:
             if not required:
                 return None
-            raise ValueError('まず /お気に入り 登録 でプログレスを登録してくれ！')
+            raise ValueError('まず /お気に入り プログレス登録 でプログレスを登録してくれ！')
         return character_key(row[0]['character'])
 
     def snapshot(self, user_id):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_daily(connection, user_id)
             character = self.current_character(connection, user_id)
             items = dict(connection.execute('SELECT item,quantity FROM george_present_items WHERE user_id=%s AND quantity>0', (user_id,)).fetchall())
             row = connection.execute('SELECT points FROM george_affection WHERE user_id=%s AND character=%s', (user_id, character)).fetchone()
@@ -180,6 +177,7 @@ class PresentStore(CollectionStore):
     def affection_status(self, user_id, character):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_daily(connection, user_id)
             row = connection.execute('SELECT points FROM george_affection WHERE user_id=%s AND character=%s', (user_id, character_key(character))).fetchone()
             return min(MAX_AFFECTION, row[0]) if row else 0, self._is_perfect(connection, user_id, character)
 
@@ -187,32 +185,10 @@ class PresentStore(CollectionStore):
         with self.connect() as connection:
             return dict(connection.execute('SELECT item,quantity FROM george_present_items WHERE user_id=%s AND quantity>0', (user_id,)).fetchall())
 
-    def exchange(self, user_id, interaction_id, source, target):
-        if source not in NORMAL_ITEMS or target not in NORMAL_ITEMS or source == target:
-            raise ValueError('異なる通常アイテム同士で交換してくれ。レアは交換できないぜ！')
-        with self.connect() as connection:
-            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
-            previous = connection.execute('SELECT user_id,source,target,source_quantity,target_quantity FROM george_present_exchanges WHERE interaction_id=%s', (interaction_id,)).fetchone()
-            if previous:
-                if previous[:3] != (user_id, source, target):
-                    raise ValueError('交換の操作が一致しないぜ。画面を開き直してくれ！')
-                return previous[3], previous[4]
-            row = connection.execute('''UPDATE george_present_items SET quantity=quantity-3
-                WHERE user_id=%s AND item=%s AND quantity>=3 RETURNING quantity''', (user_id, source)).fetchone()
-            if row is None:
-                raise ValueError('交換には同じ通常アイテムが3個必要だぜ！')
-            quantity = connection.execute('''INSERT INTO george_present_items VALUES (%s,%s,1)
-                ON CONFLICT(user_id,item) DO UPDATE SET quantity=george_present_items.quantity+1
-                RETURNING quantity''', (user_id, target)).fetchone()[0]
-            connection.execute('''INSERT INTO george_present_exchanges(interaction_id,user_id,source,target,source_quantity,target_quantity)
-                VALUES (%s,%s,%s,%s,%s,%s)''', (interaction_id, user_id, source, target, row[0], quantity))
-            record_event(connection, user_id, f'exchange:{interaction_id}', 'exchange')
-            connection.execute("DELETE FROM george_present_exchanges WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
-            return row[0], quantity
-
     def give(self, user_id, interaction_id, expected_character, item):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_daily(connection, user_id)
             receipt = connection.execute('SELECT user_id,character,item,gain,points FROM george_present_receipts WHERE interaction_id=%s', (interaction_id,)).fetchone()
             if receipt:
                 if receipt[:3] != (user_id, expected_character, item):

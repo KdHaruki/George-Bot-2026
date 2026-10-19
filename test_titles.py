@@ -19,7 +19,6 @@ class TitleRulesTests(unittest.TestCase):
             ('quiz', {'attempts': 1}, {10: 'quiz10', 100: 'quiz100'}),
             ('fortune', {'fortune': '大吉'}, {10: 'great10'}),
             ('gift', {'character': '美海', 'item': 'rare'}, {10: 'gift10'}),
-            ('exchange', {}, {10: 'exchange10'}),
         ]:
             state = {}
             for number in range(1, max(thresholds) + 1):
@@ -122,12 +121,8 @@ class TitleStorageTests(unittest.TestCase):
         self.assertEqual(self.store.inventory(42), {})
         self.assertTrue(self.claim()['granted'])
 
-    def test_role_settings_and_equipment_are_server_scoped(self):
+    def test_role_equipment_is_server_scoped(self):
         store = self.setUpTitles()
-        self.assertFalse(store.enabled(1))
-        store.configure(1, True)
-        self.assertTrue(store.enabled(1))
-        self.assertFalse(store.enabled(2))
         store.bind_role(1, 'fortune10', 100)
         store.bind_role(2, 'fortune10', 200)
         store.save_equipped(1, 42, 'fortune10', 100)
@@ -148,6 +143,24 @@ class TitleStorageTests(unittest.TestCase):
             change_streak(conn, 42, None)
             seed_existing_streaks(conn)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM george_title_streaks').fetchone()[0], 0)
+
+    def test_retired_exchange_title_is_hidden_and_cleanup_is_server_scoped(self):
+        store = self.setUpTitles()
+        store.titles(42)
+        self.db.execute("INSERT INTO george_titles(user_id,title_key,name) VALUES (42,'exchange10','贈り物コーディネーター')")
+        self.db.execute("INSERT INTO george_titles(user_id,title_key,name) VALUES (42,'fortune10','今日も神頼み')")
+        self.db.commit()
+        self.assertNotIn('exchange10', self.keys())
+        self.assertIn('fortune10', self.keys())
+        store.bind_role(1, 'exchange10', 10)
+        store.bind_role(2, 'exchange10', 20)
+        store.save_equipped(1, 42, 'exchange10', 10)
+        store.save_equipped(2, 42, 'exchange10', 20)
+        store.retire_exchange(1, 10)
+        self.assertEqual(store.role_map(1), {})
+        self.assertEqual(store.role_map(2), {'exchange10': 20})
+        self.assertIsNone(store.equipped(1, 42))
+        self.assertEqual(store.equipped(2, 42), 'exchange10')
 
     def test_real_registration_keeps_same_person_streak_and_resets_on_clear(self):
         from dataclasses import asdict
@@ -213,8 +226,7 @@ class FakeRole:
 class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
     def objects(self):
         old, target, unrelated = FakeRole(10), FakeRole(11), FakeRole(99)
-        store = SimpleNamespace(enabled=Mock(return_value=True),
-            titles=Mock(return_value=[('fortune10', '今日も神頼み', None)]),
+        store = SimpleNamespace(titles=Mock(return_value=[('fortune10', '今日も神頼み', None)]),
             role_map=Mock(return_value={'old': 10, 'fortune10': 11}), save_equipped=Mock(), bind_role=Mock(return_value=11))
         member = SimpleNamespace(roles=[old, unrelated], remove_roles=AsyncMock(), add_roles=AsyncMock())
         guild = SimpleNamespace(id=1, me=SimpleNamespace(guild_permissions=discord.Permissions(manage_roles=True), top_role=FakeRole(100, 10)),
@@ -231,17 +243,13 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await manager.equip(guild, 42, 'unearned')
 
-    async def test_permissions_modified_role_and_disabled_server_rejected(self):
+    async def test_modified_role_is_rejected_and_owner_can_remove_safe_old_title(self):
         store, member, guild, target = self.objects()
         manager = TitleRoles(store)
         target.permissions = discord.Permissions(administrator=True)
         with self.assertRaises(ValueError):
             await manager.equip(guild, 42, 'fortune10')
         member.add_roles.assert_not_awaited()
-        store.enabled.return_value = False
-        with self.assertRaises(ValueError):
-            await manager.equip(guild, 42, 'fortune10')
-        # Disabling new equipment must still allow the owner to remove an old title.
         await manager.equip(guild, 42, None)
         store.save_equipped.assert_called_with(1, 42, None, None)
 
@@ -281,7 +289,7 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         member.remove_roles.assert_not_awaited()
         guild.me.guild_permissions = discord.Permissions.none()
         with self.assertRaises(ValueError):
-            await TitleRoles(store).configure(guild, True)
+            await TitleRoles(store).equip(guild, 42, 'fortune10')
 
     async def test_fresh_role_positions_override_stale_gateway_cache(self):
         store, member, guild, target = self.objects()
@@ -290,3 +298,25 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         guild.fetch_roles.return_value.append(FakeRole(100, 2))
         await TitleRoles(store).equip(guild, 42, 'fortune10')
         member.add_roles.assert_awaited_once()
+
+    async def test_retired_cleanup_deletes_only_registered_exchange_role(self):
+        store, member, guild, target = self.objects()
+        old = guild.fetch_roles.return_value[0]
+        old.delete, target.delete = AsyncMock(), AsyncMock()
+        store.role_map.return_value = {'exchange10': old.id, 'fortune10': target.id}
+        store.retire_exchange = Mock()
+        await TitleRoles(store).retire_exchange(guild)
+        old.delete.assert_awaited_once()
+        target.delete.assert_not_awaited()
+        store.retire_exchange.assert_called_once_with(guild.id, old.id)
+
+    async def test_retired_cleanup_without_permission_preserves_role_and_mapping(self):
+        store, member, guild, target = self.objects()
+        target.delete = AsyncMock()
+        store.role_map.return_value = {'exchange10': target.id}
+        store.retire_exchange = Mock()
+        guild.me.guild_permissions = discord.Permissions.none()
+        with self.assertRaises(ValueError):
+            await TitleRoles(store).retire_exchange(guild)
+        target.delete.assert_not_awaited()
+        store.retire_exchange.assert_not_called()

@@ -15,7 +15,7 @@ class HelpTests(unittest.TestCase):
         annotate_private_commands(tree)
         annotate_private_commands(tree)
         for command in commands:
-            if command.qualified_name in ('ガチャ', 'おみくじ', 'プログレス'):
+            if command.qualified_name in ('ガチャ', 'おみくじ'):
                 self.assertNotIn(PRIVATE_NOTICE, command.description)
             else:
                 self.assertTrue(command.description.endswith(PRIVATE_NOTICE))
@@ -50,9 +50,16 @@ class HelpTests(unittest.TestCase):
 
     def test_every_registered_command_has_a_help_entry(self):
         from main import client
+        self.assertIsNotNone(client.tree.get_command('クイズ'))
+        self.assertIsNone(client.tree.get_command('アンジュクイズ'))
+        self.assertIsNone(client.tree.get_command('称号設定'))
+        favorite = client.tree.get_command('お気に入り')
+        self.assertEqual({command.name for command in favorite.commands}, {'プログレス登録', 'プログレス確認', 'プレゼント'})
+        self.assertFalse(hasattr(client.present_store, 'exchange'))
+        self.assertFalse(hasattr(client.title_store, 'enabled'))
         text = str(command_help(True).to_dict())
         for command in client.tree.walk_commands():
-            if command.qualified_name.split()[0] in ('季節通知', '状態', 'ヘルプ', '称号設定'):
+            if command.qualified_name.split()[0] in ('季節通知', '状態', 'ヘルプ'):
                 continue  # Administrator seasonal commands are intentionally outside help.
             self.assertIn('/' + command.qualified_name, text)
 
@@ -63,7 +70,15 @@ class HelpTests(unittest.TestCase):
             embed = command_help(in_guild)
             self.assertLessEqual(len(embed), 6000)
             self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧】', '【メンション一覧】'])
+            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧（☆：あなただけに表示されます）】', '【メンション一覧】'])
+            text = embed.fields[1].value
+            examples = ['/おみくじ', '/プログレス ロザリー', '/ガチャ アンジュ・ヴィエルジュ',
+                        '/ガチャ アンジュ・リリンク', '/ガチャ確率', '/所持カード ロザリー', '/収集率',
+                        '/お気に入り プログレス登録 ロザリー カード', '/お気に入り プログレス確認', '/お気に入り プレゼント',
+                        '/クイズ', '/称号', '/ヘルプ']
+            self.assertEqual([block.split('`')[1] for block in text.split('\n\n')], examples)
+            self.assertEqual(text.count('（☆）'), 10)
+            self.assertNotIn('（あなただけに表示されます）', text)
             self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
             self.assertTrue(embed.fields[1].value.endswith('\n\u200b'))
             self.assertNotIn('分類:', str(embed.to_dict()))

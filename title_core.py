@@ -8,7 +8,7 @@ COMMON = {
     'quiz10': '青蘭学園の知恵袋', 'quiz100': '青蘭学園の秘密兵器',
     'fortune10': '今日も神頼み', 'great10': '幸運を引き寄せし者',
     'support': 'エール・フレンドを受けし者', 'gift10': '想いを届ける者',
-    'variety': '贈り物のソムリエ', 'exchange10': '贈り物コーディネーター',
+    'variety': '贈り物のソムリエ',
     'bond10': 'エール・フレンドを繋ぎし者', 'bond100': 'エルエルを超えし者',
     'worlds': '世界の秘密を知る者', 'reunion': '奇跡の再会を手繰り寄せし者',
 }
@@ -77,8 +77,6 @@ def event_result(state, kind, facts):
         if facts.get('preferred') and item in NORMAL_GIFTS:
             character = character_key(facts['character'])
             unlocked.append((f'favorite_gift:{character}', f'{character}の理解者'))
-    elif kind == 'exchange':
-        count('exchanges', ((10, 'exchange10'),))
     elif kind == 'world':
         worlds = set(state.get('worlds', []))
         if facts['world'] in tuple('青黒赤白緑'):

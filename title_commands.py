@@ -3,17 +3,16 @@ import logging
 import discord
 from discord import app_commands
 
-from command_permissions import require_administrator
 from registered_memory import MemoryUnavailable
 
 
 class TitleView(discord.ui.View):
     PAGE_SIZE = 20
 
-    def __init__(self, user_id, titles, roles, guild=None, enabled=False, equipped=None):
+    def __init__(self, user_id, titles, roles, guild=None, equipped=None):
         super().__init__(timeout=180)
         self.user_id, self.titles, self.roles, self.guild = user_id, titles, roles, guild
-        self.enabled, self.equipped = enabled, equipped
+        self.equipped = equipped
         self.page, self.selected = 0, None
         self.lock = asyncio.Lock()
         self.expired, self.message = False, None
@@ -38,7 +37,7 @@ class TitleView(discord.ui.View):
         select.callback = choose
         self.add_item(select)
         equip = discord.ui.Button(label='装着', style=discord.ButtonStyle.primary, row=1,
-            disabled=not (self.selected and self.guild and self.enabled))
+            disabled=not (self.selected and self.guild))
         remove = discord.ui.Button(label='解除', row=1, disabled=self.guild is None)
 
         async def equip_callback(interaction):
@@ -73,8 +72,6 @@ class TitleView(discord.ui.View):
         description = status or '獲得した称号は全サーバー共通、装着はサーバーごとに1つだぜ！'
         if self.guild is None:
             description += '\nDMでは一覧のみ。装着・解除はサーバーで使ってくれ！'
-        elif not self.enabled:
-            description += '\nこのサーバーの装着はOFF。管理者が /称号設定 でONにできるぞ。'
         description += f'\n\n【装着中】\n{discord.utils.escape_markdown(name)}\n\n【獲得済み】\n'
         description += '\n'.join(discord.utils.escape_markdown(row[1]) for row in rows) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'
         embed = discord.Embed(title='称号', description=description, color=0xD5AD49)
@@ -125,29 +122,9 @@ def register_title_commands(bot):
         try:
             rows = await asyncio.to_thread(bot.title_store.titles, interaction.user.id)
             guild = interaction.guild
-            enabled = await asyncio.to_thread(bot.title_store.enabled, guild.id) if guild else False
             equipped = await asyncio.to_thread(bot.title_store.equipped, guild.id, interaction.user.id) if guild else None
-            view = TitleView(interaction.user.id, rows, bot.title_roles, guild, enabled, equipped)
+            view = TitleView(interaction.user.id, rows, bot.title_roles, guild, equipped)
             view.message = await interaction.followup.send(embed=view.embed(), view=view, ephemeral=True, wait=True,
                 allowed_mentions=discord.AllowedMentions.none())
         except MemoryUnavailable as exc:
-            await interaction.followup.send(str(exc), ephemeral=True)
-
-    @bot.tree.command(name='称号設定', description='称号ロール装着のON・OFFを設定・確認（管理者用）')
-    @app_commands.guild_only()
-    @app_commands.default_permissions(administrator=True)
-    @app_commands.describe(有効='ONで装着を許可。OFFでも獲得済み称号は残り、本人による解除は可能')
-    async def configure(interaction: discord.Interaction, 有効: bool = None):
-        if not await require_administrator(interaction):
-            return
-        await interaction.response.defer(ephemeral=True)
-        try:
-            if 有効 is not None:
-                await bot.title_roles.configure(interaction.guild, 有効)
-            enabled = await asyncio.to_thread(bot.title_store.enabled, interaction.guild_id)
-            text = f'称号の装着：{"ON" if enabled else "OFF"}。獲得した称号は消えないぜ。'
-            if not enabled:
-                text += '\n今付いている称号ロールはそのまま。本人が /称号 から解除できるぞ。'
-            await interaction.followup.send(text, ephemeral=True)
-        except (ValueError, MemoryUnavailable) as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
