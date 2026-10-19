@@ -214,10 +214,10 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(total, sum(len(pool) for pool in engine.pools['vierge'].values()))
         saved = [dict(card=asdict(card), quantity=1, new=True), dict(card=asdict(card), quantity=2, new=False)]
         embed = result_embed(engine, 'vierge', [card, card], saved)
-        self.assertTrue(embed.description.splitlines()[0].startswith('【UR】'))
-        self.assertTrue(embed.description.splitlines()[0].endswith('**✨ NEW**'))
-        self.assertTrue(embed.description.splitlines()[1].startswith('【UR】'))
-        self.assertNotIn('NEW', embed.description.splitlines()[1])
+        self.assertTrue(embed.description.removesuffix('\n\u200b').splitlines()[0].startswith('【UR】'))
+        self.assertTrue(embed.description.removesuffix('\n\u200b').splitlines()[0].endswith('**✨ NEW**'))
+        self.assertTrue(embed.description.removesuffix('\n\u200b').splitlines()[1].startswith('【UR】'))
+        self.assertNotIn('NEW', embed.description.removesuffix('\n\u200b').splitlines()[1])
         self.assertNotIn('`01`', embed.description)
         self.assertNotIn('【所持', embed.description)
 
@@ -229,7 +229,7 @@ class ResultCommentTests(unittest.TestCase):
             cards = [Card(str(index), f'子{index}', f'子{index}', rarity) for index, rarity in enumerate(rarities)]
             saved = [dict(new=index == 1) for index in range(len(cards))]
             original = list(cards)
-            lines = result_embed(engine, game, cards, saved).description.splitlines()
+            lines = result_embed(engine, game, cards, saved).description.removesuffix('\n\u200b').splitlines()
             rank = {rarity: index for index, (rarity, _) in enumerate(RULES[game].normal)}
             expected = sorted(range(len(cards)), key=lambda index: rank[rarities[index]])
             for line, index in zip(lines, expected):
@@ -243,10 +243,10 @@ class ResultCommentTests(unittest.TestCase):
             for game, expected in [('vierge', '3/4回：**次回7連でUR1枚確定！**'), ('relink', '90/100：**次回10連で★3確定！**')]:
                 card = next(iter(engine.pools[game].values()))[0]
                 embed = result_embed(engine, game, [card], batch_counts=counts)
-                counters = [field.value for field in embed.fields if field.name == 'ガチャカウント']
+                counters = [field.value.removesuffix('\n\u200b') for field in embed.fields if field.name == '【ガチャカウント】']
                 self.assertEqual(counters, [expected])
                 reset = result_embed(engine, game, [card], batch_counts={'vierge': 4, 'relink': 100})
-                text = next(field.value for field in reset.fields if field.name == 'ガチャカウント')
+                text = next(field.value for field in reset.fields if field.name == '【ガチャカウント】')
                 self.assertTrue(text.startswith('0/'))
                 self.assertNotIn('次回', text)
 
@@ -287,7 +287,7 @@ class ResultCommentTests(unittest.TestCase):
         card = engine.pools['relink']['★2'][0]
         saved = [dict(new=index == 0, quantity=index + 1) for index in range(10)]
         embed = result_embed(engine, 'relink', [card] * 10, saved)
-        for index, line in enumerate(embed.description.splitlines(), 1):
+        for index, line in enumerate(embed.description.removesuffix('\n\u200b').splitlines(), 1):
             self.assertTrue(line.startswith('`【★2】` '))
             self.assertNotIn(f'`{index:02d}`', line)
         self.assertNotIn('【確定枠】', embed.description)
@@ -335,7 +335,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.page, 0)
         interaction.user.id = 10
         await view.go_next(interaction)
-        self.assertEqual(view.embed().description.splitlines()[0], 'カード10')
+        self.assertEqual(view.embed().description.removesuffix('\n\u200b').splitlines()[0], 'カード10')
         await view.go_next(interaction)
         self.assertTrue(view.next.disabled)
         self.assertEqual(view.embed().description, 'カード20')
@@ -359,7 +359,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(facts['favorite_relation'], 'exact_card')
         self.assertEqual(facts['new_count'], 1)
         self.assertEqual(facts['cards'][0]['character'], card.character)
-        self.assertEqual(interaction.followup.send.call_args.kwargs['embed'].fields[0].value, 'お気に入りも増えて楽しいな！')
+        self.assertEqual(interaction.followup.send.call_args.kwargs['embed'].fields[0].value.removesuffix('\n\u200b'), 'お気に入りも増えて楽しいな！')
         bot.george_chat.collection_comment.side_effect = ValueError('invalid')
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertIn(card.character, interaction.followup.send.call_args.kwargs['embed'].fields[0].value)
@@ -372,6 +372,10 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('saved', facts)
         details = next(call.kwargs['embed'] for call in reversed(interaction.followup.send.call_args_list) if 'embed' in call.kwargs)
         self.assertFalse(details.footer.text)
+        self.assertEqual(details.fields[0].name,'【ジョージのプログレス紹介】')
+        self.assertEqual(details.fields[1].name,'【ジョージの一言】')
+        self.assertTrue(details.description.endswith('\n\u200b'))
+        self.assertTrue(all(field.value.endswith('\n\u200b') for field in details.fields[:-1]))
         self.assertTrue(any('からの一言' in field.name for field in details.fields))
         self.assertNotIn('（原作台詞）', str(details.to_dict()))
         self.assertNotIn('（AI生成）', str(details.to_dict()))
@@ -454,18 +458,20 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         store.owned.assert_called_with(10)
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
-        self.assertEqual(len(call.kwargs['embed'].description.splitlines()), 4)
+        self.assertEqual(len(call.kwargs['embed'].description.removesuffix('\n\u200b').splitlines()), 4)
         self.assertTrue(call.kwargs['embed'].description.startswith('`【'))
-        self.assertEqual([line.split('`')[1] for line in call.kwargs['embed'].description.splitlines()],
+        self.assertEqual([line.split('`')[1] for line in call.kwargs['embed'].description.removesuffix('\n\u200b').splitlines()],
                          ['【ＵＲ】', '【ＳＲ】', '【ＨＲ】', '【Ｒ】'])
         self.assertNotIn('ヴィエルジュ', call.kwargs['embed'].description)
         self.assertNotIn('リリンク', call.kwargs['embed'].description)
         self.assertFalse(call.kwargs['embed'].footer.text)
         await tree.get_command('所持カード').callback(interaction, 'ロザリー')
-        self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.splitlines()), 4)
+        self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.removesuffix('\n\u200b').splitlines()), 4)
         await tree.get_command('収集率').callback(interaction)
         embed = interaction.followup.send.call_args.kwargs['embed']
         self.assertIn('100.0%', embed.fields[0].value)
+        self.assertTrue(all(field.name.startswith('【') and field.name.endswith('】') for field in embed.fields))
+        self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
         self.assertFalse(embed.footer.text)
         self.assertIn('0.0%', embed.fields[1].value)
         self.assertLess(len(embed), 6000)

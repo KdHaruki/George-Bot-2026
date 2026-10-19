@@ -114,11 +114,12 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
-        self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！","lucky_item":"赤いハンカチ"}')
-        self.assertEqual(await self.chat.fortune_details("大吉"), ("いい流れだぜ！", "赤いハンカチ"))
+        self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！"}')
+        self.assertEqual(await self.chat.fortune_details("大吉"), "いい流れだぜ！")
         self.assertNotIn("個人の会話", self.generate.call_args.kwargs["contents"])
+        self.assertNotIn("lucky_item", str(self.generate.call_args.kwargs["config"]))
         self.assertEqual(len(self.chat.sessions[(1, 1)].history), 2)
-        for text in ('{}', '{"comment":123,"lucky_item":"帽子"}', '{"comment":"いい日","lucky_item":""}'):
+        for text in ('{}', '{"comment":123}', '{"comment":""}'):
             self.generate.return_value = SimpleNamespace(text=text)
             with self.assertRaises(ValueError):
                 await self.chat.fortune_details("凶")

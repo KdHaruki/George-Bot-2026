@@ -11,7 +11,7 @@ from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, is_management_question, MANAGEMENT_REPLY
 import progress as progress_module
 from keep_alive import keep_alive
-from fun_features import draw_fortune, FORTUNES, fortune_embed
+from fun_features import FORTUNES, fortune_embed
 from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
 from command_help import command_help, annotate_private_commands
@@ -21,8 +21,6 @@ from seasonal_commands import register_seasonal_commands
 from gacha_commands import register_gacha_commands, favorite_details
 from command_permissions import require_administrator
 from command_history import CommandHistory
-from link_battle import register_link_battle
-from equipment import register_equipment
 
 ########################################
 # Botクラス
@@ -74,8 +72,6 @@ class MyClient(discord.Client):
 client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
-register_link_battle(client)
-register_equipment(client)
 
 
 async def conversation_favorite(bot, user_id):
@@ -224,13 +220,12 @@ async def omikuji(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     fortune = random.choice(FORTUNES)[0]
     try:
-        comment, item = await client.george_chat.fortune_details(fortune)
+        comment = await client.george_chat.fortune_details(fortune)
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Fortune generation failed: %s", diagnostic)
-        fallback = draw_fortune(fortune).splitlines()
-        comment, item = fallback[1], fallback[2].split('：', 1)[1]
-    await interaction.followup.send(embed=fortune_embed(fortune, comment, item), allowed_mentions=discord.AllowedMentions.none())
+        comment = dict(FORTUNES)[fortune]
+    await interaction.followup.send(embed=fortune_embed(fortune, comment), allowed_mentions=discord.AllowedMentions.none())
 
 
 @client.event

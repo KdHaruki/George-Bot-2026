@@ -5,6 +5,7 @@ import math
 import logging
 import random
 from discord import app_commands
+from discord_layout import space_headings
 
 from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
 from gacha_collection import CollectionStore, collection_summary
@@ -128,7 +129,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
         lines.append(f'{rarity}{text}' + ownership)
     embed = discord.Embed(title=f'{rules.name}：{len(cards)}回ガチャ',
                           description='\n'.join(lines), color=0xB06FE0)
-    embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(gacha_comment(game, cards, saved, favorite)), inline=False)
+    embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(gacha_comment(game, cards, saved, favorite)), inline=False)
     if batch_counts is not None:
         limit = 100 if game == 'relink' else BATCH_GUARANTEE[game]
         progress = batch_counts.get(game, 0) % limit
@@ -138,7 +139,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
             remaining = 100 - progress
             message = '次回10連で★3確定！' if remaining <= 10 else f'★3確定まであと{remaining}'
         unit = '' if game == 'relink' else '回'
-        embed.add_field(name='ガチャカウント', value=f'{progress}/{limit}{unit}：**{message}**', inline=False)
+        embed.add_field(name='【ガチャカウント】', value=f'{progress}/{limit}{unit}：**{message}**', inline=False)
     if saved is None:
         embed.add_field(name='保存なし', value='DATABASE_URL未設定のため、この結果はコレクションに保存されないぞ。', inline=False)
     names = engine.birthday_targets(on_day, game)
@@ -146,7 +147,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
         month, day = map(int, engine.birthday_map(game)[names[0]].split('-'))
         highest = rules.normal[0][0]
         embed.add_field(name='【🎂 今日の誕生日ピックアップ】', value=f'{month}月{day}日｜' + '・'.join(names) + f'\n{highest}抽選内で対象キャラが合計50％！', inline=False)
-    return embed
+    return space_headings(embed)
 
 
 def rates_embed(engine, game, on_day=None):
@@ -165,7 +166,7 @@ def rates_embed(engine, game, on_day=None):
     if upcoming:
         day, names = upcoming
         embed.add_field(name='【🎂 次の誕生日】', value=f'{day.month}月{day.day}日｜' + '・'.join(names), inline=False)
-    return embed
+    return space_headings(embed)
 
 
 def register_gacha_commands(bot, store=None):
@@ -223,8 +224,8 @@ def register_gacha_commands(bot, store=None):
                 logging.warning('Gacha batch counts lookup unavailable')
         embed = result_embed(engine, 作品, cards, saved, favorite, batch_counts)
         comment = await ai_comment(collection_facts(作品, cards, saved, favorite), gacha_comment(作品, cards, saved, favorite))
-        embed.set_field_at(0, name='ジョージの一言', value=discord.utils.escape_markdown(comment), inline=False)
-        await interaction.followup.send(embed=embed,
+        embed.set_field_at(0, name='【ジョージの一言】', value=discord.utils.escape_markdown(comment), inline=False)
+        await interaction.followup.send(embed=space_headings(embed),
                                         allowed_mentions=discord.AllowedMentions.none())
         if 作品 == 'relink':
             try:
@@ -289,7 +290,7 @@ def register_gacha_commands(bot, store=None):
         view = CardListView(interaction.user.id, lines, '所持カード') if len(lines) > 10 else None
         embed = view.embed() if view else discord.Embed(title='所持カード', description='\n'.join(lines) or empty, color=0xB06FE0)
         options = {'view': view} if view is not None else {}
-        await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none(), **options)
+        await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none(), **options)
 
     async def progress_autocomplete(interaction: discord.Interaction, current: str):
         try:
@@ -336,8 +337,8 @@ def register_gacha_commands(bot, store=None):
                                   description=f'**{card.rarity}** {discord.utils.escape_markdown(card.label)}\n{RULES[game].name}｜所持{count}枚', color=0xB06FE0)
             introduction, comment = favorite_details(card)
             comment = await ai_comment(collection_facts(game, [card], favorite=selected, viewing=True), comment)
-            embed.add_field(name='ジョージのプログレス紹介', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
-            embed.add_field(name='ジョージの一言', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
+            embed.add_field(name='【ジョージのプログレス紹介】', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
+            embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
             # Show existing local art only; never fetch the Wiki during a command.
             art = card if game == 'relink' and card.rarity == '★3' else next(
                 (candidate for candidate in engine.pools['relink']['★3']
@@ -346,8 +347,8 @@ def register_gacha_commands(bot, store=None):
             original = PRESENTATIONS.get(art.id, {}).get('quote', '') if art else ''
             line = original or await ai_comment(dict(action='character_line', character=card.character, profile=introduction), '')
             if line:
-                embed.add_field(name=f'{card.character}からの一言', value=discord.utils.escape_markdown(line)[:1024], inline=False)
-            await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+                embed.add_field(name=f'【{card.character}からの一言】', value=discord.utils.escape_markdown(line)[:1024], inline=False)
+            await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
             if art is not None:
                 files = presentation_files([art])
                 try:
@@ -376,5 +377,5 @@ def register_gacha_commands(bot, store=None):
             text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）\n重複込みの所持数：{copies}枚'
             if archived:
                 text += f'\n現在のガチャ対象外：{archived}種類（所持は維持）'
-            embed.add_field(name=RULES[game].name, value=text, inline=False)
-        await interaction.followup.send(embed=embed, ephemeral=True)
+            embed.add_field(name=f'【{RULES[game].name}】', value=text, inline=False)
+        await interaction.followup.send(embed=space_headings(embed), ephemeral=True)

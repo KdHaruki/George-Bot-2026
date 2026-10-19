@@ -26,13 +26,14 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_fortune_layout(self):
         from fun_features import fortune_embed
-        embed = fortune_embed('大吉', '今日はいい調子だぜ！', '帽子')
+        embed = fortune_embed('大吉', '今日はいい調子だぜ！')
         self.assertIn('大吉', embed.description)
-        self.assertEqual(embed.fields[0].value, '今日はいい調子だぜ！')
-        self.assertEqual(embed.fields[1].value, '帽子')
+        self.assertEqual(embed.fields[0].value.removesuffix('\n\u200b'), '今日はいい調子だぜ！')
+        self.assertTrue(embed.description.endswith('\n\u200b'))
+        self.assertEqual(len(embed.fields),2)
         from fun_features import LUCKY_PROGRESS
-        self.assertEqual(embed.fields[2].name, '🌟 ラッキープログレス')
-        self.assertIn(embed.fields[2].value, LUCKY_PROGRESS)
+        self.assertEqual(embed.fields[1].name, '【ラッキープログレス】')
+        self.assertIn(embed.fields[1].value, LUCKY_PROGRESS)
 
     async def test_lucky_progress_includes_relink_exclusives_once(self):
         from fun_features import LUCKY_PROGRESS, fortune_embed
@@ -43,6 +44,15 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
         for name in ('久遠空', 'シンシア', 'ヒメガミノミコト', 'ナクル・クルルシファー'):
             self.assertIn(name, LUCKY_PROGRESS)
             with patch('fun_features.random.choice', return_value=name) as choose:
-                embed = fortune_embed('凶', 'ひと息つこうぜ！', '帽子')
+                embed = fortune_embed('凶', 'ひと息つこうぜ！')
             choose.assert_called_once_with(LUCKY_PROGRESS)
-            self.assertEqual(embed.fields[2].value, name)
+            self.assertEqual(embed.fields[1].value, name)
+
+    async def test_battle_and_equipment_commands_are_removed(self):
+        from main import client
+        self.assertIsNone(client.tree.get_command('エクシーズバトル'))
+        self.assertIsNone(client.tree.get_command('装備'))
+        self.assertFalse(hasattr(client,'battle_store'))
+        from command_help import command_help
+        self.assertNotIn('/エクシーズバトル', str(command_help(True).to_dict()))
+        self.assertNotIn('/装備', str(command_help(True).to_dict()))
