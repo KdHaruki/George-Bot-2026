@@ -1,0 +1,119 @@
+import asyncio
+import logging
+
+import discord
+
+from presents import ITEMS, preferred_items, affection_display, MAX_AFFECTION, PerfectLinkReached
+from registered_memory import MemoryUnavailable
+
+
+class PresentView(discord.ui.View):
+    def __init__(self, user_id, store, character, items, points, perfect=False):
+        super().__init__(timeout=180)
+        self.user_id, self.store, self.character = user_id, store, character
+        self.items, self.points = dict(items), points
+        self.perfect = perfect
+        self.page = 0
+        self.keys = [key for key in ITEMS if items.get(key, 0) > 0]
+        self.lock = asyncio.Lock()
+        self.processed = set()
+        self.message = None
+        self.expired = False
+        self.build_buttons()
+
+    def build_buttons(self):
+        self.clear_items()
+        for index, key in enumerate(self.keys[self.page * 6:self.page * 6 + 6]):
+            emoji, label = ITEMS[key]
+            button = discord.ui.Button(label=f'{label} ×{self.items[key]}', emoji=emoji,
+                                       row=index // 2, disabled=self.perfect or self.items[key] <= 0)
+
+            async def callback(interaction, key=key):
+                await self.give(interaction, key)
+
+            button.callback = callback
+            self.add_item(button)
+        if len(self.keys) > 6:
+            for label, delta in [('◀ 前へ', -1), ('次へ ▶', 1)]:
+                button = discord.ui.Button(label=label, row=3,
+                    disabled=self.perfect or not 0 <= self.page + delta < (len(self.keys) + 5) // 6)
+
+                async def turn(interaction, delta=delta):
+                    await interaction.response.defer()
+                    async with self.lock:
+                        if self.expired:
+                            return
+                        self.page = max(0, min((len(self.keys) - 1) // 6, self.page + delta))
+                        self.build_buttons()
+                        await interaction.edit_original_response(embed=self.embed(), view=self)
+
+                button.callback = turn
+                self.add_item(button)
+
+    def embed(self, status=None):
+        if status is None:
+            status = 'パーフェクトリンク達成済みだぜ！' if self.perfect else 'ボタンを押すと1個贈るぜ！'
+        likes = '、'.join(ITEMS[key][1] for key in preferred_items(self.character)) or '設定なし'
+        embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xB06FE0,
+            description=f'{status}\n\n好感度：{affection_display(self.points, self.perfect)}\nプレゼント相性：{likes}\n通常＋1／好物＋3／虹色の花束＋10')
+        if self.perfect:
+            embed.description += '\nこの子へのプレゼントは完了したぜ！ これ以上は渡せないぞ。'
+        elif self.points >= MAX_AFFECTION:
+            embed.description += '\n好感度100では＋0。好物を1個贈るとパーフェクトリンクになり、以降はこの子に贈れなくなるぜ。'
+        if not self.keys:
+            embed.add_field(name='プレゼントはまだないぜ！', value='その日最初の /おみくじ で1個もらえるぞ。', inline=False)
+        return embed
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message('自分の /お気に入り プレゼント から開いてくれ！', ephemeral=True)
+            return False
+        return True
+
+    async def give(self, interaction, key):
+        await interaction.response.defer()
+        async with self.lock:
+            if self.expired or self.perfect or interaction.id in self.processed:
+                return
+            try:
+                gain, points, perfect = await asyncio.to_thread(self.store.give, self.user_id, interaction.id, self.character, key)
+            except PerfectLinkReached as exc:
+                self.perfect, self.points = True, MAX_AFFECTION
+                self.build_buttons()
+                await interaction.edit_original_response(embed=self.embed(str(exc)), view=self)
+                return
+            except (ValueError, MemoryUnavailable) as exc:
+                logging.warning('Present skipped: type=%s', type(exc).__name__)
+                await interaction.followup.send(str(exc), ephemeral=True)
+                return
+            self.processed.add(interaction.id)
+            self.items[key] = max(0, self.items[key] - 1)
+            self.points = points
+            self.perfect = perfect
+            self.build_buttons()
+            status = f'{ITEMS[key][1]}を贈ったぜ！ 好感度 **＋{gain}**'
+            if perfect:
+                status = f'{ITEMS[key][1]}を贈って、**パーフェクトリンク達成！**'
+            await interaction.edit_original_response(embed=self.embed(status), view=self)
+
+    async def on_timeout(self):
+        async with self.lock:
+            self.expired = True
+            for button in self.children:
+                button.disabled = True
+            if self.message:
+                try:
+                    await self.message.edit(embed=self.embed('時間切れだぜ。もう一度コマンドから開いてくれ！'), view=self)
+                except discord.HTTPException:
+                    pass
+
+
+async def open_presents(interaction, store):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        character, items, points, perfect = await asyncio.to_thread(store.snapshot, interaction.user.id)
+        view = PresentView(interaction.user.id, store, character, items, points, perfect)
+        view.message = await interaction.followup.send(embed=view.embed(), view=view, ephemeral=True,
+            wait=True, allowed_mentions=discord.AllowedMentions.none())
+    except (ValueError, MemoryUnavailable) as exc:
+        await interaction.followup.send(str(exc), ephemeral=True)

@@ -11,7 +11,7 @@ from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, is_management_question, MANAGEMENT_REPLY
 import progress as progress_module
 from keep_alive import keep_alive
-from fun_features import FORTUNES, fortune_embed
+from fun_features import FORTUNES, LUCKY_PROGRESS, fortune_embed
 from registered_memory import MemoryUnavailable
 from reply_context import george_reply_target
 from command_help import command_help, annotate_private_commands
@@ -21,6 +21,12 @@ from seasonal_commands import register_seasonal_commands
 from gacha_commands import register_gacha_commands, favorite_details
 from command_permissions import require_administrator
 from command_history import CommandHistory
+from ange_quiz import register_quiz_commands
+from presents import ITEMS
+from title_store import TitleStore
+from title_roles import TitleRoles
+from title_commands import register_title_commands
+from discord_layout import space_headings
 
 ########################################
 # Botクラス
@@ -41,6 +47,9 @@ class MyClient(discord.Client):
         self.cleaned_guilds = set()
         self.health = HealthCheck()
         self.command_history = CommandHistory()
+        self.present_store = TitleStore()
+        self.title_store = self.present_store
+        self.title_roles = TitleRoles(self.title_store)
 
     async def setup_hook(self):
         annotate_private_commands(self.tree)
@@ -72,6 +81,8 @@ class MyClient(discord.Client):
 client = MyClient()
 register_seasonal_commands(client)
 register_gacha_commands(client)
+register_quiz_commands(client)
+register_title_commands(client)
 
 
 async def conversation_favorite(bot, user_id):
@@ -192,6 +203,13 @@ async def progress(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(chunks[0])
     for chunk in chunks[1:]:
         await interaction.followup.send(chunk, allowed_mentions=discord.AllowedMentions.none())
+    if name in world_map:
+        try:
+            await asyncio.to_thread(client.title_store.world_search, interaction.user.id, interaction.id,
+                                    '青黒赤白緑'[world_map[name]])
+        except MemoryUnavailable:
+            logging.warning('World search title update failed')
+            await interaction.followup.send('検索結果は表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
 
 ########################################
 # メッセージイベント
@@ -219,13 +237,34 @@ async def show_health(interaction: discord.Interaction):
 async def omikuji(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     fortune = random.choice(FORTUNES)[0]
+    lucky_progress = random.choice(LUCKY_PROGRESS)
+    reward = None
+    try:
+        reward = await asyncio.to_thread(client.present_store.claim, interaction.user.id, interaction.id, fortune, lucky_progress)
+        if reward['granted']:
+            fortune = reward['fortune']
+            lucky_progress = reward.get('lucky_progress') or lucky_progress
+    except MemoryUnavailable:
+        logging.warning('Fortune present save failed')
     try:
         comment = await client.george_chat.fortune_details(fortune)
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Fortune generation failed: %s", diagnostic)
         comment = dict(FORTUNES)[fortune]
-    await interaction.followup.send(embed=fortune_embed(fortune, comment), allowed_mentions=discord.AllowedMentions.none())
+    embed = fortune_embed(fortune, comment, lucky_progress)
+    if reward is None:
+        text = '保存先との通信で、受け取りを確認できなかったぜ。あとでもう一度試してくれ。'
+    elif reward['granted']:
+        emoji, label = ITEMS[reward['item']]
+        text = f'{emoji} **{label}** ×1\n`/お気に入り プレゼント`から贈れるぜ！'
+        if reward.get('bonus_item'):
+            emoji, label = ITEMS[reward['bonus_item']]
+            text += f'\n\n**応援ボーナス！**\nお気に入りと一致！ {emoji} **{label}** ×1を追加したぜ！'
+    else:
+        text = '今日の分は受け取り済みだぜ。次は日本時間の0時から！'
+    embed.add_field(name='【プレゼント】', value=text, inline=False)
+    await interaction.followup.send(embed=space_headings(embed), allowed_mentions=discord.AllowedMentions.none())
 
 
 @client.event

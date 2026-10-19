@@ -7,7 +7,7 @@ import discord
 class AdminCommandsTests(unittest.IsolatedAsyncioTestCase):
     async def test_protected_commands_reject_non_admin_before_work(self):
         from main import client
-        targets = ['状態', '季節通知']
+        targets = ['状態', '季節通知', '称号設定']
         for name in targets:
             command = client.tree.get_command(name)
             self.assertTrue(command.default_permissions.administrator)

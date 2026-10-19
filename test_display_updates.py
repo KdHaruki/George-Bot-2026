@@ -1,12 +1,15 @@
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
 class DisplayTests(unittest.IsolatedAsyncioTestCase):
     async def test_world_search_and_choices(self):
         import main
         from progress import progressData
-        interaction = SimpleNamespace(response=SimpleNamespace(send_message=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        helper = patch.object(main.client.title_store, 'world_search', Mock())
+        helper.start()
+        self.addCleanup(helper.stop)
+        interaction = SimpleNamespace(id=100, user=SimpleNamespace(id=42), response=SimpleNamespace(send_message=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
         for color in '青黒赤白緑':
             choices = await main.progress_autocomplete(interaction, color + 'の世界')
             self.assertIn(color + 'の世界', [choice.value for choice in choices])
@@ -18,7 +21,6 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
         choices = await main.progress_autocomplete(interaction, '')
         worlds = [choice.value for choice in choices if '世界' in choice.value]
         self.assertEqual(worlds, [color + 'の世界' for color in '青黒赤白緑'])
-        from unittest.mock import patch
         with patch('main.progress_module.progressSearchAll') as search:
             for query in ('全ての世界', '全世界', '全ての', '全'):
                 await main.progress.callback(interaction, query)
