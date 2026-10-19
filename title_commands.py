@@ -4,15 +4,18 @@ import discord
 from discord import app_commands
 
 from registered_memory import MemoryUnavailable
+from favorite_album import JST
+from datetime import datetime
 
 
 class TitleView(discord.ui.View):
     PAGE_SIZE = 20
 
-    def __init__(self, user_id, titles, roles, guild=None, equipped=None):
+    def __init__(self, user_id, titles, roles, guild=None, equipped=None, pending=()):
         super().__init__(timeout=180)
         self.user_id, self.titles, self.roles, self.guild = user_id, titles, roles, guild
         self.equipped = equipped
+        self.pending, self.mode = list(pending), 'earned'
         self.page, self.selected = 0, None
         self.lock = asyncio.Lock()
         self.expired, self.message = False, None
@@ -20,6 +23,9 @@ class TitleView(discord.ui.View):
 
     def build(self):
         self.clear_items()
+        if self.mode == 'pending':
+            self.add_navigation()
+            return
         rows = self.titles[self.page * self.PAGE_SIZE:(self.page + 1) * self.PAGE_SIZE]
         select = discord.ui.Select(placeholder='装着する獲得済み称号を選択', row=0,
             options=[discord.SelectOption(label=row[1][:100], value=row[0], default=self.selected == row[0]) for row in rows]
@@ -49,16 +55,36 @@ class TitleView(discord.ui.View):
         equip.callback, remove.callback = equip_callback, remove_callback
         self.add_item(equip)
         self.add_item(remove)
+        self.add_navigation()
+
+    def add_navigation(self):
+        for label, mode in [('獲得済み', 'earned'), ('未獲得', 'pending')]:
+            button = discord.ui.Button(label=label, row=3, disabled=self.mode == mode,
+                style=discord.ButtonStyle.primary if self.mode == mode else discord.ButtonStyle.secondary)
+
+            async def switch(interaction, mode=mode):
+                await interaction.response.defer()
+                async with self.lock:
+                    if self.expired:
+                        return
+                    self.mode, self.page, self.selected = mode, 0, None
+                    self.build()
+                    await interaction.edit_original_response(embed=self.embed(), view=self)
+
+            button.callback = switch
+            self.add_item(button)
+        items = self.titles if self.mode == 'earned' else self.pending
         for label, delta in [('◀ 前へ', -1), ('次へ ▶', 1)]:
             button = discord.ui.Button(label=label, row=2,
-                disabled=not 0 <= self.page + delta < max(1, (len(self.titles) + self.PAGE_SIZE - 1) // self.PAGE_SIZE))
+                disabled=not 0 <= self.page + delta < max(1, (len(items) + self.PAGE_SIZE - 1) // self.PAGE_SIZE))
 
             async def turn(interaction, delta=delta):
                 await interaction.response.defer()
                 async with self.lock:
                     if self.expired:
                         return
-                    self.page = max(0, min((len(self.titles) - 1) // self.PAGE_SIZE, self.page + delta))
+                    current = self.titles if self.mode == 'earned' else self.pending
+                    self.page = max(0, min((len(current) - 1) // self.PAGE_SIZE, self.page + delta))
                     self.selected = None
                     self.build()
                     await interaction.edit_original_response(embed=self.embed(), view=self)
@@ -67,16 +93,23 @@ class TitleView(discord.ui.View):
             self.add_item(button)
 
     def embed(self, status=None):
-        rows = self.titles[self.page * self.PAGE_SIZE:(self.page + 1) * self.PAGE_SIZE]
+        items = self.titles if self.mode == 'earned' else self.pending
+        rows = items[self.page * self.PAGE_SIZE:(self.page + 1) * self.PAGE_SIZE]
         name = next((row[1] for row in self.titles if row[0] == self.equipped), 'なし')
         description = status or '獲得した称号は全サーバー共通、装着はサーバーごとに1つだぜ！'
         if self.guild is None:
             description += '\nDMでは一覧のみ。装着・解除はサーバーで使ってくれ！'
-        description += f'\n\n【装着中】\n{discord.utils.escape_markdown(name)}\n\n【獲得済み】\n'
-        description += '\n'.join(discord.utils.escape_markdown(row[1]) for row in rows) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'
+        description += f'\n\n【装着中】\n{discord.utils.escape_markdown(name)}\n\n'
+        if self.mode == 'pending':
+            description += '【未獲得】\n'
+            description += '\n\n'.join(f'**{discord.utils.escape_markdown(row[1])}**\n{discord.utils.escape_markdown(row[2])}' for row in rows) or '対象の称号はすべて獲得済みだぜ！'
+            description += '\n\nプログレス別の未獲得称号は、現在のお気に入り本人の分を表示するぜ。'
+        else:
+            description += '【獲得済み】\n'
+            description += '\n'.join(discord.utils.escape_markdown(row[1]) + (f'（{row[2].astimezone(JST):%Y年%m月%d日}）' if isinstance(row[2], datetime) else '') for row in rows) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'
         embed = discord.Embed(title='称号', description=description, color=0xD5AD49)
-        if len(self.titles) > self.PAGE_SIZE:
-            embed.set_footer(text=f'{self.page + 1}/{(len(self.titles) + self.PAGE_SIZE - 1) // self.PAGE_SIZE}ページ')
+        if len(items) > self.PAGE_SIZE:
+            embed.set_footer(text=f'{self.page + 1}/{(len(items) + self.PAGE_SIZE - 1) // self.PAGE_SIZE}ページ')
         return embed
 
     async def interaction_check(self, interaction):
@@ -88,7 +121,7 @@ class TitleView(discord.ui.View):
     async def apply(self, interaction, key):
         await interaction.response.defer()
         async with self.lock:
-            if self.expired or self.guild is None:
+            if self.expired or self.guild is None or self.mode != 'earned':
                 return
             try:
                 name = await self.roles.equip(self.guild, self.user_id, key)
@@ -121,9 +154,10 @@ def register_title_commands(bot):
         await interaction.response.defer(ephemeral=True)
         try:
             rows = await asyncio.to_thread(bot.title_store.titles, interaction.user.id)
+            pending = await asyncio.to_thread(bot.title_store.pending, interaction.user.id, rows)
             guild = interaction.guild
             equipped = await asyncio.to_thread(bot.title_store.equipped, guild.id, interaction.user.id) if guild else None
-            view = TitleView(interaction.user.id, rows, bot.title_roles, guild, equipped)
+            view = TitleView(interaction.user.id, rows, bot.title_roles, guild, equipped, pending)
             view.message = await interaction.followup.send(embed=view.embed(), view=view, ephemeral=True, wait=True,
                 allowed_mentions=discord.AllowedMentions.none())
         except MemoryUnavailable as exc:

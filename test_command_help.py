@@ -70,14 +70,14 @@ class HelpTests(unittest.TestCase):
             embed = command_help(in_guild)
             self.assertLessEqual(len(embed), 6000)
             self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧（☆：あなただけに表示されます）】', '【メンション一覧】'])
+            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧（★：あなただけに表示されます）】', '【メンション一覧】'])
             text = embed.fields[1].value
-            examples = ['/おみくじ', '/プログレス ロザリー', '/ガチャ アンジュ・ヴィエルジュ',
-                        '/ガチャ アンジュ・リリンク', '/ガチャ確率', '/所持カード ロザリー', '/収集率',
+            examples = ['/おみくじ', '/ガチャ アンジュ・ヴィエルジュ',
+                        '/ガチャ アンジュ・リリンク', '/ガチャ確率', '/所持カード ロザリー', '/収集率', '/プログレス ロザリー',
                         '/お気に入り プログレス登録 ロザリー カード', '/お気に入り プログレス確認', '/お気に入り プレゼント',
                         '/クイズ', '/称号', '/ヘルプ']
             self.assertEqual([block.split('`')[1] for block in text.split('\n\n')], examples)
-            self.assertEqual(text.count('（☆）'), 10)
+            self.assertEqual(text.count('（★）'), 10)
             self.assertNotIn('（あなただけに表示されます）', text)
             self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
             self.assertTrue(embed.fields[1].value.endswith('\n\u200b'))

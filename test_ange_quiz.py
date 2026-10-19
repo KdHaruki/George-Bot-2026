@@ -55,7 +55,7 @@ class QuizTests(unittest.IsolatedAsyncioTestCase):
         await correct.callback(interaction)
         await correct.callback(self.interaction())
         store.claim_quiz.assert_called_once_with(42, 100, 2)
-        self.assertIn('お弁当', interaction.edit_original_response.call_args.kwargs['embed'].description)
+        self.assertIn('紅茶', interaction.edit_original_response.call_args.kwargs['embed'].description)
 
     async def test_daily_limit_and_database_failure_keep_correct_result(self):
         for result in ({'granted': False, 'item': 'food'}, MemoryUnavailable('offline')):

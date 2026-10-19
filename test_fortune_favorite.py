@@ -42,7 +42,7 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
         generate, embed = await self.run_fortune(None, failure=True,
             reward={'granted': True, 'item': 'rare', 'fortune': '大吉'})
         self.assertEqual(generate.call_args.args[0], '大吉')
-        self.assertIn('虹色の花束', embed.fields[2].value)
+        self.assertIn('花束（虹）', embed.fields[2].value)
         self.assertIn('大吉', embed.description)
 
     async def test_database_failure_still_returns_fortune_with_clear_notice(self):
@@ -54,4 +54,4 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
             'lucky_progress': '日向美海', 'bonus_item': 'food'})
         self.assertEqual(embed.fields[1].value.removesuffix('\n\u200b'), '日向美海')
         self.assertIn('応援ボーナス', embed.fields[2].value)
-        self.assertIn('お弁当', embed.fields[2].value)
+        self.assertIn('紅茶', embed.fields[2].value)

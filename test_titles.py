@@ -14,6 +14,23 @@ from registered_memory import MemoryUnavailable
 
 
 class TitleRulesTests(unittest.TestCase):
+    def test_pending_conditions_counters_and_favorite_scope(self):
+        from title_core import pending_titles
+        rows = pending_titles({'fortune10', 'favorite_gift:ロザリー'},
+                              {'quiz_first': 7, 'fortunes': 10, 'gift_kinds': ['book', 'rare'], 'worlds': ['赤', '青']},
+                              3, 'ロザリー', 12)
+        data = {key: condition for key, _, condition in rows}
+        self.assertNotIn('fortune10', data)
+        self.assertNotIn('favorite_gift:ロザリー', data)
+        self.assertIn('7/10回', data['quiz10'])
+        self.assertIn('1/14種類', data['variety'])
+        self.assertIn('2/5世界', data['worlds'])
+        self.assertIn('3/10人', data['bond10'])
+        self.assertIn('12/365日', data['anniversary:ロザリー'])
+        self.assertIn('パーフェクトリンク', data['affection:ロザリー'])
+        self.assertNotIn('exchange10', data)
+        self.assertFalse(any(':' in key for key, _, _ in pending_titles(set(), {}, 0)))
+
     def test_all_counter_thresholds_and_exact_names(self):
         for kind, facts, thresholds in [
             ('quiz', {'attempts': 1}, {10: 'quiz10', 100: 'quiz100'}),
@@ -46,6 +63,16 @@ class TitleRulesTests(unittest.TestCase):
 
 
 class TitleStorageTests(unittest.TestCase):
+    def test_pending_loads_saved_counts_and_current_favorite(self):
+        self.db.execute('INSERT INTO george_title_stats VALUES (42,?)', (json.dumps({'quiz_first': 7}),))
+        self.db.commit()
+        rows = self.setUpTitles().pending(42, [('fortune10', '今日も神頼み', None)])
+        data = {key: condition for key, _, condition in rows}
+        self.assertIn('7/10回', data['quiz10'])
+        self.assertIn('anniversary:ロザリー', data)
+        self.assertNotIn('fortune10', data)
+        self.assertIn('0/10回', dict((key, condition) for key, _, condition in self.setUpTitles().pending(43, []))['quiz10'])
+
     # Reuse the offline transaction adapter without duplicating all present tests.
     setUp = test_presents.StorageTests.setUp
     set_favorite = test_presents.StorageTests.set_favorite
@@ -278,6 +305,30 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         interaction = SimpleNamespace(user=SimpleNamespace(id=43), response=SimpleNamespace(send_message=AsyncMock()))
         self.assertFalse(await view.interaction_check(interaction))
         self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
+        view.stop()
+
+    async def test_switch_pending_and_back_preserves_equipped_and_resets_page(self):
+        roles = SimpleNamespace(equip=AsyncMock())
+        earned = [('fortune10', '今日も神頼み', datetime(2026, 10, 19, 16, tzinfo=timezone.utc))]
+        view = TitleView(42, earned, roles, SimpleNamespace(id=1), 'fortune10',
+                         [('quiz10', '青蘭学園の知恵袋', '初回正解7/10回')])
+        interaction = SimpleNamespace(response=SimpleNamespace(defer=AsyncMock()), edit_original_response=AsyncMock())
+        self.assertIn('2026年10月20日', view.embed().description)
+        view.selected = 'fortune10'
+        await next(child for child in view.children if getattr(child, 'label', '') == '未獲得').callback(interaction)
+        self.assertEqual(view.mode, 'pending')
+        self.assertIsNone(view.selected)
+        self.assertIn('初回正解7/10回', view.embed().description)
+        self.assertFalse(any(isinstance(child, discord.ui.Select) for child in view.children))
+        await view.apply(interaction, 'quiz10')
+        roles.equip.assert_not_awaited()
+        await next(child for child in view.children if getattr(child, 'label', '') == '獲得済み').callback(interaction)
+        self.assertEqual(view.mode, 'earned')
+        self.assertEqual(view.page, 0)
+        self.assertEqual(view.equipped, 'fortune10')
+        self.assertTrue(any(isinstance(child, discord.ui.Select) for child in view.children))
+        await view.on_timeout()
+        self.assertTrue(all(child.disabled for child in view.children))
         view.stop()
 
     async def test_missing_permission_and_role_hierarchy_block_changes(self):

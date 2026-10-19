@@ -2,12 +2,12 @@ import discord
 
 SLASH_COMMANDS = [
     ('/おみくじ', '今日の運勢占い。1日1回アイテムをプレゼント！'),
-    ('/プログレス ロザリー', '名前でプロフィールを検索。世界名でも探せるぜ。'),
     ('/ガチャ アンジュ・ヴィエルジュ', '7連ガチャ。'),
     ('/ガチャ アンジュ・リリンク', '10連ガチャ。'),
     ('/ガチャ確率', 'ガチャの排出率を確認。'),
     ('/所持カード ロザリー', 'プログレスの所持カードと枚数を確認。'),
     ('/収集率', '作品毎のカードコレクションを確認。'),
+    ('/プログレス ロザリー', '名前でプロフィールを検索。世界名でも探せるぜ。'),
     ('/お気に入り プログレス登録 ロザリー カード', 'レアリティ・衣装を選んで登録。同じカードの再指定で解除。'),
     ('/お気に入り プログレス確認', 'お気に入り・好感度・記念日を確認。'),
     ('/お気に入り プレゼント', '所持アイテムを贈って好感度アップ。'),
@@ -39,8 +39,8 @@ def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
     intro = introduction or 'よう、みんな！ 楽しそうな雑談には俺もたまに混ざるし、俺が絵文字でリアクションすることもあるぜ！'
     embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n\u200b', inline=False)
-    entries = [(command, explanation + ('' if command.split()[0][1:] in PUBLIC_COMMANDS else '（☆）'))
+    entries = [(command, explanation + ('' if command.split()[0][1:] in PUBLIC_COMMANDS else '（★）'))
                for command, explanation in SLASH_COMMANDS]
-    embed.add_field(name='【スラッシュコマンド一覧（☆：あなただけに表示されます）】', value=format_commands(entries) + '\n\u200b', inline=False)
+    embed.add_field(name='【スラッシュコマンド一覧（★：あなただけに表示されます）】', value=format_commands(entries) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション一覧】', value=format_commands(DM_COMMANDS), inline=False)
     return embed

@@ -4,9 +4,10 @@ import random
 
 from gacha_collection import CollectionStore
 from progress_profiles import profile_for, character_key
-from favorite_album import record_gift
-from title_core import record_event, refresh_affection
+from favorite_album import record_gift, record_completions
+from title_core import record_event, refresh_affection, settle_streak
 from daily_affection import MAX_AFFECTION, settle_daily
+from present_catalog import ITEMS, NORMAL_ITEMS, preferred_items
 
 
 RARE_RATES = {'大吉': 10, '吉': 5, '中吉': 4, '小吉': 3, '末吉': 2, '凶': 1}
@@ -23,29 +24,6 @@ def affection_display(points, perfect=False):
     points = max(0, min(MAX_AFFECTION, points))
     filled = points // 10
     return f'**{points}/{MAX_AFFECTION}**\n' + '🟪' * filled + '⬜' * (10 - filled)
-
-
-ITEMS = {
-    'sweets': ('🍪', 'お菓子'), 'food': ('🍱', 'お弁当'),
-    'fashion': ('🎀', 'リボン'), 'book': ('📖', '本'),
-    'game': ('🎮', 'ゲーム'), 'magic': ('🪄', '手品グッズ'),
-    'rare': ('🌈', '虹色の花束'),
-}
-NORMAL_ITEMS = tuple(key for key in ITEMS if key != 'rare')
-PREFERENCE_WORDS = {
-    'sweets': ('甘い', 'お菓子', 'ケーキ', 'クレープ', 'チョコ', 'スイーツ', 'パフェ', 'クッキー', 'アイス'),
-    'food': ('ご飯', '料理', '食べ', '食事', 'お肉', 'パン', '牛乳', 'お弁当'),
-    'fashion': ('おしゃれ', 'オシャレ', '服', 'アクセサリー', 'ファッション', '買い物', 'ショッピング'),
-    'book': ('読書', '本', '勉強', '図書'),
-    'game': ('ゲーム', '遊び', 'おもちゃ'),
-    'magic': ('手品', '魔法', '不思議', '鏡'),
-}
-
-
-def preferred_items(character):
-    record = profile_for(character)
-    likes = record.get('progressLike', '') if record else ''
-    return tuple(key for key, words in PREFERENCE_WORDS.items() if any(word in likes for word in words))[:2]
 
 
 def affection_gain(character, item):
@@ -142,9 +120,21 @@ class PresentStore(CollectionStore):
 
     def album(self, user_id, character):
         with self.connect() as connection:
-            return connection.execute('''SELECT first_registered_at,first_gift_at,max_affection_at
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_streak(connection, user_id)
+            params = (user_id, character_key(character))
+            record_completions(connection, user_id, (character,))
+            dates = connection.execute('''SELECT first_registered_at,first_gift_at,max_affection_at
                 FROM george_favorite_album WHERE user_id=%s AND character=%s''',
-                (user_id, character_key(character))).fetchone() or (None, None, None)
+                params).fetchone() or (None, None, None)
+            perfect = connection.execute('''SELECT achieved_at FROM george_perfect_links
+                WHERE user_id=%s AND character=%s''', params).fetchone()
+            right_arm = connection.execute('''SELECT acquired_at FROM george_titles
+                WHERE user_id=%s AND title_key=%s''', (user_id, f'anniversary:{params[1]}')).fetchone()
+            completion = connection.execute('''SELECT achieved_at FROM george_character_completions
+                WHERE user_id=%s AND character=%s''', params).fetchone()
+            return (dates[0], right_arm[0] if right_arm else None, dates[2], perfect[0] if perfect else None,
+                    completion[0] if completion else None)
 
     @staticmethod
     def current_character(connection, user_id, required=True):

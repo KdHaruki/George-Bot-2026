@@ -6,7 +6,7 @@ import json
 from gacha import BATCH_GUARANTEE, RULES, Card, Gacha, vierge_character_card, current_card
 import random
 from registered_memory import MemoryStore, MemoryUnavailable
-from favorite_album import ensure_album, record_registration
+from favorite_album import ensure_album, record_registration, record_completions
 from title_core import ensure_titles, seed_existing_streaks, record_event, change_streak
 from progress_profiles import character_key
 from daily_affection import ensure_daily, seed_daily, settle_daily, start_daily
@@ -115,6 +115,7 @@ class CollectionStore(MemoryStore):
             if favorite and any(card.rarity == RULES[game].normal[0][0] and
                                 character_key(card.character) == character_key(favorite[0]['character']) for card in cards):
                 record_event(connection, user_id, f'reunion:{interaction_id}', 'reunion')
+            record_completions(connection, user_id, (card.character for card in cards))
             # Receipts only prevent short-term redelivery; owned cards never expire.
             connection.execute("DELETE FROM george_gacha_draws WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
         return result

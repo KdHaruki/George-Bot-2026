@@ -17,6 +17,32 @@ from daily_affection import ensure_daily
 
 
 class PresentRulesTests(unittest.TestCase):
+    def test_relink_item_names_keep_existing_inventory_ids(self):
+        self.assertEqual({key: value[1] for key, value in ITEMS.items()}, {
+            'sweets': 'チョコクッキー', 'food': '紅茶', 'fashion': 'リボン', 'mirror': '手鏡',
+            'book': '本', 'pen': '万年筆', 'game': 'ぬいぐるみ', 'music': 'オルゴール',
+            'towel': 'タオル', 'charm': 'お守り', 'magic': '魔道書', 'tools': '工具セット',
+            'plant': '鉢植え', 'aroma': 'アロマセット', 'rare': '花束（虹）'})
+        self.assertEqual(affection_gain('ロザリー', 'magic'), 5)
+        self.assertEqual(affection_gain('不明な人物', 'game'), 2)
+
+    def test_seven_categories_cover_all_characters_and_both_items_are_preferred(self):
+        from present_catalog import CATEGORIES, preferred_categories, preferred_items
+        from progress import progressData
+        self.assertEqual(len(CATEGORIES), 7)
+        self.assertTrue(all(len(items) == 2 for _, items in CATEGORIES.values()))
+        self.assertEqual(len(ITEMS), 15)
+        for person in progressData:
+            name = person['progressName']
+            categories = preferred_categories(name)
+            self.assertIn(len(categories), (1, 2), name)
+            self.assertEqual(set(preferred_items(name)), {item for category in categories for item in CATEGORIES[category][1]})
+            for item in preferred_items(name):
+                self.assertEqual(affection_gain(name, item), 5, (name, item))
+            self.assertEqual(affection_gain(name, 'rare'), 10)
+        self.assertEqual(preferred_items('美海'), preferred_items('日向美海'))
+        self.assertEqual(preferred_items('不明な人物'), ())
+
     def test_quiz_rare_chances_by_attempts(self):
         for attempts, rate in [(1, 10), (2, 5), (3, 4), (4, 3)]:
             for roll in range(100):
@@ -102,9 +128,9 @@ class StorageTests(unittest.TestCase):
                 if sql.startswith('SELECT f.user_id,c.card'):
                     rows = test.db.execute(sql.replace('%s', '?'), params).fetchall()
                     return SimpleNamespace(fetchall=lambda: [(uid, json.loads(payload)) for uid, payload in rows])
-                if sql.startswith('SELECT first_registered_at'):
+                if sql.startswith(('SELECT first_registered_at', 'SELECT achieved_at', 'SELECT acquired_at')):
                     row = test.db.execute(sql.replace('%s', '?'), params).fetchone()
-                    return SimpleNamespace(fetchone=lambda: tuple(datetime.fromisoformat(v).replace(tzinfo=timezone.utc) if v else None for v in row) if row else None)
+                    return SimpleNamespace(fetchone=lambda: tuple((datetime.fromisoformat(v) if datetime.fromisoformat(v).tzinfo else datetime.fromisoformat(v).replace(tzinfo=timezone.utc)) if v else None for v in row) if row else None)
                 if sql.startswith(('DELETE FROM george_present_receipts', 'DELETE FROM george_title_events')):
                     return test.db.execute('DELETE FROM george_present_receipts WHERE 0')
                 sql = sql.replace("CURRENT_TIMESTAMP-INTERVAL '365 days'", "datetime(CURRENT_TIMESTAMP, '-365 days')")
@@ -282,7 +308,7 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(self.store.snapshot(42)[1]['food'], 2)
 
     def test_album_first_dates_are_retained_and_no_history_is_invented(self):
-        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None))
+        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None, None, None))
         with self.store.connect() as connection:
             record_registration(connection, 42, 'ロザリー')
         first = self.store.album(42, 'ロザリー')[0]
@@ -290,7 +316,7 @@ class StorageTests(unittest.TestCase):
         self.store.give(42, 200, 'ロザリー', 'magic')
         dates = self.store.album(42, 'ロザリー')
         self.assertEqual(dates[0], first)
-        self.assertIsNotNone(dates[1])
+        self.assertIsNone(dates[1])
         self.assertIsNone(dates[2])
         self.db.execute("UPDATE george_affection SET points=99 WHERE user_id=42")
         self.db.commit()
@@ -303,12 +329,57 @@ class StorageTests(unittest.TestCase):
         with self.store.connect() as connection:
             record_registration(connection, 42, 'ロザリー')
         self.assertEqual(self.store.album(42, 'ロザリー'), completed)
-        self.assertEqual(self.store.album(43, 'ロザリー'), (None, None, None))
+        self.assertEqual(self.store.album(43, 'ロザリー'), (None, None, None, None, None))
 
     def test_album_dates_use_japan_time(self):
-        text = album_display((datetime(2026, 10, 19, 16, tzinfo=timezone.utc), None, None))
+        text = album_display((datetime(2026, 10, 19, 16, tzinfo=timezone.utc), None, None,
+                              datetime(2026, 10, 20, 16, tzinfo=timezone.utc)))
         self.assertIn('初登録日：2026年10月20日', text)
-        self.assertIn('初プレゼント：未記録', text)
+        self.assertIn('右腕の獲得日：未記録', text)
+        self.assertNotIn('初プレゼント', text)
+        self.assertNotIn('好感度100達成', text)
+        self.assertEqual(len(text.splitlines()), 4)
+        self.assertIn('パーフェクトリンク達成：2026年10月21日', text)
+
+    def test_album_uses_existing_perfect_link_timestamp_without_rewriting(self):
+        self.assertIsNone(self.store.album(42, 'ロザリー')[3])
+        self.db.execute("INSERT INTO george_perfect_links VALUES (42,'ロザリー','2026-10-19T16:00:00+00:00')")
+        self.db.commit()
+        dates = self.store.album(42, 'ロザリー')
+        self.assertEqual(dates[:3], (None, None, None))
+        self.assertIn('パーフェクトリンク達成：2026年10月20日', album_display(dates))
+        self.assertEqual(self.store.album(42, 'ロザリー'), dates)
+        self.assertIsNone(self.store.album(43, 'ロザリー')[3])
+
+    def test_album_reads_personal_right_arm_title_and_keeps_original_date(self):
+        self.db.execute("INSERT INTO george_titles VALUES (42,'anniversary:ロザリー','ロザリーの右腕','2026-10-19T16:00:00+00:00')")
+        self.db.commit()
+        dates = self.store.album(42, 'ロザリー')
+        self.assertIn('右腕の獲得日：2026年10月20日', album_display(dates))
+        self.assertEqual(self.store.album(42, 'ロザリー'), dates)
+        self.assertIsNone(self.store.album(42, '日向美海')[1])
+        self.assertIsNone(self.store.album(43, 'ロザリー')[1])
+
+    def test_completion_requires_both_games_and_retains_first_date(self):
+        from favorite_album import collection_targets, record_completions
+        required = sorted(collection_targets()['ロザリー'])
+        self.assertEqual({game for game, _ in required}, {'vierge', 'relink'})
+        for game, card_id in required[:-1]:
+            self.db.execute('INSERT INTO george_gacha_cards VALUES (42,?,?,?)', (game, card_id, '{}'))
+        self.db.commit()
+        self.assertIsNone(self.store.album(42, 'ロザリー')[4])
+        game, card_id = required[-1]
+        self.db.execute('INSERT INTO george_gacha_cards VALUES (42,?,?,?)', (game, card_id, '{}'))
+        self.db.commit()
+        with self.store.connect() as conn:
+            record_completions(conn, 42, ('ロザリー',))
+        dates = self.store.album(42, 'ロザリー')
+        self.assertIsNotNone(dates[4])
+        self.assertIn('カード全種類収集：', album_display(dates))
+        self.db.execute("UPDATE george_character_completions SET achieved_at='2026-10-01T00:00:00+00:00'")
+        self.db.commit()
+        self.assertEqual(self.store.album(42, 'ロザリー')[4].day, 1)
+        self.assertIsNone(self.store.album(43, 'ロザリー')[4])
 
     def test_album_failure_rolls_back_item_and_points_together(self):
         self.claim()
@@ -318,7 +389,7 @@ class StorageTests(unittest.TestCase):
         self.fail_on = None
         self.assertEqual(self.store.snapshot(42)[1], {'magic': 1})
         self.assertEqual(self.store.points(42, 'ロザリー'), 0)
-        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None))
+        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None, None, None))
 
     def test_parallel_quiz_correct_answers_only_award_once(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -396,7 +467,13 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(view.children), 8)
         await view.children[-1].callback(self.interaction())
         self.assertEqual(view.page, 1)
-        self.assertEqual(len(view.children), 3)
+        self.assertEqual(len(view.children), 8)
+        await view.children[-1].callback(self.interaction())
+        self.assertEqual(view.page, 2)
+        self.assertEqual(len(view.children), 5)
+        self.assertTrue(view.children[-1].disabled)
+        self.assertIn('花束（虹）', view.children[2].label)
+        self.assertIn('好物カテゴリー', view.embed().description)
         interaction = self.interaction()
         await view.give(interaction, 'magic')
         await view.give(interaction, 'magic')

@@ -422,9 +422,7 @@ def register_gacha_commands(bot, store=None):
             return
         embed = discord.Embed(title='カード収集率', color=0xB06FE0)
         for game in RULES:
-            unique, total, copies, archived = collection_summary(engine, rows, game)
+            unique, total, copies, _ = collection_summary(engine, rows, game)
             text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）\n重複込みの所持数：{copies}枚'
-            if archived:
-                text += f'\n現在のガチャ対象外：{archived}種類（所持は維持）'
             embed.add_field(name=f'【{RULES[game].name}】', value=text, inline=False)
         await interaction.followup.send(embed=space_headings(embed), ephemeral=True)

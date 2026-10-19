@@ -2,9 +2,27 @@ from contextlib import contextmanager
 from presents import PresentStore
 from title_core import change_streak, refresh_affection, record_event
 from daily_affection import settle_daily
+from title_core import pending_titles
+import json
+from datetime import datetime, timezone
 
 
 class TitleStore(PresentStore):
+    def pending(self, user_id, earned):
+        with self.connect() as conn:
+            conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            row = conn.execute('SELECT data FROM george_title_stats WHERE user_id=%s', (user_id,)).fetchone()
+            state = json.loads(row[0]) if row else {}
+            people = conn.execute('SELECT character FROM george_affection WHERE user_id=%s AND points>=100', (user_id,)).fetchall()
+            character = self.current_character(conn, user_id, required=False)
+            streak = conn.execute('SELECT character,since FROM george_title_streaks WHERE user_id=%s', (user_id,)).fetchone()
+            days = 0
+            if streak and streak[0] == character:
+                since = streak[1] if isinstance(streak[1], datetime) else datetime.fromisoformat(streak[1])
+                since = since.replace(tzinfo=timezone.utc) if since.tzinfo is None else since
+                days = max(0, (datetime.now(timezone.utc) - since).days)
+            return pending_titles({row[0] for row in earned}, state, len(people), character, days)
+
     @contextmanager
     def connect(self):
         with super().connect() as conn:

@@ -15,7 +15,7 @@ from registered_memory import MemoryUnavailable
 
 class StoreTests(unittest.TestCase):
     def setUp(self):
-        for name in ('change_streak', 'record_event', 'settle_daily', 'start_daily'):
+        for name in ('change_streak', 'record_event', 'settle_daily', 'start_daily', 'record_completions'):
             helper = patch('gacha_collection.' + name)
             helper.start()
             self.addCleanup(helper.stop)

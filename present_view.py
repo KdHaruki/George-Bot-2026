@@ -5,6 +5,7 @@ import discord
 
 from presents import ITEMS, preferred_items, affection_display, MAX_AFFECTION, PerfectLinkReached
 from registered_memory import MemoryUnavailable
+from present_catalog import CATEGORIES, ITEM_CATEGORY, preferred_categories
 
 
 class PresentView(discord.ui.View):
@@ -25,7 +26,8 @@ class PresentView(discord.ui.View):
         self.clear_items()
         for index, key in enumerate(self.keys[self.page * 6:self.page * 6 + 6]):
             emoji, label = ITEMS[key]
-            button = discord.ui.Button(label=f'{label} ×{self.items[key]}', emoji=emoji,
+            category = CATEGORIES[ITEM_CATEGORY[key]][0] if key in ITEM_CATEGORY else 'レア'
+            button = discord.ui.Button(label=f'{category}：{label} ×{self.items[key]}', emoji=emoji,
                                        row=index // 2, disabled=self.perfect or self.items[key] <= 0)
 
             async def callback(interaction, key=key):
@@ -53,9 +55,9 @@ class PresentView(discord.ui.View):
     def embed(self, status=None):
         if status is None:
             status = 'パーフェクトリンク達成済みだぜ！' if self.perfect else 'ボタンを押すと1個贈るぜ！'
-        likes = '、'.join(ITEMS[key][1] for key in preferred_items(self.character)) or '設定なし'
+        likes = '、'.join(CATEGORIES[key][0] for key in preferred_categories(self.character)) or '設定なし'
         embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xB06FE0,
-            description=f'{status}\n\n好感度：{affection_display(self.points, self.perfect)}\nプレゼント相性：{likes}\n通常＋2／好物＋5／虹色の花束＋10')
+            description=f'{status}\n\n好感度：{affection_display(self.points, self.perfect)}\n好物カテゴリー：{likes}\n通常＋2／好物＋5／{ITEMS["rare"][1]}＋10')
         if self.perfect:
             embed.description += '\nこの子へのプレゼントは完了したぜ！ これ以上は渡せないぞ。'
         elif self.points >= MAX_AFFECTION:
