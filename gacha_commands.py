@@ -11,7 +11,7 @@ from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
 from gacha_collection import CollectionStore, collection_summary
 from registered_memory import MemoryUnavailable
 from progress import progressData
-from relink_presentations import star3_embeds, presentation_files, PRESENTATIONS
+from relink_presentations import star3_embeds, presentation_files
 
 
 GAME_CHOICES = [app_commands.Choice(name=rules.name, value=key) for key, rules in RULES.items()]
@@ -344,10 +344,6 @@ def register_gacha_commands(bot, store=None):
                 (candidate for candidate in engine.pools['relink']['★3']
                  if candidate.character == card.character or
                  ('\n' in introduction and favorite_details(candidate)[0].partition('\n')[2] == introduction.partition('\n')[2])), None)
-            original = PRESENTATIONS.get(art.id, {}).get('quote', '') if art else ''
-            line = original or await ai_comment(dict(action='character_line', character=card.character, profile=introduction), '')
-            if line:
-                embed.add_field(name=f'【{card.character}からの一言】', value=discord.utils.escape_markdown(line)[:1024], inline=False)
             await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
             if art is not None:
                 files = presentation_files([art])

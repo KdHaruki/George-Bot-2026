@@ -18,7 +18,7 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(main, 'client', bot), patch.object(main, 'conversation_favorite',
                 AsyncMock(return_value=favorite)) as lookup:
             await main.omikuji.callback(interaction)
-        lookup.assert_awaited_once_with(bot, 42)
+        lookup.assert_not_awaited()
         self.assertEqual(generate.await_count, 1)
         return generate, interaction.followup.send.call_args.kwargs['embed']
 
@@ -26,13 +26,6 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
         generate, embed = await self.run_fortune(None)
         self.assertEqual(embed.fields[0].name, '【ジョージの一言】')
         self.assertEqual(generate.call_args.kwargs, {})
-
-    async def test_favorite_speaks_instead_of_george(self):
-        favorite = {'character': 'ロザリー', 'profile': '幻影の魔女'}
-        generate, embed = await self.run_fortune(favorite)
-        self.assertEqual(embed.fields[0].name, '【ロザリーの一言】')
-        self.assertEqual(generate.call_args.kwargs['favorite'], favorite)
-        self.assertEqual(embed.fields[1].name, '【ラッキープログレス】')
 
     async def test_generation_failure_uses_george_fallback(self):
         generate, embed = await self.run_fortune({'character': 'ロザリー'}, failure=True)

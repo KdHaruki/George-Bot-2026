@@ -219,19 +219,13 @@ async def show_health(interaction: discord.Interaction):
 async def omikuji(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     fortune = random.choice(FORTUNES)[0]
-    speaker = 'ジョージ'
-    favorite = await conversation_favorite(client, interaction.user.id)
     try:
-        if favorite:
-            comment = await client.george_chat.fortune_details(fortune, favorite=favorite)
-            speaker = favorite['character']
-        else:
-            comment = await client.george_chat.fortune_details(fortune)
+        comment = await client.george_chat.fortune_details(fortune)
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Fortune generation failed: %s", diagnostic)
         comment = dict(FORTUNES)[fortune]
-    await interaction.followup.send(embed=fortune_embed(fortune, comment, speaker), allowed_mentions=discord.AllowedMentions.none())
+    await interaction.followup.send(embed=fortune_embed(fortune, comment), allowed_mentions=discord.AllowedMentions.none())
 
 
 @client.event

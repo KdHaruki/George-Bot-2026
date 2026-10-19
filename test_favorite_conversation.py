@@ -30,15 +30,6 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         await chat.reply((1, 43), 'こんにちは')
         self.assertNotIn('今回話しているユーザーのお気に入り', generate.call_args.kwargs['config'].system_instruction)
 
-    async def test_character_line_uses_own_instruction(self):
-        with patch.dict(os.environ, {'GEMINI_API_KEY': ''}):
-            chat = GeorgeChat()
-        generate = AsyncMock(return_value=SimpleNamespace(text='今日も楽しんでいこうね！'))
-        chat.client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate)))
-        await chat.collection_comment({'action': 'character_line', 'character': 'ロザリー', 'profile': '幻影の魔女'})
-        self.assertIn('本人として', generate.call_args.kwargs['config'].system_instruction)
-        self.assertNotIn('俺はジョージ', generate.call_args.kwargs['config'].system_instruction)
-
     async def test_help_intro_is_cached_and_retried_after_failure(self):
         with patch.dict(os.environ, {'GEMINI_API_KEY': ''}):
             chat = GeorgeChat()

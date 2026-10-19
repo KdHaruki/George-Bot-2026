@@ -9,9 +9,9 @@ from discord_layout import space_headings
 LUCKY_PROGRESS = tuple(sorted({record['progressName'] for record in progressData}))
 
 
-def fortune_embed(fortune, comment, speaker='ジョージ'):
+def fortune_embed(fortune, comment):
     embed = discord.Embed(title='🎍 今日のおみくじ', description=f'## 【{fortune}】', color=0xE2AD48)
-    embed.add_field(name=f'【{speaker}の一言】', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
+    embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
     embed.add_field(name='【ラッキープログレス】', value=discord.utils.escape_markdown(random.choice(LUCKY_PROGRESS)), inline=False)
     return space_headings(embed)
 

@@ -124,17 +124,6 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await self.chat.fortune_details("凶")
 
-    async def test_favorite_fortune_uses_separate_character_instruction(self):
-        self.generate.return_value = SimpleNamespace(text='{"comment":"楽しい一日にしようね！"}')
-        await self.chat.fortune_details('大吉', favorite={'character': 'ロザリー', 'profile': '幻影の魔女'})
-        self.assertEqual(self.generate.await_count, 1)
-        request = self.generate.call_args.kwargs
-        self.assertIn('幻影の魔女', request['contents'])
-        self.assertIn('語り手はプログレス本人', request['config'].system_instruction)
-        await self.chat.fortune_details('吉')
-        self.assertNotIn('幻影の魔女', self.generate.call_args.kwargs['contents'])
-        self.assertFalse(self.chat.sessions)
-
     async def test_seasonal_greeting_uses_only_event_names(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text="今日はハロウィンだぜ！")

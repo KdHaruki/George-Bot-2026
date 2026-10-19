@@ -376,7 +376,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(details.fields[1].name,'【ジョージの一言】')
         self.assertTrue(details.description.endswith('\n\u200b'))
         self.assertTrue(all(field.value.endswith('\n\u200b') for field in details.fields[:-1]))
-        self.assertTrue(any('からの一言' in field.name for field in details.fields))
+        self.assertFalse(any('からの一言' in field.name for field in details.fields))
         self.assertNotIn('（原作台詞）', str(details.to_dict()))
         self.assertNotIn('（AI生成）', str(details.to_dict()))
         self.assertTrue(interaction.followup.send.call_args.kwargs['files'])
