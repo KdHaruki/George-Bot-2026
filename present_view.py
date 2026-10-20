@@ -53,17 +53,20 @@ class PresentView(discord.ui.View):
                 self.add_item(button)
 
     def embed(self, status=None):
+        show_instruction = status is None and not self.perfect
         if status is None:
-            status = 'パーフェクトリンク達成済みだぜ！' if self.perfect else 'ボタンを押すと1個贈るぜ！'
+            status = 'パーフェクトリンク達成済みだぜ！' if self.perfect else ''
         likes = '、'.join(CATEGORIES[key][0] for key in preferred_categories(self.character)) or '設定なし'
         embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xB06FE0,
-            description=f'{status}\n\n好感度：{affection_display(self.points, self.perfect)}\n好物カテゴリー：{likes}\n通常＋2／好物＋5／{ITEMS["rare"][1]}＋10')
+            description=(f'{status}\n\n' if status else '') + f'好感度：{affection_display(self.points, self.perfect)}\n\n好物カテゴリー：{likes}\n通常＋2／好物＋5／{ITEMS["rare"][1]}＋10')
         if self.perfect:
             embed.description += '\nこの子へのプレゼントは完了したぜ！ これ以上は渡せないぞ。'
         elif self.points >= MAX_AFFECTION:
             embed.description += '\n好感度100では＋0。好物を1個贈るとパーフェクトリンクになり、以降はこの子に贈れなくなるぜ。'
         if not self.keys:
             embed.add_field(name='プレゼントはまだないぜ！', value='その日最初の /おみくじ で1個もらえるぞ。', inline=False)
+        elif show_instruction:
+            embed.description += '\n\nボタンを押すと1個贈るぜ！'
         return embed
 
     async def interaction_check(self, interaction):

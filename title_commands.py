@@ -96,7 +96,7 @@ class TitleView(discord.ui.View):
         items = self.titles if self.mode == 'earned' else self.pending
         rows = items[self.page * self.PAGE_SIZE:(self.page + 1) * self.PAGE_SIZE]
         name = next((row[1] for row in self.titles if row[0] == self.equipped), 'なし')
-        description = status or '獲得した称号は全サーバー共通、装着はサーバーごとに1つだぜ！'
+        description = status or ''
         if self.guild is None:
             description += '\nDMでは一覧のみ。装着・解除はサーバーで使ってくれ！'
         description += f'\n\n【装着中】\n{discord.utils.escape_markdown(name)}\n\n'
@@ -106,7 +106,7 @@ class TitleView(discord.ui.View):
         else:
             description += '【獲得済み】\n'
             description += '\n'.join(discord.utils.escape_markdown(row[1]) + (f'（{row[2].astimezone(JST):%Y年%m月%d日}）' if isinstance(row[2], datetime) else '') for row in rows) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'
-        embed = discord.Embed(title='称号', description=description, color=0xD5AD49)
+        embed = discord.Embed(title='称号', description=description.lstrip(), color=0xD5AD49)
         if len(items) > self.PAGE_SIZE:
             embed.set_footer(text=f'{self.page + 1}/{(len(items) + self.PAGE_SIZE - 1) // self.PAGE_SIZE}ページ')
         return embed

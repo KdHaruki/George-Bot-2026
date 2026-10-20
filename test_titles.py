@@ -304,6 +304,8 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_private_view_dm_and_owner_only(self):
         view = TitleView(42, [('fortune10', '今日も神頼み', None)], None)
+        self.assertNotIn('獲得した称号は全サーバー共通', view.embed().description)
+        self.assertFalse(view.embed().description.startswith('\n'))
         self.assertTrue(view.children[1].disabled)
         self.assertTrue(view.children[2].disabled)
         interaction = SimpleNamespace(user=SimpleNamespace(id=43), response=SimpleNamespace(send_message=AsyncMock()))

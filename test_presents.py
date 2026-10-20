@@ -425,6 +425,15 @@ class StorageTests(unittest.TestCase):
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_gift_instruction_is_last_and_categories_have_space_above(self):
+        view = PresentView(42, None, 'ロザリー', {'magic': 1}, 35)
+        text = view.embed().description
+        self.assertTrue(text.startswith('好感度：'))
+        self.assertIn('\n\n好物カテゴリー：', text)
+        self.assertTrue(text.endswith('ボタンを押すと1個贈るぜ！'))
+        self.assertEqual(text.count('ボタンを押すと1個贈るぜ！'), 1)
+        view.stop()
+
     async def test_perfect_link_disables_gifts_and_updates_stale_views(self):
         store = SimpleNamespace(give=Mock(return_value=(0, 100, True)))
         view = PresentView(42, store, 'ロザリー', {'magic': 2, 'food': 1}, 100)

@@ -343,7 +343,7 @@ def register_gacha_commands(bot, store=None):
                                カード: app_commands.Range[str, 1, 100]):
         await show_favorite(interaction, プログレス, カード)
 
-    @favorite_group.command(name='プログレス確認', description='お気に入りのプロフィール・好感度・記念日を確認')
+    @favorite_group.command(name='プログレス確認', description='お気に入りのプロフィール・好感度・アルバムを確認')
     async def favorite_view(interaction: discord.Interaction):
         await show_favorite(interaction)
 
@@ -389,9 +389,9 @@ def register_gacha_commands(bot, store=None):
                 embed.add_field(name='【好感度】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
             try:
                 dates = await asyncio.to_thread(presents.album, interaction.user.id, card.character)
-                embed.add_field(name='【記念アルバム】', value=album_display(dates), inline=False)
+                embed.add_field(name='【アルバム】', value=album_display(dates), inline=False)
             except MemoryUnavailable:
-                embed.add_field(name='【記念アルバム】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
+                embed.add_field(name='【アルバム】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
             # Show existing local art only; never fetch the Wiki during a command.
             art = card if game == 'relink' and card.rarity == '★3' else None
             await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
