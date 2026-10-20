@@ -56,7 +56,7 @@ class QuizView(discord.ui.View):
             self.add_item(button)
 
     def embed(self, status='このヒントのプログレスは誰だ？'):
-        embed = discord.Embed(title='アンジュクイズ', description=status, color=0xB06FE0)
+        embed = discord.Embed(title='アンジュクイズ', description=status, color=0xE2AD48)
         for label, value in self.hints[:self.revealed]:
             embed.add_field(name=f'【{label}】', value=discord.utils.escape_markdown(value), inline=False)
         return embed

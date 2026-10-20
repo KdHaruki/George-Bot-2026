@@ -282,7 +282,7 @@ async def omikuji(interaction: discord.Interaction):
         text = f'{emoji} **{label} ×1** を受け取ったぜ！\n`/お気に入り プレゼント`で贈れるぞ。'
     else:
         gift_heading = '【贈り物は受け取り済み】'
-        text = '今日の分はもう渡したぜ！ 次は明日の0時（日本時間）からだ。'
+        text = '今日の分は受け取り済みだぜ！ 次は明日の0時（日本時間）からだ。'
     if reward and reward.get('bonus_item'):
         if not reward['granted']:
             gift_heading = '【今日の贈り物】'

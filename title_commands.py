@@ -116,7 +116,7 @@ class TitleView(discord.ui.View):
                 descriptions.append(f'{title_icon(key)} **{discord.utils.escape_markdown(title)}**\n'
                                     f'{discord.utils.escape_markdown(title_condition(key))}\n獲得日：{day}')
             description += '\n\n'.join(descriptions) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'
-        embed = discord.Embed(title='称号', description=description.lstrip(), color=0xD5AD49)
+        embed = discord.Embed(title='称号', description=description.lstrip(), color=0xE2AD48)
         if len(items) > self.PAGE_SIZE:
             embed.set_footer(text=f'{self.page + 1}/{(len(items) + self.PAGE_SIZE - 1) // self.PAGE_SIZE}ページ')
         return embed

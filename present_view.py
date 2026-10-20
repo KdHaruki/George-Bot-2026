@@ -58,7 +58,7 @@ class PresentView(discord.ui.View):
         if status is None:
             status = ''
         likes = '、'.join(CATEGORIES[key][0] for key in preferred_categories(self.character)) or '設定なし'
-        embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xB06FE0,
+        embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xE2AD48,
             description=(f'{status}\n\n' if status else '') + f'好感度：{affection_display(self.points, self.perfect)}\n\n喜ばれる贈り物：{likes}')
         limit = affection_limit(self.perfect)
         if self.points >= limit:

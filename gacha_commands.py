@@ -38,7 +38,7 @@ class CardListView(discord.ui.View):
         self.add_item(self.next)
 
     def embed(self):
-        return discord.Embed(title=self.title, description='\n'.join(self.lines[self.page * 10:(self.page + 1) * 10]), color=0xB06FE0)
+        return discord.Embed(title=self.title, description='\n'.join(self.lines[self.page * 10:(self.page + 1) * 10]), color=0xE2AD48)
 
     async def move(self, interaction, step):
         if interaction.user.id != self.owner_id:
@@ -141,7 +141,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
         rarity = f'`【{card.rarity}】` ' if game == 'relink' else f'【{card.rarity}】'
         lines.append(f'{rarity}{text}' + ownership)
     embed = discord.Embed(title=f'{rules.name}：{len(cards)}回ガチャ',
-                          description='\n'.join(lines), color=0xB06FE0)
+                          description='\n'.join(lines), color=0xE2AD48)
     embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(gacha_comment(game, cards, saved, favorite)), inline=False)
     if batch_counts is not None:
         limit = 100 if game == 'relink' else BATCH_GUARANTEE[game]
@@ -166,7 +166,7 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
 def rates_embed(engine, game, on_day=None):
     rules = RULES[game]
     embed = discord.Embed(title=f'【{rules.name}：排出率】',
-                          description=engine.rates_text(game), color=0xB06FE0)
+                          description=engine.rates_text(game), color=0xE2AD48)
     embed.add_field(name='【連続ガチャの累計保証】', value=f'{rules.batch_size}連を{BATCH_GUARANTEE[game]}回引くごとに、最後の1枚が{rules.normal[0][0]}確定。途中で最高レアが出ても回数はリセットしないぞ。', inline=False)
     if game == 'relink':
         embed.set_field_at(0, name='【累計カウント保証】', value='10連1回で10カウント。100カウント到達ごとの1枚が★3確定。途中の★3ではリセットせず、端数も繰り越すぞ。', inline=False)
@@ -301,7 +301,7 @@ def register_gacha_commands(bot, store=None):
                  for game, card, count in rows]
         empty = '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
         view = CardListView(interaction.user.id, lines, '所持カード') if len(lines) > 10 else None
-        embed = view.embed() if view else discord.Embed(title='所持カード', description='\n'.join(lines) or empty, color=0xB06FE0)
+        embed = view.embed() if view else discord.Embed(title='所持カード', description='\n'.join(lines) or empty, color=0xE2AD48)
         options = {'view': view} if view is not None else {}
         await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none(), **options)
 
@@ -378,7 +378,7 @@ def register_gacha_commands(bot, store=None):
                 return
             game, card, count = selected
             embed = discord.Embed(title='⭐ お気に入り' + ('を登録したぜ！' if プログレス else ''),
-                                  description=f'**{discord.utils.escape_markdown(favorite_card_label(card))}**\n{RULES[game].name}｜所持{count}枚', color=0xB06FE0)
+                                  description=f'**{discord.utils.escape_markdown(favorite_card_label(card))}**\n{RULES[game].name}｜所持{count}枚', color=0xE2AD48)
             introduction, _ = favorite_details(card)
             embed.add_field(name='【ジョージのプログレス紹介】', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
             try:
@@ -420,7 +420,7 @@ def register_gacha_commands(bot, store=None):
         except MemoryUnavailable as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
             return
-        embed = discord.Embed(title='カード収集率', color=0xB06FE0)
+        embed = discord.Embed(title='カード収集率', color=0xE2AD48)
         for game in RULES:
             unique, total, copies, _ = collection_summary(engine, rows, game)
             text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）\n重複込みの所持数：{copies}枚'

@@ -39,12 +39,12 @@ def star3_embeds(cards):
         if not entry:
             continue
         title = f"【★3】{card_names[card_id]}" + (f' ×{quantity}' if quantity > 1 else '')
-        embed = discord.Embed(title=title, color=0xF4C542)
+        embed = discord.Embed(title=title, color=0xE2AD48)
         path = local_image(card_id)
         if path:
             embed.set_image(url='attachment://' + path.name)
             result.append(embed)
-            result.append(discord.Embed(description=discord.utils.escape_markdown(entry['quote']), color=0xF4C542))
+            result.append(discord.Embed(description=discord.utils.escape_markdown(entry['quote']), color=0xE2AD48))
         else:
             embed.description = discord.utils.escape_markdown(entry['quote'])
             result.append(embed)
