@@ -20,8 +20,8 @@ class CollectionStore(MemoryStore):
             settle_streak(connection, user_id)
             now = int(time.time())
             rows = connection.execute('''SELECT title_key,name FROM george_title_notices
-                WHERE user_id=%s AND claimed_until<=%s AND title_key<>'exchange10'
-                ORDER BY title_key LIMIT 10''', (user_id, now)).fetchall()
+                WHERE user_id=%s AND claimed_until<=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s
+                ORDER BY title_key LIMIT 10''', (user_id, now, 'collection:%')).fetchall()
             for key, _ in rows:
                 connection.execute('''UPDATE george_title_notices SET claimed_until=%s,claim_token=%s
                     WHERE user_id=%s AND title_key=%s''', (now + 120, token, user_id, key))

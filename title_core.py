@@ -23,9 +23,9 @@ FORTUNE_TYPES = frozenset(('大吉', '吉', '中吉', '小吉', '末吉', '凶')
 
 def title_condition(key):
     conditions = {
-        'quiz10': 'クイズで1回目の正解を累計10回',
-        'quiz100': 'クイズで1回目の正解を累計100回',
-        'quiz_streak10': 'クイズで初回正解を10回連続達成（不正解・時間切れ・未回答の出し直しでリセット）',
+        'quiz10': 'クイズをヒント1回目で正解した回数を累計10回',
+        'quiz100': 'クイズをヒント1回目で正解した回数を累計100回',
+        'quiz_streak10': 'クイズをヒント1回目で正解して10回連続達成',
         'fortune10': 'おみくじを累計10回',
         'fortune_all': 'おみくじで6種類の運勢をすべて引く',
         'great10': '大吉を累計10回',
@@ -34,11 +34,11 @@ def title_condition(key):
         'variety': f'通常プレゼント全{len(NORMAL_GIFTS)}種類を贈る（相手を問わず）',
         'worlds': '5つの世界を検索する',
         'reunion': 'ガチャでお気に入り本人のUR・★3を引く',
-        'triple_rare': '1回のガチャでURまたは★3を3枚以上引く（保証分・同じカードを含む）',
-        'bond10': '異なる10人の好感度を100にする',
+        'triple_rare': '1回のガチャでURまたは★3を3枚以上引く',
+        'bond10': '異なる5人の好感度を100にする',
         'bond100': '異なる100人の好感度を100にする',
         'ambassador': '5つの世界から各1人、お気に入りに登録したことがある',
-        'profile30': '異なる30人のプロフィールを名前で検索する',
+        'profile30': '異なる10人のプロフィールを名前で検索する',
     }
     kind, _, character = key.partition(':')
     if character:
@@ -47,9 +47,7 @@ def title_condition(key):
         if kind == 'affection':
             return f'{character}の好感度100の状態で喜ばれる贈り物を贈る'
         if kind == 'anniversary':
-            return f'{character}をお気に入りに設定して1年が経つ（別人への変更・解除でリセット）'
-        if kind == 'collection':
-            return f'{character}の現在のガチャ収録カードを両作品合わせて全種類集める'
+            return f'{character}をお気に入りに設定して1年が経つ（プログレスの変更または解除でリセット）'
     return conditions.get(key, '取得条件を確認できません。')
 
 
@@ -62,28 +60,29 @@ def pending_titles(earned, state, affection_count, character=None, days=0):
             rows.append((key, name, condition))
 
     for key, metric, target, label in (
-        ('quiz10', 'quiz_first', 10, 'クイズを1回目で正解'),
-        ('quiz100', 'quiz_first', 100, 'クイズを1回目で正解'),
+        ('quiz10', 'quiz_first', 10, 'クイズをヒント1回目で正解'),
+        ('quiz100', 'quiz_first', 100, 'クイズをヒント1回目で正解')):
+        add(key, COMMON[key], f'{label}：{min(state.get(metric, 0), target)}/{target}回')
+    add('quiz_streak10', COMMON['quiz_streak10'], f'クイズをヒント1回目で正解して10回連続達成：{min(state.get("quiz_streak", 0), 10)}/10回')
+    for key, metric, target, label in (
         ('fortune10', 'fortunes', 10, 'おみくじ'),
         ('great10', 'great', 10, '大吉')):
         add(key, COMMON[key], f'{label}：{min(state.get(metric, 0), target)}/{target}回')
     add('support', COMMON['support'], 'おみくじの応援ボーナスを初めて獲得')
     add('fortune_all', COMMON['fortune_all'], f'6種類の運勢をすべて引く：{len(set(state.get("fortunes_seen", [])) & FORTUNE_TYPES)}/6種類')
-    add('quiz_streak10', COMMON['quiz_streak10'], f'クイズで初回正解を10回連続達成：{min(state.get("quiz_streak", 0), 10)}/10回（不正解・時間切れ・未回答の出し直しでリセット）')
     add('gift10', COMMON['gift10'], f'プレゼントを贈る：{min(state.get("gifts", 0), 10)}/10回')
     add('variety', COMMON['variety'], f'通常プレゼント全{len(NORMAL_GIFTS)}種類を贈る：{len(set(state.get("gift_kinds", [])) & NORMAL_GIFTS)}/{len(NORMAL_GIFTS)}種類')
     add('worlds', COMMON['worlds'], f'5つの世界を検索：{len(set(state.get("worlds", [])) & set("青黒赤白緑"))}/5世界')
     add('reunion', COMMON['reunion'], 'ガチャで現在のお気に入り本人のUR・★3を引く')
-    add('triple_rare', COMMON['triple_rare'], '1回のガチャでURまたは★3を3枚以上引く（保証分・同じカードを含む）')
-    add('ambassador', COMMON['ambassador'], f'5つの世界から各1人、お気に入りに登録：{len(set(state.get("favorite_worlds", [])) & set("青黒赤白緑"))}/5世界')
-    add('profile30', COMMON['profile30'], f'異なる30人のプロフィールを名前で検索：{min(len(set(state.get("profile_names", []))), 30)}/30人')
-    for target, key in ((10, 'bond10'), (100, 'bond100')):
+    add('triple_rare', COMMON['triple_rare'], '1回のガチャでURまたは★3を3枚以上引く')
+    add('ambassador', COMMON['ambassador'], f'5つの世界から各1人、お気に入りに登録する：{len(set(state.get("favorite_worlds", [])) & set("青黒赤白緑"))}/5世界')
+    add('profile30', COMMON['profile30'], f'異なる10人のプロフィールを名前で検索する：{min(len(set(state.get("profile_names", []))), 10)}/10人')
+    for target, key in ((5, 'bond10'), (100, 'bond100')):
         add(key, COMMON[key], f'異なる{target}人の好感度を100にする：{min(affection_count, target)}/{target}人')
     if character:
         add(f'favorite_gift:{character}', f'{character}の理解者', '喜ばれる贈り物を初めて贈る（通常品）')
         add(f'affection:{character}', f'{character}の良き理解者', '好感度100の状態で喜ばれる贈り物を贈る')
-        add(f'anniversary:{character}', f'{character}の右腕', f'お気に入りに設定して1年が経つ：{min(days, 365)}/365日（別人への変更・解除でリセット）')
-        add(f'collection:{character}', f'{character}との縁を紡ぎし者', 'その子の現在のガチャ収録カードを両作品合わせて全種類集める')
+        add(f'anniversary:{character}', f'{character}の右腕', f'お気に入りに設定して1年が経つ：{min(days, 365)}/365日（プログレスの変更または解除でリセット）')
     return rows
 
 
@@ -193,7 +192,7 @@ def event_result(state, kind, facts):
         people = set(state.get('profile_names', []))
         people.add(character_key(facts['character']))
         state['profile_names'] = sorted(people)
-        if len(people) >= 30:
+        if len(people) >= 10:
             unlocked.append(('profile30', COMMON['profile30']))
     return state, unlocked
 
@@ -240,6 +239,6 @@ def refresh_affection(connection, user_id):
     for character in perfect:
         if f'affection:{character}' not in existing:
             grant(connection, user_id, f'affection:{character}', f'{character}の良き理解者')
-    for count, key in ((10, 'bond10'), (100, 'bond100')):
+    for count, key in ((5, 'bond10'), (100, 'bond100')):
         if len(characters) >= count and key not in existing:
             grant(connection, user_id, key)

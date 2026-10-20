@@ -130,10 +130,11 @@ async def on_guild_join(guild):
 
 
 async def cleanup_retired_title(guild):
-    try:
-        await client.title_roles.retire_exchange(guild)
-    except (MemoryUnavailable, ValueError, discord.HTTPException) as exc:
-        logging.warning('Retired title cleanup failed: guild=%s type=%s', guild.id, type(exc).__name__)
+    for cleanup in (client.title_roles.retire_exchange, client.title_roles.retire_collections):
+        try:
+            await cleanup(guild)
+        except (MemoryUnavailable, ValueError, discord.HTTPException) as exc:
+            logging.warning('Retired title cleanup failed: guild=%s type=%s', guild.id, type(exc).__name__)
 
 
 @client.event

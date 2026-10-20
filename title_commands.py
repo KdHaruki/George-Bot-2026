@@ -102,9 +102,11 @@ class TitleView(discord.ui.View):
         if self.guild is None:
             description += '\nDMでは一覧のみ。装着・解除はサーバーで使ってくれ！'
         equipped_icon = f'{title_icon(self.equipped)} ' if self.equipped and name != 'なし' else ''
-        description += f'\n\n【装着中】\n{equipped_icon}{discord.utils.escape_markdown(name)}\n\n'
+        if self.mode == 'earned':
+            description += f'\n\n【装着中】\n{equipped_icon}{discord.utils.escape_markdown(name)}\n\n'
+        else:
+            description += '\n\n'
         if self.mode == 'pending':
-            description += '【未獲得】\n'
             description += '\n\n'.join(f'{title_icon(row[0])} **{discord.utils.escape_markdown(row[1])}**\n{discord.utils.escape_markdown(row[2])}' for row in rows) or '対象の称号はすべて獲得済みだぜ！'
         else:
             description += '【獲得済み】\n'

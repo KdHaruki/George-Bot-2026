@@ -29,6 +29,12 @@ class NotificationStorageTests(unittest.TestCase):
         self.unlock()
         self.assertEqual(self.store.claim_title_notifications(42, 'again'), [])
 
+    def test_retired_collection_notice_is_never_delivered(self):
+        with self.store.connect() as conn:
+            grant(conn, 42, 'collection:ロザリー', 'ロザリーとの縁を紡ぎし者')
+        self.unlock()
+        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune10', '今日も神頼み')])
+
     def test_multiple_unlocks_and_failed_delivery_retry(self):
         self.unlock()
         self.unlock('great10')

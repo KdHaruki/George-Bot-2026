@@ -2,11 +2,10 @@ from contextlib import contextmanager
 from presents import PresentStore
 from title_core import change_streak, refresh_affection, record_event
 from daily_affection import settle_daily
-from title_core import pending_titles, COMMON
+from title_core import pending_titles, COMMON, grant
 import json
 from datetime import datetime, timezone
 from quiz_rounds import expire_round
-from favorite_album import record_completions, collection_targets
 from progress_profiles import profile_for
 
 
@@ -42,18 +41,20 @@ class TitleStore(PresentStore):
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             settle_daily(conn, user_id)
             expire_round(conn, user_id)
-            record_completions(conn, user_id, collection_targets())
             # Existing album dates prove past registrations; no historical guesses.
             registrations = conn.execute('SELECT character FROM george_favorite_album WHERE user_id=%s AND first_registered_at IS NOT NULL', (user_id,)).fetchall()
             stats = conn.execute('SELECT data FROM george_title_stats WHERE user_id=%s', (user_id,)).fetchone()
-            counted = set(json.loads(stats[0]).get('favorite_worlds', [])) if stats else set()
+            state = json.loads(stats[0]) if stats else {}
+            counted = set(state.get('favorite_worlds', []))
+            if len(set(state.get('profile_names', []))) >= 10:
+                grant(conn, user_id, 'profile30')
             worlds = {profile['progressWorld'] for (name,) in registrations if (profile := profile_for(name))}
             for world in sorted(worlds - counted):
                 record_event(conn, user_id, f'favorite-world-history:{world}', 'favorite_world', world=world)
             refresh_affection(conn, user_id)
             character = self.current_character(conn, user_id, required=False)
             change_streak(conn, user_id, character)
-            rows = conn.execute("SELECT title_key,name,acquired_at FROM george_titles WHERE user_id=%s AND title_key<>'exchange10' ORDER BY name,title_key", (user_id,)).fetchall()
+            rows = conn.execute("SELECT title_key,name,acquired_at FROM george_titles WHERE user_id=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s ORDER BY name,title_key", (user_id, 'collection:%')).fetchall()
             result = []
             for key, name, acquired in rows:
                 current_name = COMMON.get(key, name)
@@ -100,9 +101,16 @@ class TitleStore(PresentStore):
     def equipped(self, guild_id, user_id):
         with self.connect() as conn:
             row = conn.execute('SELECT title_key FROM george_title_equipped WHERE guild_id=%s AND user_id=%s', (guild_id, user_id)).fetchone()
-            return row[0] if row else None
+            return row[0] if row and not row[0].startswith('collection:') else None
 
     def retire_exchange(self, guild_id, role_id):
         with self.connect() as conn:
             conn.execute("DELETE FROM george_title_equipped WHERE guild_id=%s AND title_key='exchange10'", (guild_id,))
             conn.execute("DELETE FROM george_title_roles WHERE guild_id=%s AND title_key='exchange10' AND role_id=%s", (guild_id, role_id))
+
+    def retire_collection(self, guild_id, key, role_id):
+        if not key.startswith('collection:'):
+            raise ValueError('Not a retired collection title')
+        with self.connect() as conn:
+            conn.execute('DELETE FROM george_title_equipped WHERE guild_id=%s AND title_key=%s AND role_id=%s', (guild_id, key, role_id))
+            conn.execute('DELETE FROM george_title_roles WHERE guild_id=%s AND title_key=%s AND role_id=%s', (guild_id, key, role_id))

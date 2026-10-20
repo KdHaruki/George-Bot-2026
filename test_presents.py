@@ -376,7 +376,7 @@ class StorageTests(unittest.TestCase):
             record_completions(conn, 42, ('ロザリー',))
         dates = self.store.album(42, 'ロザリー')
         self.assertIsNotNone(dates[4])
-        self.assertIsNotNone(self.db.execute("SELECT 1 FROM george_titles WHERE user_id=42 AND title_key='collection:ロザリー'").fetchone())
+        self.assertIsNone(self.db.execute("SELECT 1 FROM george_titles WHERE user_id=42 AND title_key='collection:ロザリー'").fetchone())
         self.assertIn('カード全種類収集：', album_display(dates))
         self.db.execute("UPDATE george_character_completions SET achieved_at='2026-10-01T00:00:00+00:00'")
         self.db.commit()
@@ -431,6 +431,13 @@ class StorageTests(unittest.TestCase):
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_empty_inventory_explains_both_reward_commands(self):
+        view = PresentView(42, None, 'ロザリー', {}, 0)
+        field = view.embed().fields[0]
+        self.assertEqual(field.name, '手持ちのプレゼントはないぜ！')
+        self.assertEqual(field.value, '/おみくじ や /クイズ で1日1個もらえるぞ。')
+        view.stop()
+
     async def test_gift_instruction_is_last_and_categories_have_space_above(self):
         view = PresentView(42, None, 'ロザリー', {'magic': 1}, 35)
         text = view.embed().description

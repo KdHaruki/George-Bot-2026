@@ -46,6 +46,21 @@ class TitleRoles:
                 await role.delete(reason='廃止された交換称号を削除')
             await asyncio.to_thread(self.store.retire_exchange, guild.id, role_id)
 
+    async def retire_collections(self, guild):
+        async with self.lock(guild.id):
+            mapping = await asyncio.to_thread(self.store.role_map, guild.id)
+            retired = {key: role_id for key, role_id in mapping.items() if key.startswith('collection:')}
+            if not retired:
+                return
+            roles = await guild.fetch_roles()
+            for key, role_id in retired.items():
+                role = next((role for role in roles if role.id == role_id), None)
+                if role is not None:
+                    self.check_bot(guild)
+                    self.safe_role(guild, role, self.bot_top(guild, roles))
+                    await role.delete(reason='廃止されたカード収集称号を削除')
+                await asyncio.to_thread(self.store.retire_collection, guild.id, key, role_id)
+
     async def equip(self, guild, user_id, key=None):
         async with self.lock(guild.id):
             self.check_bot(guild)
