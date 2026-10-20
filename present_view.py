@@ -3,7 +3,7 @@ import logging
 
 import discord
 
-from presents import ITEMS, preferred_items, affection_display, MAX_AFFECTION, PerfectLinkReached
+from presents import ITEMS, affection_display, affection_limit, link_label
 from registered_memory import MemoryUnavailable
 from title_notifications import notify_titles
 from present_catalog import CATEGORIES, ITEM_CATEGORY, preferred_categories
@@ -29,7 +29,7 @@ class PresentView(discord.ui.View):
             emoji, label = ITEMS[key]
             category = CATEGORIES[ITEM_CATEGORY[key]][0] if key in ITEM_CATEGORY else 'レア'
             button = discord.ui.Button(label=f'{category}：{label} ×{self.items[key]}', emoji=emoji,
-                                       row=index // 2, disabled=self.perfect or self.items[key] <= 0)
+                                       row=index // 2, disabled=self.items[key] <= 0)
 
             async def callback(interaction, key=key):
                 await self.give(interaction, key)
@@ -39,7 +39,7 @@ class PresentView(discord.ui.View):
         if len(self.keys) > 6:
             for label, delta in [('◀ 前へ', -1), ('次へ ▶', 1)]:
                 button = discord.ui.Button(label=label, row=3,
-                    disabled=self.perfect or not 0 <= self.page + delta < (len(self.keys) + 5) // 6)
+                    disabled=not 0 <= self.page + delta < (len(self.keys) + 5) // 6)
 
                 async def turn(interaction, delta=delta):
                     await interaction.response.defer()
@@ -54,16 +54,15 @@ class PresentView(discord.ui.View):
                 self.add_item(button)
 
     def embed(self, status=None):
-        show_instruction = status is None and not self.perfect
+        show_instruction = status is None
         if status is None:
-            status = 'パーフェクトリンク達成済みだぜ！' if self.perfect else ''
+            status = ''
         likes = '、'.join(CATEGORIES[key][0] for key in preferred_categories(self.character)) or '設定なし'
         embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xB06FE0,
-            description=(f'{status}\n\n' if status else '') + f'好感度：{affection_display(self.points, self.perfect)}\n\n好物カテゴリー：{likes}\n通常＋2／好物＋5／{ITEMS["rare"][1]}＋10')
-        if self.perfect:
-            embed.description += '\nこの子へのプレゼントは完了したぜ！ これ以上は渡せないぞ。'
-        elif self.points >= MAX_AFFECTION:
-            embed.description += '\n好感度100では＋0。好物を1個贈るとパーフェクトリンクになり、以降はこの子に贈れなくなるぜ。'
+            description=(f'{status}\n\n' if status else '') + f'好感度：{affection_display(self.points, self.perfect)}\n\n喜ばれる贈り物：{likes}')
+        limit = affection_limit(self.perfect)
+        if self.points >= limit:
+            embed.description += f'\n好感度{limit}では＋0。喜ばれる贈り物を1個贈ると次のパーフェクトリンクになり、上限が{limit + 100}になるぜ。'
         if not self.keys:
             embed.add_field(name='プレゼントはまだないぜ！', value='その日最初の /おみくじ で1個もらえるぞ。', inline=False)
         elif show_instruction:
@@ -79,15 +78,10 @@ class PresentView(discord.ui.View):
     async def give(self, interaction, key):
         await interaction.response.defer()
         async with self.lock:
-            if self.expired or self.perfect or interaction.id in self.processed:
+            if self.expired or interaction.id in self.processed:
                 return
             try:
                 gain, points, perfect = await asyncio.to_thread(self.store.give, self.user_id, interaction.id, self.character, key)
-            except PerfectLinkReached as exc:
-                self.perfect, self.points = True, MAX_AFFECTION
-                self.build_buttons()
-                await interaction.edit_original_response(embed=self.embed(str(exc)), view=self)
-                return
             except (ValueError, MemoryUnavailable) as exc:
                 logging.warning('Present skipped: type=%s', type(exc).__name__)
                 await interaction.followup.send(str(exc), ephemeral=True)
@@ -95,11 +89,12 @@ class PresentView(discord.ui.View):
             self.processed.add(interaction.id)
             self.items[key] = max(0, self.items[key] - 1)
             self.points = points
+            advanced = int(perfect) > int(self.perfect)
             self.perfect = perfect
             self.build_buttons()
             status = f'{ITEMS[key][1]}を贈ったぜ！ 好感度 **＋{gain}**'
-            if perfect:
-                status = f'{ITEMS[key][1]}を贈って、**パーフェクトリンク達成！**'
+            if advanced:
+                status = f'{ITEMS[key][1]}を贈って、**{link_label(perfect)}達成！**'
             await interaction.edit_original_response(embed=self.embed(status), view=self)
             await notify_titles(interaction, self.store)
 

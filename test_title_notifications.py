@@ -18,7 +18,7 @@ class NotificationStorageTests(unittest.TestCase):
             grant(conn, 42, key)
 
     def test_first_unlock_only_and_existing_titles_are_not_announced(self):
-        self.db.execute("INSERT INTO george_titles VALUES (42,'gift10','想いを届ける者',CURRENT_TIMESTAMP)")
+        self.db.execute("INSERT INTO george_titles VALUES (42,'gift10','青蘭学園のメッセンジャー',CURRENT_TIMESTAMP)")
         self.db.commit()
         self.unlock('gift10')
         self.unlock()
@@ -67,7 +67,9 @@ class NotificationStorageTests(unittest.TestCase):
 
 class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_difficult_titles_get_crown_and_mixed_unlocks_keep_each_icon(self):
-        for key in ('quiz100', 'bond100', 'anniversary:ロザリー'):
+        for key in ('quiz100',):
+            self.assertEqual(title_icon(key), '🎖️')
+        for key in ('bond100', 'anniversary:ロザリー', 'triple_rare'):
             self.assertEqual(title_icon(key), '👑')
         for key in ('quiz10', 'bond10', 'affection:ロザリー', 'fortune10', 'variety'):
             self.assertEqual(title_icon(key), '🎖️')
@@ -77,8 +79,9 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
         await notify_titles(interaction, store)
         text = interaction.followup.send.call_args.args[0]
         self.assertIn('🎖️ **今日も神頼み**', text)
-        self.assertIn('👑 **青蘭学園の秘密兵器**', text)
+        self.assertIn('🎖️ **青蘭学園の秘密兵器**', text)
         self.assertNotIn('🏅', text)
+        self.assertNotIn('👑', text)
         self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
 
     async def test_batched_notification_is_always_ephemeral_and_no_mentions(self):

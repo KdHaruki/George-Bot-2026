@@ -41,6 +41,8 @@ def record_completions(connection, user_id, characters):
         if required and required <= owned:
             connection.execute('''INSERT INTO george_character_completions(user_id,character)
                 VALUES (%s,%s) ON CONFLICT(user_id,character) DO NOTHING''', (user_id, person))
+            from title_core import grant
+            grant(connection, user_id, f'collection:{person}', f'{person}との縁を紡ぎし者')
 
 
 def record_registration(connection, user_id, character):

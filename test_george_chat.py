@@ -69,7 +69,8 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(name, instruction)
         for name, _ in CATEGORIES.values():
             self.assertIn(name, instruction)
-        self.assertIn('通常＋2、好物は合計＋5、レア＋10', instruction)
+        self.assertIn('通常＋2、喜ばれる贈り物は合計＋5、レア＋10', instruction)
+        self.assertIn('パーフェクトリンク後も贈れます', instruction)
         self.assertIn('所持品・好感度・称号・設定の現在値は、この案内からは確認できません', instruction)
         self.assertIn('廃止された機能や存在しないコマンドを作りません', instruction)
         self.assertIn('コマンドやボタンを代理実行', instruction)

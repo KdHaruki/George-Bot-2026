@@ -8,6 +8,14 @@ from registered_memory import MemoryUnavailable
 
 
 class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_late_support_gift_is_shown_with_current_lucky_progress(self):
+        _, embed = await self.run_fortune(None, reward={'granted': False, 'item': 'food', 'fortune': '吉',
+            'lucky_progress': 'ロザリー', 'bonus_item': 'book', 'support_matched': True})
+        self.assertEqual(embed.fields[2].name, '【今日の贈り物】')
+        self.assertIn('応援ボーナス', embed.fields[2].value)
+        self.assertIn('本', embed.fields[2].value)
+        self.assertIn('ロザリー', embed.fields[1].value)
+
     async def test_public_fortune_result_has_separate_private_unlock_notification(self):
         store = SimpleNamespace(claim=Mock(return_value={'granted': True, 'item': 'food', 'fortune': '吉'}),
             claim_title_notifications=Mock(side_effect=[[('fortune10', '今日も神頼み')], []]),
@@ -47,6 +55,8 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
         generate, embed = await self.run_fortune(None)
         self.assertEqual(embed.fields[0].name, '【ジョージの一言】')
         self.assertEqual(generate.call_args.kwargs, {})
+        self.assertEqual(embed.fields[2].name, '【贈り物は受け取り済み】')
+        self.assertIn('明日の0時（日本時間）', embed.fields[2].value)
 
     async def test_generation_failure_uses_george_fallback(self):
         generate, embed = await self.run_fortune({'character': 'ロザリー'}, failure=True)
@@ -59,11 +69,14 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
             reward={'granted': True, 'item': 'rare', 'fortune': '大吉'})
         self.assertEqual(generate.call_args.args[0], '大吉')
         self.assertIn('花束（虹）', embed.fields[2].value)
+        self.assertEqual(embed.fields[2].name, '【今日の贈り物】')
+        self.assertIn('を受け取ったぜ！', embed.fields[2].value)
         self.assertIn('大吉', embed.description)
 
     async def test_database_failure_still_returns_fortune_with_clear_notice(self):
         _, embed = await self.run_fortune(None, db_failure=True)
         self.assertIn('受け取りを確認できなかった', embed.fields[2].value)
+        self.assertEqual(embed.fields[2].name, '【贈り物の受け取り確認】')
 
     async def test_support_bonus_uses_saved_lucky_progress_in_display(self):
         _, embed = await self.run_fortune(None, reward={'granted': True, 'item': 'rare', 'fortune': '大吉',

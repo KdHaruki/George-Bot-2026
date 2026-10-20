@@ -27,6 +27,7 @@ from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import register_title_commands
 from title_notifications import notify_titles
+from progress_profiles import profile_for
 from discord_layout import space_headings
 
 ########################################
@@ -221,6 +222,14 @@ async def progress(interaction: discord.Interaction, name: str):
             logging.warning('World search title update failed')
             await interaction.followup.send('検索結果は表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
         await notify_titles(interaction, client.title_store)
+    elif result.startswith('【名前】') and profile_for(name) is not None:
+        character = result.splitlines()[0].removeprefix('【名前】').strip()
+        try:
+            await asyncio.to_thread(client.title_store.profile_search, interaction.user.id, interaction.id, character)
+        except MemoryUnavailable:
+            logging.warning('Profile search title update failed')
+            await interaction.followup.send('プロフィールは表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
+        await notify_titles(interaction, client.title_store)
 
 ########################################
 # メッセージイベント
@@ -252,9 +261,8 @@ async def omikuji(interaction: discord.Interaction):
     reward = None
     try:
         reward = await asyncio.to_thread(client.present_store.claim, interaction.user.id, interaction.id, fortune, lucky_progress)
-        if reward['granted']:
-            fortune = reward['fortune']
-            lucky_progress = reward.get('lucky_progress') or lucky_progress
+        fortune = reward.get('fortune', fortune)
+        lucky_progress = reward.get('lucky_progress') or lucky_progress
     except MemoryUnavailable:
         logging.warning('Fortune present save failed')
     try:
@@ -264,17 +272,25 @@ async def omikuji(interaction: discord.Interaction):
         logging.warning("Fortune generation failed: %s", diagnostic)
         comment = dict(FORTUNES)[fortune]
     embed = fortune_embed(fortune, comment, lucky_progress)
+    gift_heading = '【今日の贈り物】'
     if reward is None:
+        gift_heading = '【贈り物の受け取り確認】'
         text = '保存先との通信で、受け取りを確認できなかったぜ。あとでもう一度試してくれ。'
     elif reward['granted']:
         emoji, label = ITEMS[reward['item']]
-        text = f'{emoji} **{label}** ×1\n`/お気に入り プレゼント`から贈れるぜ！'
-        if reward.get('bonus_item'):
-            emoji, label = ITEMS[reward['bonus_item']]
-            text += f'\n\n**応援ボーナス！**\nお気に入りと一致！ {emoji} **{label}** ×1を追加したぜ！'
+        text = f'{emoji} **{label} ×1** を受け取ったぜ！\n`/お気に入り プレゼント`で贈れるぞ。'
     else:
-        text = '今日の分は受け取り済みだぜ。次は日本時間の0時から！'
-    embed.add_field(name='【プレゼント】', value=text, inline=False)
+        gift_heading = '【贈り物は受け取り済み】'
+        text = '今日の分はもう渡したぜ！ 次は明日の0時（日本時間）からだ。'
+    if reward and reward.get('bonus_item'):
+        if not reward['granted']:
+            gift_heading = '【今日の贈り物】'
+            text = '通常の贈り物は受け取り済みだぜ。'
+        emoji, label = ITEMS[reward['bonus_item']]
+        text += f'\n\n**応援ボーナス！**\nお気に入りと一致！ {emoji} **{label}** ×1を追加したぜ！'
+    elif reward and reward.get('support_matched'):
+        text += '\n\nお気に入りからの応援が届いたぜ！ 追加の贈り物は今日は受け取り済みだ。'
+    embed.add_field(name=gift_heading, value=text, inline=False)
     await interaction.followup.send(embed=space_headings(embed), allowed_mentions=discord.AllowedMentions.none())
     await notify_titles(interaction, client.present_store)
 

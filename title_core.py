@@ -8,36 +8,48 @@ from present_catalog import NORMAL_ITEMS
 COMMON = {
     'quiz10': '青蘭学園の知恵袋', 'quiz100': '青蘭学園の秘密兵器',
     'fortune10': '今日も神頼み', 'great10': '幸運を引き寄せし者',
-    'support': 'エール・フレンドを受けし者', 'gift10': '想いを届ける者',
-    'variety': '贈り物のソムリエ',
+    'support': 'エール・フレンドを受けし者', 'gift10': '青蘭学園のメッセンジャー',
+    'variety': '青蘭学園のソムリエ',
     'bond10': 'エール・フレンドを繋ぎし者', 'bond100': 'エルエルを超えし者',
-    'worlds': '世界の秘密を知る者', 'reunion': '奇跡の再会を手繰り寄せし者',
+    'worlds': '世界の秘密を知る者', 'reunion': '青蘭学園の時間超越者',
+    'triple_rare': '奇跡を束ねし者',
+    'quiz_streak10': '青蘭学園の名探偵',
+    'fortune_all': '運命を巡りし者',
+    'ambassador': '青蘭学園の親善大使', 'profile30': '青蘭学園の情報通',
 }
 NORMAL_GIFTS = frozenset(NORMAL_ITEMS)
+FORTUNE_TYPES = frozenset(('大吉', '吉', '中吉', '小吉', '末吉', '凶'))
 
 
 def title_condition(key):
     conditions = {
         'quiz10': 'クイズで1回目の正解を累計10回',
         'quiz100': 'クイズで1回目の正解を累計100回',
+        'quiz_streak10': 'クイズで初回正解を10回連続達成（不正解・時間切れ・未回答の出し直しでリセット）',
         'fortune10': 'おみくじを累計10回',
+        'fortune_all': 'おみくじで6種類の運勢をすべて引く',
         'great10': '大吉を累計10回',
         'support': 'おみくじの応援ボーナスを初めて獲得',
         'gift10': 'プレゼントを累計10回贈る',
         'variety': f'通常プレゼント全{len(NORMAL_GIFTS)}種類を贈る（相手を問わず）',
         'worlds': '5つの世界を検索する',
         'reunion': 'ガチャでお気に入り本人のUR・★3を引く',
+        'triple_rare': '1回のガチャでURまたは★3を3枚以上引く（保証分・同じカードを含む）',
         'bond10': '異なる10人の好感度を100にする',
         'bond100': '異なる100人の好感度を100にする',
+        'ambassador': '5つの世界から各1人、お気に入りに登録したことがある',
+        'profile30': '異なる30人のプロフィールを名前で検索する',
     }
     kind, _, character = key.partition(':')
     if character:
         if kind == 'favorite_gift':
-            return f'{character}に好物の通常プレゼントを初めて贈る'
+            return f'{character}に喜ばれる贈り物を初めて贈る（通常品）'
         if kind == 'affection':
-            return f'{character}の好感度100の状態で好物を贈る'
+            return f'{character}の好感度100の状態で喜ばれる贈り物を贈る'
         if kind == 'anniversary':
             return f'{character}をお気に入りに設定して1年が経つ（別人への変更・解除でリセット）'
+        if kind == 'collection':
+            return f'{character}の現在のガチャ収録カードを両作品合わせて全種類集める'
     return conditions.get(key, '取得条件を確認できません。')
 
 
@@ -56,20 +68,29 @@ def pending_titles(earned, state, affection_count, character=None, days=0):
         ('great10', 'great', 10, '大吉')):
         add(key, COMMON[key], f'{label}：{min(state.get(metric, 0), target)}/{target}回')
     add('support', COMMON['support'], 'おみくじの応援ボーナスを初めて獲得')
+    add('fortune_all', COMMON['fortune_all'], f'6種類の運勢をすべて引く：{len(set(state.get("fortunes_seen", [])) & FORTUNE_TYPES)}/6種類')
+    add('quiz_streak10', COMMON['quiz_streak10'], f'クイズで初回正解を10回連続達成：{min(state.get("quiz_streak", 0), 10)}/10回（不正解・時間切れ・未回答の出し直しでリセット）')
     add('gift10', COMMON['gift10'], f'プレゼントを贈る：{min(state.get("gifts", 0), 10)}/10回')
     add('variety', COMMON['variety'], f'通常プレゼント全{len(NORMAL_GIFTS)}種類を贈る：{len(set(state.get("gift_kinds", [])) & NORMAL_GIFTS)}/{len(NORMAL_GIFTS)}種類')
     add('worlds', COMMON['worlds'], f'5つの世界を検索：{len(set(state.get("worlds", [])) & set("青黒赤白緑"))}/5世界')
     add('reunion', COMMON['reunion'], 'ガチャで現在のお気に入り本人のUR・★3を引く')
+    add('triple_rare', COMMON['triple_rare'], '1回のガチャでURまたは★3を3枚以上引く（保証分・同じカードを含む）')
+    add('ambassador', COMMON['ambassador'], f'5つの世界から各1人、お気に入りに登録：{len(set(state.get("favorite_worlds", [])) & set("青黒赤白緑"))}/5世界')
+    add('profile30', COMMON['profile30'], f'異なる30人のプロフィールを名前で検索：{min(len(set(state.get("profile_names", []))), 30)}/30人')
     for target, key in ((10, 'bond10'), (100, 'bond100')):
         add(key, COMMON[key], f'異なる{target}人の好感度を100にする：{min(affection_count, target)}/{target}人')
     if character:
-        add(f'favorite_gift:{character}', f'{character}の理解者', '好物の通常プレゼントを初めて贈る')
-        add(f'affection:{character}', f'{character}の良き理解者', '好感度100の状態で好物を贈る')
+        add(f'favorite_gift:{character}', f'{character}の理解者', '喜ばれる贈り物を初めて贈る（通常品）')
+        add(f'affection:{character}', f'{character}の良き理解者', '好感度100の状態で喜ばれる贈り物を贈る')
         add(f'anniversary:{character}', f'{character}の右腕', f'お気に入りに設定して1年が経つ：{min(days, 365)}/365日（別人への変更・解除でリセット）')
+        add(f'collection:{character}', f'{character}との縁を紡ぎし者', 'その子の現在のガチャ収録カードを両作品合わせて全種類集める')
     return rows
 
 
 def ensure_titles(connection):
+    connection.execute('''CREATE TABLE IF NOT EXISTS george_quiz_rounds (
+        user_id BIGINT PRIMARY KEY, round_id BIGINT NOT NULL,
+        expires_at BIGINT NOT NULL, resolved BIGINT NOT NULL DEFAULT 0)''')
     connection.execute('''CREATE TABLE IF NOT EXISTS george_title_notices (
         user_id BIGINT NOT NULL, title_key TEXT NOT NULL, name TEXT NOT NULL,
         claimed_until BIGINT NOT NULL DEFAULT 0, claim_token TEXT NOT NULL DEFAULT '',
@@ -119,13 +140,24 @@ def event_result(state, kind, facts):
         state[metric] = state.get(metric, 0) + 1
         unlocked.extend((key, COMMON[key]) for limit, key in thresholds if state[metric] >= limit)
 
-    if kind == 'quiz' and facts['attempts'] == 1:
+    if kind == 'quiz_streak':
+        state['quiz_streak'] = state.get('quiz_streak', 0) + 1 if facts['correct_first'] else 0
+        if state['quiz_streak'] >= 10:
+            unlocked.append(('quiz_streak10', COMMON['quiz_streak10']))
+    elif kind == 'quiz' and facts['attempts'] == 1:
         count('quiz_first', ((10, 'quiz10'), (100, 'quiz100')))
     elif kind == 'fortune':
         count('fortunes', ((10, 'fortune10'),))
+        seen = set(state.get('fortunes_seen', [])) & FORTUNE_TYPES
+        if facts['fortune'] in FORTUNE_TYPES:
+            seen.add(facts['fortune'])
+        state['fortunes_seen'] = sorted(seen)
+        if seen >= FORTUNE_TYPES:
+            unlocked.append(('fortune_all', COMMON['fortune_all']))
         if facts['fortune'] == '大吉':
             count('great', ((10, 'great10'),))
         if facts.get('bonus'):
+            count('support_matches', ())
             unlocked.append(('support', COMMON['support']))
     elif kind == 'gift':
         count('gifts', ((10, 'gift10'),))
@@ -148,6 +180,21 @@ def event_result(state, kind, facts):
             unlocked.append(('worlds', COMMON['worlds']))
     elif kind == 'reunion':
         unlocked.append(('reunion', COMMON['reunion']))
+    elif kind == 'triple_rare' and facts['count'] >= 3:
+        unlocked.append(('triple_rare', COMMON['triple_rare']))
+    elif kind == 'favorite_world':
+        worlds = set(state.get('favorite_worlds', []))
+        if facts['world'] in '青黒赤白緑' and len(facts['world']) == 1:
+            worlds.add(facts['world'])
+        state['favorite_worlds'] = sorted(worlds)
+        if worlds >= set('青黒赤白緑'):
+            unlocked.append(('ambassador', COMMON['ambassador']))
+    elif kind == 'profile_search':
+        people = set(state.get('profile_names', []))
+        people.add(character_key(facts['character']))
+        state['profile_names'] = sorted(people)
+        if len(people) >= 30:
+            unlocked.append(('profile30', COMMON['profile30']))
     return state, unlocked
 
 

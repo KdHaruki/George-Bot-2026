@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 from gacha_collection import CollectionStore
-from presents import PresentStore, RARE_RATES, ITEMS, draw_present, draw_quiz_present, affection_gain, character_key, profile_for, affection_display, PerfectLinkReached
+from presents import PresentStore, RARE_RATES, ITEMS, draw_present, draw_quiz_present, affection_gain, character_key, profile_for, affection_display
 from present_view import PresentView
 from registered_memory import MemoryUnavailable
 from favorite_album import ensure_album, record_registration, album_display
@@ -132,7 +132,7 @@ class StorageTests(unittest.TestCase):
                     row = test.db.execute(sql.replace('%s', '?'), params).fetchone()
                     return SimpleNamespace(fetchone=lambda: tuple((datetime.fromisoformat(v) if datetime.fromisoformat(v).tzinfo else datetime.fromisoformat(v).replace(tzinfo=timezone.utc)) if v else None for v in row) if row else None)
                 if sql.startswith(('DELETE FROM george_present_receipts', 'DELETE FROM george_title_events')):
-                    return test.db.execute('DELETE FROM george_present_receipts WHERE 0')
+                    return SimpleNamespace(rowcount=0)
                 sql = sql.replace("CURRENT_TIMESTAMP-INTERVAL '365 days'", "datetime(CURRENT_TIMESTAMP, '-365 days')")
                 params = tuple(value.isoformat() if isinstance(value, date) else value for value in params)
                 return test.db.execute(sql.replace('%s', '?').replace('DEFAULT NOW()', 'DEFAULT CURRENT_TIMESTAMP'), params)
@@ -258,18 +258,17 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, True))
         self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, True))
         self.assertEqual(self.store.inventory(42), {'magic': 3})
-        with self.assertRaises(ValueError):
-            self.store.give(42, 204, 'ロザリー', 'magic')
-        self.assertEqual(self.store.inventory(42), {'magic': 3})
+        self.assertEqual(self.store.give(42, 204, 'ロザリー', 'magic'), (5, 105, 1))
+        self.assertEqual(self.store.inventory(42), {'magic': 2})
         self.assertTrue(self.store.snapshot(42)[3])
         self.assertIn('パーフェクトリンク', affection_display(100, True))
         # Reopening with a new store instance and changing favorites preserves the marker.
         self.set_favorite('美海')
         self.assertFalse(self.store.snapshot(42)[3])
         self.set_favorite('ロザリー')
-        self.assertEqual(PresentStore('unused').affection_status(42, 'ロザリー'), (100, True))
+        self.assertEqual(PresentStore('unused').affection_status(42, 'ロザリー'), (105, 1))
 
-    def test_perfect_link_rollback_and_parallel_gifts_consume_only_one(self):
+    def test_perfect_link_rollback_and_parallel_gifts_advance_once_then_continue(self):
         from concurrent.futures import ThreadPoolExecutor
         self.claim()
         self.db.execute("UPDATE george_present_items SET quantity=3 WHERE user_id=42")
@@ -291,7 +290,8 @@ class StorageTests(unittest.TestCase):
         with ThreadPoolExecutor(2) as pool:
             results = list(pool.map(give, (201, 202)))
         self.assertEqual(results.count((0, 100, True)), 1)
-        self.assertEqual(self.store.inventory(42), {'magic': 2})
+        self.assertEqual(results.count((5, 105, 1)), 1)
+        self.assertEqual(self.store.inventory(42), {'magic': 1})
         self.assertEqual(self.store.affection_status(43, 'ロザリー'), (0, False))
 
     def test_quiz_reward_independent_daily_limit_and_next_day(self):
@@ -376,6 +376,7 @@ class StorageTests(unittest.TestCase):
             record_completions(conn, 42, ('ロザリー',))
         dates = self.store.album(42, 'ロザリー')
         self.assertIsNotNone(dates[4])
+        self.assertIsNotNone(self.db.execute("SELECT 1 FROM george_titles WHERE user_id=42 AND title_key='collection:ロザリー'").fetchone())
         self.assertIn('カード全種類収集：', album_display(dates))
         self.db.execute("UPDATE george_character_completions SET achieved_at='2026-10-01T00:00:00+00:00'")
         self.db.commit()
@@ -413,14 +414,19 @@ class StorageTests(unittest.TestCase):
             self.assertFalse(later['granted'])
             self.assertEqual(self.store.snapshot(42)[1], {'rare': 1, 'food': 1})
 
-    def test_support_bonus_cannot_be_farmed_by_rerolling(self):
-        with patch('presents.draw_present', return_value='food'):
+    def test_support_bonus_can_be_won_later_but_only_one_item_daily(self):
+        with patch('presents.draw_present', return_value='food'), patch('fortune_rewards.random.choice', return_value='book'):
             first = self.store.claim(42, 100, '大吉', '日向美海')
             self.assertIsNone(first['bonus_item'])
             later = self.store.claim(42, 101, '大吉', 'ロザリー')
             self.assertFalse(later['granted'])
-            self.assertIsNone(later['bonus_item'])
-            self.assertEqual(self.store.snapshot(42)[1], {'food': 1})
+            self.assertEqual(later['bonus_item'], 'book')
+            self.assertEqual(self.store.snapshot(42)[1], {'food': 1, 'book': 1})
+            again = self.store.claim(42, 102, '吉', 'ロザリー')
+            self.assertIsNone(again['bonus_item'])
+            self.assertTrue(again['support_matched'])
+            self.assertEqual(self.store.snapshot(42)[1], {'food': 1, 'book': 1})
+            self.assertIsNotNone(self.db.execute("SELECT 1 FROM george_titles WHERE user_id=42 AND title_key='support'").fetchone())
 
 
 
@@ -429,40 +435,36 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         view = PresentView(42, None, 'ロザリー', {'magic': 1}, 35)
         text = view.embed().description
         self.assertTrue(text.startswith('好感度：'))
-        self.assertIn('\n\n好物カテゴリー：', text)
+        self.assertIn('\n\n喜ばれる贈り物：', text)
+        self.assertNotIn('通常＋2', text)
+        self.assertNotIn('好物＋5', text)
+        self.assertNotIn('花束（虹）＋10', text)
         self.assertTrue(text.endswith('ボタンを押すと1個贈るぜ！'))
         self.assertEqual(text.count('ボタンを押すと1個贈るぜ！'), 1)
         view.stop()
 
-    async def test_perfect_link_disables_gifts_and_updates_stale_views(self):
-        store = SimpleNamespace(give=Mock(return_value=(0, 100, True)))
+    async def test_perfect_link_keeps_gifts_enabled_and_only_announces_advancement(self):
+        store = SimpleNamespace(give=Mock(side_effect=[(0, 100, 1), (2, 102, 1)]))
         view = PresentView(42, store, 'ロザリー', {'magic': 2, 'food': 1}, 100)
         await view.give(self.interaction(), 'magic')
         self.assertTrue(view.perfect)
-        self.assertTrue(all(button.disabled for button in view.children))
+        self.assertTrue(all(not button.disabled for button in view.children))
         self.assertIn('パーフェクトリンク', view.embed().description)
         await view.give(self.interaction(201), 'food')
-        store.give.assert_called_once()
-        self.assertEqual(view.items, {'magic': 1, 'food': 1})
+        self.assertEqual(store.give.call_count, 2)
+        self.assertEqual(view.items, {'magic': 1, 'food': 0})
+        self.assertIn('102/200', view.embed().description)
         view.stop()
-        store.give.reset_mock()
-        store.give.side_effect = PerfectLinkReached('達成済み')
-        stale = PresentView(42, store, 'ロザリー', {'magic': 2}, 99)
-        await stale.give(self.interaction(), 'magic')
-        self.assertTrue(stale.perfect)
-        self.assertEqual(stale.items['magic'], 2)
-        self.assertEqual(stale.points, 100)
-        self.assertTrue(all(button.disabled for button in stale.children))
-        stale.stop()
 
-    async def test_reopened_perfect_link_view_is_disabled(self):
+    async def test_reopened_perfect_link_view_allows_further_gifts(self):
         from present_view import open_presents
         store = SimpleNamespace(snapshot=Mock(return_value=('ロザリー', {'magic': 1}, 100, True)))
         interaction = self.interaction()
         await open_presents(interaction, store)
         options = interaction.followup.send.call_args.kwargs
         self.assertTrue(options['ephemeral'])
-        self.assertTrue(all(button.disabled for button in options['view'].children))
+        self.assertTrue(all(not button.disabled for button in options['view'].children))
+        self.assertIn('100/200', options['embed'].description)
         self.assertIn('パーフェクトリンク', options['embed'].description)
         options['view'].stop()
 
@@ -483,7 +485,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(view.children), 5)
         self.assertTrue(view.children[-1].disabled)
         self.assertIn('花束（虹）', view.children[2].label)
-        self.assertIn('好物カテゴリー', view.embed().description)
+        self.assertIn('喜ばれる贈り物', view.embed().description)
         interaction = self.interaction()
         await view.give(interaction, 'magic')
         await view.give(interaction, 'magic')

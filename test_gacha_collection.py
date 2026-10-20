@@ -14,6 +14,40 @@ from registered_memory import MemoryUnavailable
 
 
 class StoreTests(unittest.TestCase):
+    def test_triple_rare_counts_saved_batch_after_guarantee_without_favorite(self):
+        engine = Gacha()
+        for game, total in (('vierge', 4), ('relink', 100)):
+            highest = engine.pools[game][RULES[game].normal[0][0]][0]
+            lower = engine.pools[game][RULES[game].normal[-1][0]][0]
+            cards = [highest, highest] + [lower] * (RULES[game].batch_size - 2)
+            connection = Mock()
+            receipts = {}
+
+            def execute(sql, params):
+                import json
+                if sql.startswith('SELECT user_id'):
+                    return SimpleNamespace(fetchone=lambda: receipts.get(params[0]))
+                if sql.startswith('SELECT c.card'):
+                    return SimpleNamespace(fetchone=lambda: None)
+                if sql.startswith('INSERT INTO george_gacha_draws'):
+                    receipts[params[0]] = (params[1], params[2], json.loads(params[3]))
+                return SimpleNamespace(fetchone=lambda: (total if sql.startswith(('INSERT INTO george_relink_counts', 'INSERT INTO george_gacha_batches')) else 1,))
+
+            connection.execute.side_effect = execute
+
+            @contextmanager
+            def connect():
+                yield connection
+
+            store = CollectionStore('test')
+            with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record:
+                result = store.save_draw(42, game, 800, cards)
+                self.assertEqual(sum(row['card']['rarity'] == highest.rarity for row in result), 3)
+                record.assert_called_once_with(connection, 42, 'triple-rare:800', 'triple_rare', count=3)
+                record.reset_mock()
+                store.save_draw(42, game, 800, cards)
+                record.assert_not_called()
+
     def setUp(self):
         for name in ('change_streak', 'record_event', 'settle_daily', 'start_daily', 'record_completions'):
             helper = patch('gacha_collection.' + name)

@@ -3,6 +3,19 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 class DisplayTests(unittest.IsolatedAsyncioTestCase):
+    async def test_only_successful_named_profile_searches_are_counted(self):
+        import main
+        interaction = SimpleNamespace(id=101, user=SimpleNamespace(id=42),
+            response=SimpleNamespace(send_message=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        with patch.object(main.client.title_store, 'profile_search', Mock()) as named, patch.object(main.client.title_store, 'world_search', Mock()) as world, patch('main.notify_titles', AsyncMock()):
+            await main.progress.callback(interaction, 'ロザリー')
+            named.assert_called_once_with(42, 101, 'ロザリー')
+            named.reset_mock()
+            await main.progress.callback(interaction, '赤の世界')
+            await main.progress.callback(interaction, '存在しない名前')
+            named.assert_not_called()
+            world.assert_called_once()
+
     async def test_world_search_and_choices(self):
         import main
         from progress import progressData

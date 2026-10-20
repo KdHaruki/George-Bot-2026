@@ -6,10 +6,11 @@ import uuid
 import discord
 
 from registered_memory import MemoryUnavailable
+from title_core import COMMON
 
 
 def title_icon(key):
-    return '👑' if key in ('quiz100', 'bond100') or key.startswith('anniversary:') else '🎖️'
+    return '👑' if key in ('triple_rare', 'bond100') or key.startswith('anniversary:') else '🎖️'
 
 
 async def notify_titles(interaction, store):
@@ -26,7 +27,7 @@ async def notify_titles(interaction, store):
             return
         delivered = False
         try:
-            text = '**称号獲得！**\n' + '\n'.join(f'{title_icon(key)} **{discord.utils.escape_markdown(name)}**' for key, name in rows)
+            text = '**称号獲得！**\n' + '\n'.join(f'{title_icon(key)} **{discord.utils.escape_markdown(COMMON.get(key, name))}**' for key, name in rows)
             await interaction.followup.send(text, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
             delivered = True
         except discord.HTTPException:

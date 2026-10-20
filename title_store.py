@@ -2,9 +2,12 @@ from contextlib import contextmanager
 from presents import PresentStore
 from title_core import change_streak, refresh_affection, record_event
 from daily_affection import settle_daily
-from title_core import pending_titles
+from title_core import pending_titles, COMMON
 import json
 from datetime import datetime, timezone
+from quiz_rounds import expire_round
+from favorite_album import record_completions, collection_targets
+from progress_profiles import profile_for
 
 
 class TitleStore(PresentStore):
@@ -38,15 +41,39 @@ class TitleStore(PresentStore):
         with self.connect() as conn:
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             settle_daily(conn, user_id)
+            expire_round(conn, user_id)
+            record_completions(conn, user_id, collection_targets())
+            # Existing album dates prove past registrations; no historical guesses.
+            registrations = conn.execute('SELECT character FROM george_favorite_album WHERE user_id=%s AND first_registered_at IS NOT NULL', (user_id,)).fetchall()
+            stats = conn.execute('SELECT data FROM george_title_stats WHERE user_id=%s', (user_id,)).fetchone()
+            counted = set(json.loads(stats[0]).get('favorite_worlds', [])) if stats else set()
+            worlds = {profile['progressWorld'] for (name,) in registrations if (profile := profile_for(name))}
+            for world in sorted(worlds - counted):
+                record_event(conn, user_id, f'favorite-world-history:{world}', 'favorite_world', world=world)
             refresh_affection(conn, user_id)
             character = self.current_character(conn, user_id, required=False)
             change_streak(conn, user_id, character)
-            return conn.execute("SELECT title_key,name,acquired_at FROM george_titles WHERE user_id=%s AND title_key<>'exchange10' ORDER BY name,title_key", (user_id,)).fetchall()
+            rows = conn.execute("SELECT title_key,name,acquired_at FROM george_titles WHERE user_id=%s AND title_key<>'exchange10' ORDER BY name,title_key", (user_id,)).fetchall()
+            result = []
+            for key, name, acquired in rows:
+                current_name = COMMON.get(key, name)
+                if current_name != name:
+                    conn.execute('UPDATE george_titles SET name=%s WHERE user_id=%s AND title_key=%s', (current_name, user_id, key))
+                result.append((key, current_name, acquired))
+            return sorted(result, key=lambda row: (row[1], row[0]))
 
     def world_search(self, user_id, interaction_id, world):
         with self.connect() as conn:
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             record_event(conn, user_id, f'world:{interaction_id}', 'world', world=world)
+
+    def profile_search(self, user_id, interaction_id, character):
+        profile = profile_for(character)
+        if not profile:
+            return
+        with self.connect() as conn:
+            conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            record_event(conn, user_id, f'profile:{interaction_id}', 'profile_search', character=profile['progressName'])
 
     def role_map(self, guild_id):
         with self.connect() as conn:

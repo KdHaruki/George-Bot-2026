@@ -8,6 +8,19 @@ from ange_quiz import QuizView, hints_for
 
 
 class QuizTests(unittest.IsolatedAsyncioTestCase):
+    async def test_first_attempt_and_timeout_are_persisted_once(self):
+        store = SimpleNamespace(resolve_quiz_round=Mock(), claim_quiz=Mock(return_value={'granted': False, 'item': 'food'}))
+        view = QuizView(42, reward_store=store, reward_id=100)
+        wrong = next(button for button in view.children if button.label != view.answer['progressName'])
+        correct = next(button for button in view.children if button.label == view.answer['progressName'])
+        await wrong.callback(self.interaction())
+        await correct.callback(self.interaction())
+        store.resolve_quiz_round.assert_called_once_with(42, 100, False)
+        timeout = QuizView(42, reward_store=store, reward_id=101)
+        await timeout.on_timeout()
+        self.assertEqual(store.resolve_quiz_round.call_args.args, (42, 101, False))
+        timeout.stop()
+
     async def test_hint_order_varies_between_questions_but_is_fixed_during_question(self):
         records = [dict(progressName=f'人物{i}', progressWorld='青', progressLike='お菓子',
                         progressDisLike='雨', progressInscription='元気', progressDetail1='紹介') for i in range(4)]
