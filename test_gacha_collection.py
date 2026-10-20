@@ -48,6 +48,33 @@ class StoreTests(unittest.TestCase):
                 store.save_draw(42, game, 800, cards)
                 record.assert_not_called()
 
+    def test_royal_flush_records_saved_result_once_after_guarantee(self):
+        import json
+        engine = Gacha()
+        cards = [engine.pools['vierge'][rarity][0] for rarity in ('UR', 'SR', 'HR', 'R', 'R', 'R', 'R')]
+        connection, receipts = Mock(), {}
+        def execute(sql, params):
+            if sql.startswith('SELECT user_id'):
+                return SimpleNamespace(fetchone=lambda: receipts.get(params[0]))
+            if sql.startswith('SELECT c.card'):
+                return SimpleNamespace(fetchone=lambda: None)
+            if sql.startswith('INSERT INTO george_gacha_draws'):
+                receipts[params[0]] = (params[1], params[2], json.loads(params[3]))
+            return SimpleNamespace(fetchone=lambda: (1,))
+        connection.execute.side_effect = execute
+        @contextmanager
+        def connect():
+            yield connection
+        store = CollectionStore('test')
+        with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record:
+            result = store.save_draw(42, 'vierge', 900, cards)
+            self.assertEqual({row['card']['rarity'] for row in result}, {'UR', 'SR', 'HR', 'R'})
+            record.assert_called_once_with(connection, 42, 'royal-flush:900', 'royal_flush',
+                                           game='vierge', count=7, rarities=['HR', 'R', 'SR', 'UR'])
+            record.reset_mock()
+            store.save_draw(42, 'vierge', 900, cards)
+            record.assert_not_called()
+
     def setUp(self):
         for name in ('change_streak', 'record_event', 'settle_daily', 'start_daily', 'record_completions'):
             helper = patch('gacha_collection.' + name)

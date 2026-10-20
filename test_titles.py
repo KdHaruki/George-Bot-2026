@@ -30,6 +30,17 @@ class TitleRulesTests(unittest.TestCase):
             state, unlocked = event_result(state, 'profile_search', {'character': record['progressName']})
             self.assertEqual(('profile30', '青蘭学園の情報通') in unlocked, index == 9)
 
+    def test_royal_flush_requires_all_four_rarities_in_one_vierge_batch(self):
+        from title_core import title_condition, pending_titles
+        from title_notifications import title_icon
+        facts = dict(game='vierge', count=7, rarities=['UR', 'SR', 'HR', 'R'])
+        self.assertIn(('royal_flush', '青蘭学園のロイヤルフラッシュ'), event_result({}, 'royal_flush', facts)[1])
+        for change in (dict(game='relink'), dict(count=6), dict(count=14), dict(rarities=['UR', 'SR', 'R'])):
+            self.assertEqual(event_result({}, 'royal_flush', facts | change)[1], [])
+        self.assertEqual(title_icon('royal_flush'), '🎖️')
+        self.assertIn('7連', title_condition('royal_flush'))
+        self.assertIn('royal_flush', {key for key, _, _ in pending_titles(set(), {}, 0)})
+
     def test_triple_rare_threshold_icon_and_condition(self):
         from title_core import title_condition
         from title_notifications import title_icon
@@ -95,7 +106,7 @@ class TitleRulesTests(unittest.TestCase):
         self.assertIn('クイズをヒント1回目で正解', data['quiz10'])
         self.assertNotIn('不正解・時間切れ', data['quiz_streak10'])
         self.assertIn('お気に入りに登録する：', data['ambassador'])
-        self.assertIn('名前で検索する：', data['profile30'])
+        self.assertIn('プログレスを10人名前で検索する：', data['profile30'])
         keys = list(data)
         self.assertEqual(keys.index('quiz_streak10'), keys.index('quiz100') + 1)
         self.assertIn('12/365日', data['anniversary:ロザリー'])

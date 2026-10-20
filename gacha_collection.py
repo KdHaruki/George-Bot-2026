@@ -142,6 +142,9 @@ class CollectionStore(MemoryStore):
             highest_count = sum(card.rarity == RULES[game].normal[0][0] for card in cards)
             if len(cards) == RULES[game].batch_size and highest_count >= 3:
                 record_event(connection, user_id, f'triple-rare:{interaction_id}', 'triple_rare', count=highest_count)
+            if game == 'vierge' and len(cards) == 7 and {'UR', 'SR', 'HR', 'R'} <= {card.rarity for card in cards}:
+                record_event(connection, user_id, f'royal-flush:{interaction_id}', 'royal_flush',
+                             game=game, count=len(cards), rarities=sorted({card.rarity for card in cards}))
             record_completions(connection, user_id, (card.character for card in cards))
             # Receipts only prevent short-term redelivery; owned cards never expire.
             connection.execute("DELETE FROM george_gacha_draws WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))

@@ -10,7 +10,7 @@ from title_core import COMMON
 
 
 def title_icon(key):
-    return '👑' if key in ('triple_rare', 'bond100', 'special_agent') or key.startswith('anniversary:') else '🎖️'
+    return '👑' if key in ('triple_rare', 'bond100') or key.startswith('anniversary:') else '🎖️'
 
 
 async def notify_titles(interaction, store):

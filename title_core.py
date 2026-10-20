@@ -13,6 +13,7 @@ COMMON = {
     'bond10': 'エール・フレンドを繋ぎし者', 'bond100': 'エルエルを超えし者',
     'worlds': '世界の秘密を知る者', 'reunion': '青蘭学園の時間超越者',
     'triple_rare': '奇跡を束ねし者',
+    'royal_flush': '青蘭学園のロイヤルフラッシュ',
     'quiz_streak10': '青蘭学園の名探偵',
     'fortune_all': '運命を巡りし者',
     'special_agent': '青蘭学園の特命係',
@@ -37,11 +38,12 @@ def title_condition(key):
         'variety': f'通常プレゼント全{len(NORMAL_GIFTS)}種類を贈る（相手を問わず）',
         'worlds': '5つの世界を検索する',
         'reunion': 'ガチャでお気に入り本人のUR・★3を引く',
+        'royal_flush': '1回のヴィエルジュ7連でUR・SR・HR・Rをすべて引く',
         'triple_rare': '1回のガチャでURまたは★3を3枚以上引く',
         'bond10': '異なる5人の好感度を100にする',
         'bond100': '異なる100人の好感度を100にする',
         'ambassador': '5つの世界から各1人、お気に入りに登録したことがある',
-        'profile30': '異なる10人のプロフィールを名前で検索する',
+        'profile30': 'プログレスを10人名前で検索する',
     }
     kind, _, character = key.partition(':')
     if character:
@@ -79,8 +81,9 @@ def pending_titles(earned, state, affection_count, character=None, days=0):
     add('worlds', COMMON['worlds'], f'5つの世界を検索：{len(set(state.get("worlds", [])) & set("青黒赤白緑"))}/5世界')
     add('reunion', COMMON['reunion'], 'ガチャで現在のお気に入り本人のUR・★3を引く')
     add('triple_rare', COMMON['triple_rare'], '1回のガチャでURまたは★3を3枚以上引く')
+    add('royal_flush', COMMON['royal_flush'], title_condition('royal_flush'))
     add('ambassador', COMMON['ambassador'], f'5つの世界から各1人、お気に入りに登録する：{len(set(state.get("favorite_worlds", [])) & set("青黒赤白緑"))}/5世界')
-    add('profile30', COMMON['profile30'], f'異なる10人のプロフィールを名前で検索する：{min(len(set(state.get("profile_names", []))), 10)}/10人')
+    add('profile30', COMMON['profile30'], f'プログレスを10人名前で検索する：{min(len(set(state.get("profile_names", []))), 10)}/10人')
     for target, key in ((5, 'bond10'), (100, 'bond100')):
         add(key, COMMON[key], f'異なる{target}人の好感度を100にする：{min(affection_count, target)}/{target}人')
     if character:
@@ -193,6 +196,8 @@ def event_result(state, kind, facts):
         unlocked.append(('reunion', COMMON['reunion']))
     elif kind == 'triple_rare' and facts['count'] >= 3:
         unlocked.append(('triple_rare', COMMON['triple_rare']))
+    elif kind == 'royal_flush' and facts.get('game') == 'vierge' and facts.get('count') == 7 and {'UR', 'SR', 'HR', 'R'} <= set(facts.get('rarities', ())):
+        unlocked.append(('royal_flush', COMMON['royal_flush']))
     elif kind == 'favorite_world':
         worlds = set(state.get('favorite_worlds', []))
         if facts['world'] in '青黒赤白緑' and len(facts['world']) == 1:

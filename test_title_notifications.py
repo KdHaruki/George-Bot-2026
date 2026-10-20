@@ -47,7 +47,7 @@ class NotificationStorageTests(unittest.TestCase):
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM george_titles WHERE user_id=42 AND title_key='special_agent'").fetchone()[0], 1)
         rows = self.store.claim_title_notifications(42, 'one')
         self.assertEqual(rows.count(('special_agent', '青蘭学園の特命係')), 1)
-        self.assertEqual(title_icon('special_agent'), '👑')
+        self.assertEqual(title_icon('special_agent'), '🎖️')
         self.assertIn('青蘭学園の名探偵', title_condition('special_agent'))
         self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
         self.store.finish_title_notifications(42, 'one', True)
