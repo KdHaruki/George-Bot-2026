@@ -14,6 +14,7 @@ from relink_presentations import star3_embeds, presentation_files
 from presents import PresentStore, affection_display
 from present_view import open_presents
 from favorite_album import album_display
+from title_notifications import notify_titles
 from progress_profiles import character_key, normalize, profile_for
 
 
@@ -240,6 +241,7 @@ def register_gacha_commands(bot, store=None):
         embed.set_field_at(0, name='【ジョージの一言】', value=discord.utils.escape_markdown(comment), inline=False)
         await interaction.followup.send(embed=space_headings(embed),
                                         allowed_mentions=discord.AllowedMentions.none())
+        await notify_titles(interaction, getattr(bot, 'title_store', None))
         if 作品 == 'relink':
             try:
                 ids = list(dict.fromkeys(card.id for card in cards if card.rarity == '★3'))
@@ -369,6 +371,7 @@ def register_gacha_commands(bot, store=None):
                 selected = await asyncio.to_thread(store.set_favorite, interaction.user.id, game, card.id, toggle=True)
                 if selected is None:
                     await interaction.followup.send('お気に入りを解除したぜ。所持カードや枚数はそのままだぞ！', ephemeral=True)
+                    await notify_titles(interaction, getattr(bot, 'title_store', None))
                     return
             else:
                 selected = await asyncio.to_thread(store.favorite, interaction.user.id)
@@ -395,6 +398,7 @@ def register_gacha_commands(bot, store=None):
             # Show existing local art only; never fetch the Wiki during a command.
             art = card if game == 'relink' and card.rarity == '★3' else None
             await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+            await notify_titles(interaction, getattr(bot, 'title_store', None))
             if art is not None:
                 files = presentation_files([art])
                 try:

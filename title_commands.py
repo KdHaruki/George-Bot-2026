@@ -5,6 +5,8 @@ from discord import app_commands
 
 from registered_memory import MemoryUnavailable
 from favorite_album import JST
+from title_notifications import notify_titles, title_icon
+from title_core import title_condition
 from datetime import datetime
 
 
@@ -105,7 +107,12 @@ class TitleView(discord.ui.View):
             description += '\n\n'.join(f'**{discord.utils.escape_markdown(row[1])}**\n{discord.utils.escape_markdown(row[2])}' for row in rows) or '対象の称号はすべて獲得済みだぜ！'
         else:
             description += '【獲得済み】\n'
-            description += '\n'.join(discord.utils.escape_markdown(row[1]) + (f'（{row[2].astimezone(JST):%Y年%m月%d日}）' if isinstance(row[2], datetime) else '') for row in rows) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'
+            descriptions = []
+            for key, title, acquired in rows:
+                day = acquired.astimezone(JST).strftime('%Y年%m月%d日') if isinstance(acquired, datetime) else '未記録'
+                descriptions.append(f'{title_icon(key)} **{discord.utils.escape_markdown(title)}**\n'
+                                    f'{discord.utils.escape_markdown(title_condition(key))}\n獲得日：{day}')
+            description += '\n\n'.join(descriptions) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'
         embed = discord.Embed(title='称号', description=description.lstrip(), color=0xD5AD49)
         if len(items) > self.PAGE_SIZE:
             embed.set_footer(text=f'{self.page + 1}/{(len(items) + self.PAGE_SIZE - 1) // self.PAGE_SIZE}ページ')
@@ -159,5 +166,6 @@ def register_title_commands(bot):
             view = TitleView(interaction.user.id, rows, bot.title_roles, guild, equipped, pending)
             view.message = await interaction.followup.send(embed=view.embed(), view=view, ephemeral=True, wait=True,
                 allowed_mentions=discord.AllowedMentions.none())
+            await notify_titles(interaction, bot.title_store)
         except MemoryUnavailable as exc:
             await interaction.followup.send(str(exc), ephemeral=True)

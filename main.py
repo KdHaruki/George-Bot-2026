@@ -26,6 +26,7 @@ from presents import ITEMS
 from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import register_title_commands
+from title_notifications import notify_titles
 from discord_layout import space_headings
 
 ########################################
@@ -219,6 +220,7 @@ async def progress(interaction: discord.Interaction, name: str):
         except MemoryUnavailable:
             logging.warning('World search title update failed')
             await interaction.followup.send('検索結果は表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
+        await notify_titles(interaction, client.title_store)
 
 ########################################
 # メッセージイベント
@@ -274,6 +276,7 @@ async def omikuji(interaction: discord.Interaction):
         text = '今日の分は受け取り済みだぜ。次は日本時間の0時から！'
     embed.add_field(name='【プレゼント】', value=text, inline=False)
     await interaction.followup.send(embed=space_headings(embed), allowed_mentions=discord.AllowedMentions.none())
+    await notify_titles(interaction, client.present_store)
 
 
 @client.event

@@ -5,6 +5,7 @@ import discord
 
 from presents import ITEMS, preferred_items, affection_display, MAX_AFFECTION, PerfectLinkReached
 from registered_memory import MemoryUnavailable
+from title_notifications import notify_titles
 from present_catalog import CATEGORIES, ITEM_CATEGORY, preferred_categories
 
 
@@ -100,6 +101,7 @@ class PresentView(discord.ui.View):
             if perfect:
                 status = f'{ITEMS[key][1]}を贈って、**パーフェクトリンク達成！**'
             await interaction.edit_original_response(embed=self.embed(status), view=self)
+            await notify_titles(interaction, self.store)
 
     async def on_timeout(self):
         async with self.lock:
@@ -120,5 +122,6 @@ async def open_presents(interaction, store):
         view = PresentView(interaction.user.id, store, character, items, points, perfect)
         view.message = await interaction.followup.send(embed=view.embed(), view=view, ephemeral=True,
             wait=True, allowed_mentions=discord.AllowedMentions.none())
+        await notify_titles(interaction, store)
     except (ValueError, MemoryUnavailable) as exc:
         await interaction.followup.send(str(exc), ephemeral=True)

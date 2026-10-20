@@ -2,17 +2,40 @@
 from contextlib import contextmanager
 from dataclasses import asdict
 import json
+import time
 
 from gacha import BATCH_GUARANTEE, RULES, Card, Gacha, vierge_character_card, current_card
 import random
 from registered_memory import MemoryStore, MemoryUnavailable
 from favorite_album import ensure_album, record_registration, record_completions
-from title_core import ensure_titles, seed_existing_streaks, record_event, change_streak
+from title_core import ensure_titles, seed_existing_streaks, record_event, change_streak, settle_streak
 from progress_profiles import character_key
 from daily_affection import ensure_daily, seed_daily, settle_daily, start_daily
 
 
 class CollectionStore(MemoryStore):
+    def claim_title_notifications(self, user_id, token):
+        with self.connect() as connection:
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_streak(connection, user_id)
+            now = int(time.time())
+            rows = connection.execute('''SELECT title_key,name FROM george_title_notices
+                WHERE user_id=%s AND claimed_until<=%s AND title_key<>'exchange10'
+                ORDER BY title_key LIMIT 10''', (user_id, now)).fetchall()
+            for key, _ in rows:
+                connection.execute('''UPDATE george_title_notices SET claimed_until=%s,claim_token=%s
+                    WHERE user_id=%s AND title_key=%s''', (now + 120, token, user_id, key))
+            return rows
+
+    def finish_title_notifications(self, user_id, token, delivered):
+        with self.connect() as connection:
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            if delivered:
+                connection.execute('DELETE FROM george_title_notices WHERE user_id=%s AND claim_token=%s', (user_id, token))
+            else:
+                connection.execute('''UPDATE george_title_notices SET claimed_until=0,claim_token=''
+                    WHERE user_id=%s AND claim_token=%s''', (user_id, token))
+
     @contextmanager
     def connect(self):
         try:

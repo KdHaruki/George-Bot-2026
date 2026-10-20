@@ -14,6 +14,16 @@ from registered_memory import MemoryUnavailable
 
 
 class TitleRulesTests(unittest.TestCase):
+    def test_earned_conditions_cover_common_and_personal_titles(self):
+        from title_core import title_condition
+        for key in COMMON:
+            self.assertNotIn('確認できません', title_condition(key))
+        self.assertEqual(title_condition('fortune10'), 'おみくじを累計10回')
+        self.assertIn('全14種類', title_condition('variety'))
+        self.assertEqual(title_condition('affection:ロザリー'), 'ロザリーの好感度100の状態で好物を贈る')
+        self.assertIn('別人への変更・解除でリセット', title_condition('anniversary:ロザリー'))
+        self.assertIn('好物の通常プレゼント', title_condition('favorite_gift:ロザリー'))
+
     def test_pending_conditions_counters_and_favorite_scope(self):
         from title_core import pending_titles
         rows = pending_titles({'fortune10', 'favorite_gift:ロザリー'},
@@ -320,6 +330,7 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
                          [('quiz10', '青蘭学園の知恵袋', '初回正解7/10回')])
         interaction = SimpleNamespace(response=SimpleNamespace(defer=AsyncMock()), edit_original_response=AsyncMock())
         self.assertIn('2026年10月20日', view.embed().description)
+        self.assertIn('🎖️ **今日も神頼み**\nおみくじを累計10回\n獲得日：2026年10月20日', view.embed().description)
         view.selected = 'fortune10'
         await next(child for child in view.children if getattr(child, 'label', '') == '未獲得').callback(interaction)
         self.assertEqual(view.mode, 'pending')

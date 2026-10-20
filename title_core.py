@@ -16,6 +16,31 @@ COMMON = {
 NORMAL_GIFTS = frozenset(NORMAL_ITEMS)
 
 
+def title_condition(key):
+    conditions = {
+        'quiz10': 'クイズで1回目の正解を累計10回',
+        'quiz100': 'クイズで1回目の正解を累計100回',
+        'fortune10': 'おみくじを累計10回',
+        'great10': '大吉を累計10回',
+        'support': 'おみくじの応援ボーナスを初めて獲得',
+        'gift10': 'プレゼントを累計10回贈る',
+        'variety': f'通常プレゼント全{len(NORMAL_GIFTS)}種類を贈る（相手を問わず）',
+        'worlds': '5つの世界を検索する',
+        'reunion': 'ガチャでお気に入り本人のUR・★3を引く',
+        'bond10': '異なる10人の好感度を100にする',
+        'bond100': '異なる100人の好感度を100にする',
+    }
+    kind, _, character = key.partition(':')
+    if character:
+        if kind == 'favorite_gift':
+            return f'{character}に好物の通常プレゼントを初めて贈る'
+        if kind == 'affection':
+            return f'{character}の好感度100の状態で好物を贈る'
+        if kind == 'anniversary':
+            return f'{character}をお気に入りに設定して1年が経つ（別人への変更・解除でリセット）'
+    return conditions.get(key, '取得条件を確認できません。')
+
+
 def pending_titles(earned, state, affection_count, character=None, days=0):
     """Display actual counters; binary milestones are represented as conditions."""
     rows = []
@@ -45,6 +70,10 @@ def pending_titles(earned, state, affection_count, character=None, days=0):
 
 
 def ensure_titles(connection):
+    connection.execute('''CREATE TABLE IF NOT EXISTS george_title_notices (
+        user_id BIGINT NOT NULL, title_key TEXT NOT NULL, name TEXT NOT NULL,
+        claimed_until BIGINT NOT NULL DEFAULT 0, claim_token TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY(user_id,title_key))''')
     connection.execute('''CREATE TABLE IF NOT EXISTS george_titles (
         user_id BIGINT NOT NULL, title_key TEXT NOT NULL, name TEXT NOT NULL,
         acquired_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,title_key))''')
@@ -74,8 +103,12 @@ def seed_existing_streaks(connection):
 
 
 def grant(connection, user_id, key, name=None):
-    connection.execute('''INSERT INTO george_titles(user_id,title_key,name) VALUES (%s,%s,%s)
-        ON CONFLICT(user_id,title_key) DO NOTHING''', (user_id, key, name or COMMON[key]))
+    name = name or COMMON[key]
+    inserted = connection.execute('''INSERT INTO george_titles(user_id,title_key,name) VALUES (%s,%s,%s)
+        ON CONFLICT(user_id,title_key) DO NOTHING RETURNING title_key''', (user_id, key, name)).fetchone()
+    if inserted:
+        connection.execute('''INSERT INTO george_title_notices(user_id,title_key,name) VALUES (%s,%s,%s)
+            ON CONFLICT(user_id,title_key) DO NOTHING''', (user_id, key, name))
 
 
 def event_result(state, kind, facts):

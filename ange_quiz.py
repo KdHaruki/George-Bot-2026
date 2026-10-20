@@ -7,6 +7,7 @@ import discord
 from progress import progressData
 from presents import ITEMS
 from registered_memory import MemoryUnavailable
+from title_notifications import notify_titles
 
 
 HINT_FIELDS = [('progressWorld', '出身世界'), ('progressLike', '好きなもの'),
@@ -97,6 +98,8 @@ class QuizView(discord.ui.View):
                 self.revealed = min(len(self.hints), self.revealed + 1)
                 status = '惜しい！ ヒントを追加したぜ。もう一度選んでくれ！'
             await interaction.edit_original_response(embed=self.embed(status), view=self)
+            if self.finished:
+                await notify_titles(interaction, self.reward_store)
 
     async def on_timeout(self):
         async with self.lock:

@@ -8,6 +8,22 @@ from registered_memory import MemoryUnavailable
 
 
 class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_public_fortune_result_has_separate_private_unlock_notification(self):
+        store = SimpleNamespace(claim=Mock(return_value={'granted': True, 'item': 'food', 'fortune': '吉'}),
+            claim_title_notifications=Mock(side_effect=[[('fortune10', '今日も神頼み')], []]),
+            finish_title_notifications=Mock())
+        bot = SimpleNamespace(present_store=store, george_chat=SimpleNamespace(fortune_details=AsyncMock(return_value='いい日だぜ！')))
+        interaction = SimpleNamespace(id=100, user=SimpleNamespace(id=42),
+            response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        with patch.object(main, 'client', bot):
+            await main.omikuji.callback(interaction)
+        public, private = interaction.followup.send.call_args_list
+        self.assertIn('embed', public.kwargs)
+        self.assertFalse(public.kwargs.get('ephemeral', False))
+        self.assertNotIn('今日も神頼み', str(public.kwargs['embed'].to_dict()))
+        self.assertTrue(private.kwargs['ephemeral'])
+        self.assertIn('今日も神頼み', private.args[0])
+
     async def run_fortune(self, favorite, failure=False, reward=None, db_failure=False):
         generate = AsyncMock(return_value='いい一日にしようね！')
         if failure:
