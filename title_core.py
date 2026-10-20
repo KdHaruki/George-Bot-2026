@@ -15,14 +15,17 @@ COMMON = {
     'triple_rare': '奇跡を束ねし者',
     'quiz_streak10': '青蘭学園の名探偵',
     'fortune_all': '運命を巡りし者',
+    'special_agent': '青蘭学園の特命係',
     'ambassador': '青蘭学園の親善大使', 'profile30': '青蘭学園の情報通',
 }
+SPECIAL_AGENT_REQUIREMENTS = frozenset(('profile30', 'quiz_streak10', 'gift10'))
 NORMAL_GIFTS = frozenset(NORMAL_ITEMS)
 FORTUNE_TYPES = frozenset(('大吉', '吉', '中吉', '小吉', '末吉', '凶'))
 
 
 def title_condition(key):
     conditions = {
+        'special_agent': '「青蘭学園の情報通」「青蘭学園の名探偵」「青蘭学園のメッセンジャー」をすべて獲得する',
         'quiz10': 'クイズをヒント1回目で正解した回数を累計10回',
         'quiz100': 'クイズをヒント1回目で正解した回数を累計100回',
         'quiz_streak10': 'クイズをヒント1回目で正解して10回連続達成',
@@ -68,6 +71,7 @@ def pending_titles(earned, state, affection_count, character=None, days=0):
         ('fortune10', 'fortunes', 10, 'おみくじ'),
         ('great10', 'great', 10, '大吉')):
         add(key, COMMON[key], f'{label}：{min(state.get(metric, 0), target)}/{target}回')
+    add('special_agent', COMMON['special_agent'], title_condition('special_agent') + f'：{len(earned & SPECIAL_AGENT_REQUIREMENTS)}/3称号')
     add('support', COMMON['support'], 'おみくじの応援ボーナスを初めて獲得')
     add('fortune_all', COMMON['fortune_all'], f'6種類の運勢をすべて引く：{len(set(state.get("fortunes_seen", [])) & FORTUNE_TYPES)}/6種類')
     add('gift10', COMMON['gift10'], f'プレゼントを贈る：{min(state.get("gifts", 0), 10)}/10回')
@@ -129,6 +133,14 @@ def grant(connection, user_id, key, name=None):
     if inserted:
         connection.execute('''INSERT INTO george_title_notices(user_id,title_key,name) VALUES (%s,%s,%s)
             ON CONFLICT(user_id,title_key) DO NOTHING''', (user_id, key, name))
+    if key in SPECIAL_AGENT_REQUIREMENTS:
+        refresh_special_agent(connection, user_id)
+
+
+def refresh_special_agent(connection, user_id):
+    earned = {row[0] for row in connection.execute('SELECT title_key FROM george_titles WHERE user_id=%s', (user_id,)).fetchall()}
+    if SPECIAL_AGENT_REQUIREMENTS <= earned and 'special_agent' not in earned:
+        grant(connection, user_id, 'special_agent')
 
 
 def event_result(state, kind, facts):

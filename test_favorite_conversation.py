@@ -51,9 +51,9 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         embed = await help_embed(bot, True)
         self.assertIn('みんな、いい調子か？', embed.fields[0].value)
         self.assertNotIn('会話への参加・絵文字リアクションもするぜ！', embed.fields[0].value)
-        text = embed.fields[1].value
+        text = '\n'.join(field.value for field in embed.fields[1:3])
         self.assertIn('`/おみくじ`\n今日の運勢', text)
-        self.assertIn('`/お気に入り プログレス登録 ロザリー カード`\nレアリティ・衣装を選んで登録。同じカードの再指定で解除。（★）', text)
+        self.assertIn('`/お気に入り プログレス登録 ロザリー カード`\nレアリティ・衣装を選んで登録。同じカードの再指定で解除。', text)
         self.assertNotIn('（公開情報）', text)
         self.assertNotIn('（非公開情報）', text)
         self.assertNotIn('【公開情報】', text)

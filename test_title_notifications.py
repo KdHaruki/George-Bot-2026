@@ -35,6 +35,32 @@ class NotificationStorageTests(unittest.TestCase):
         self.unlock()
         self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune10', '今日も神頼み')])
 
+    def test_special_agent_requires_all_three_and_is_awarded_once(self):
+        from title_core import pending_titles, title_condition
+        self.unlock('gift10')
+        self.unlock('profile30')
+        self.assertIsNone(self.db.execute("SELECT 1 FROM george_titles WHERE user_id=42 AND title_key='special_agent'").fetchone())
+        pending = {key: condition for key, _, condition in pending_titles({'gift10', 'profile30'}, {}, 0)}
+        self.assertIn('2/3称号', pending['special_agent'])
+        self.unlock('quiz_streak10')
+        self.unlock('quiz_streak10')
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM george_titles WHERE user_id=42 AND title_key='special_agent'").fetchone()[0], 1)
+        rows = self.store.claim_title_notifications(42, 'one')
+        self.assertEqual(rows.count(('special_agent', '青蘭学園の特命係')), 1)
+        self.assertEqual(title_icon('special_agent'), '👑')
+        self.assertIn('青蘭学園の名探偵', title_condition('special_agent'))
+        self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
+        self.store.finish_title_notifications(42, 'one', True)
+        self.assertEqual(self.store.claim_title_notifications(42, 'again'), [])
+
+    def test_special_agent_backfills_existing_titles_without_duplicate_notice(self):
+        for key in ('profile30', 'quiz_streak10', 'gift10'):
+            self.db.execute('INSERT INTO george_titles(user_id,title_key,name) VALUES (42,?,?)', (key, key))
+        self.db.commit()
+        self.assertEqual(self.store.claim_title_notifications(42, 'first'), [('special_agent', '青蘭学園の特命係')])
+        self.store.finish_title_notifications(42, 'first', True)
+        self.assertEqual(self.store.claim_title_notifications(42, 'next'), [])
+
     def test_multiple_unlocks_and_failed_delivery_retry(self):
         self.unlock()
         self.unlock('great10')

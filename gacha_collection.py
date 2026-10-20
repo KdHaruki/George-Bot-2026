@@ -8,7 +8,7 @@ from gacha import BATCH_GUARANTEE, RULES, Card, Gacha, vierge_character_card, cu
 import random
 from registered_memory import MemoryStore, MemoryUnavailable
 from favorite_album import ensure_album, record_registration, record_completions
-from title_core import ensure_titles, seed_existing_streaks, record_event, change_streak, settle_streak
+from title_core import ensure_titles, seed_existing_streaks, record_event, change_streak, settle_streak, refresh_special_agent
 from progress_profiles import character_key, profile_for
 from daily_affection import ensure_daily, seed_daily, settle_daily, start_daily
 
@@ -18,6 +18,7 @@ class CollectionStore(MemoryStore):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             settle_streak(connection, user_id)
+            refresh_special_agent(connection, user_id)
             now = int(time.time())
             rows = connection.execute('''SELECT title_key,name FROM george_title_notices
                 WHERE user_id=%s AND claimed_until<=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s

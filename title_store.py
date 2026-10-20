@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from presents import PresentStore
 from title_core import change_streak, refresh_affection, record_event
 from daily_affection import settle_daily
-from title_core import pending_titles, COMMON, grant
+from title_core import pending_titles, COMMON, grant, refresh_special_agent
 import json
 from datetime import datetime, timezone
 from quiz_rounds import expire_round
@@ -54,6 +54,7 @@ class TitleStore(PresentStore):
             refresh_affection(conn, user_id)
             character = self.current_character(conn, user_id, required=False)
             change_streak(conn, user_id, character)
+            refresh_special_agent(conn, user_id)
             rows = conn.execute("SELECT title_key,name,acquired_at FROM george_titles WHERE user_id=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s ORDER BY name,title_key", (user_id, 'collection:%')).fetchall()
             result = []
             for key, name, acquired in rows:
