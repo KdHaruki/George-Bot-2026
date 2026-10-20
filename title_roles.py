@@ -4,6 +4,7 @@ import logging
 import discord
 
 from registered_memory import MemoryUnavailable
+from title_notifications import title_icon
 
 
 class TitleRoles:
@@ -58,7 +59,7 @@ class TitleRoles:
             roles = {role.id: role for role in await guild.fetch_roles()}
             target = roles.get(mapping.get(key)) if key else None
             if key and target is None:
-                target = await guild.create_role(name=name[:100], permissions=discord.Permissions.none(),
+                target = await guild.create_role(name=f'{title_icon(key)} {name}'[:100], permissions=discord.Permissions.none(),
                     colour=discord.Colour.default(), hoist=False, mentionable=False, reason='ジョージの獲得済み称号')
                 try:
                     bound = await asyncio.to_thread(self.store.bind_role, guild.id, key, target.id, mapping.get(key))
@@ -80,6 +81,9 @@ class TitleRoles:
             top = self.bot_top(guild, roles.values())
             if target:
                 self.safe_role(guild, target, top)
+                role_name = f'{title_icon(key)} {name}'[:100]
+                if target.name != role_name:
+                    await target.edit(name=role_name, reason='称号ロールのマークを更新')
             member = await guild.fetch_member(user_id)
             ids = set(mapping.values())
             old = [roles.get(role.id, role) for role in member.roles if role.id in ids and (target is None or role.id != target.id)]

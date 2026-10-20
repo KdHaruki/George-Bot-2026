@@ -30,7 +30,7 @@ class TitleView(discord.ui.View):
             return
         rows = self.titles[self.page * self.PAGE_SIZE:(self.page + 1) * self.PAGE_SIZE]
         select = discord.ui.Select(placeholder='装着する獲得済み称号を選択', row=0,
-            options=[discord.SelectOption(label=row[1][:100], value=row[0], default=self.selected == row[0]) for row in rows]
+            options=[discord.SelectOption(label=row[1][:100], value=row[0], emoji=title_icon(row[0]), default=self.selected == row[0]) for row in rows]
             or [discord.SelectOption(label='まだ称号がありません', value='none')], disabled=not rows)
 
         async def choose(interaction):
@@ -101,10 +101,11 @@ class TitleView(discord.ui.View):
         description = status or ''
         if self.guild is None:
             description += '\nDMでは一覧のみ。装着・解除はサーバーで使ってくれ！'
-        description += f'\n\n【装着中】\n{discord.utils.escape_markdown(name)}\n\n'
+        equipped_icon = f'{title_icon(self.equipped)} ' if self.equipped and name != 'なし' else ''
+        description += f'\n\n【装着中】\n{equipped_icon}{discord.utils.escape_markdown(name)}\n\n'
         if self.mode == 'pending':
             description += '【未獲得】\n'
-            description += '\n\n'.join(f'**{discord.utils.escape_markdown(row[1])}**\n{discord.utils.escape_markdown(row[2])}' for row in rows) or '対象の称号はすべて獲得済みだぜ！'
+            description += '\n\n'.join(f'{title_icon(row[0])} **{discord.utils.escape_markdown(row[1])}**\n{discord.utils.escape_markdown(row[2])}' for row in rows) or '対象の称号はすべて獲得済みだぜ！'
         else:
             description += '【獲得済み】\n'
             descriptions = []

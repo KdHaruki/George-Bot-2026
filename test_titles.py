@@ -256,6 +256,13 @@ class FakeRole:
         self.managed = self.hoist = self.mentionable = False
         self.permissions = discord.Permissions(permissions)
         self.colour = discord.Colour.default()
+        self.name = '旧称号'
+
+        async def edit(**kwargs):
+            self.name = kwargs['name']
+            return self
+
+        self.edit = AsyncMock(side_effect=edit)
 
     def __ge__(self, other):
         return self.position >= other.position
@@ -281,8 +288,18 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(member.remove_roles.call_args.args[0].id, 10)
         member.add_roles.assert_awaited_once_with(target, reason='ジョージの称号を装着', atomic=True)
         store.save_equipped.assert_called_with(1, 42, 'fortune10', 11)
+        self.assertEqual(target.name, '🎖️ 今日も神頼み')
+        await manager.equip(guild, 42, 'fortune10')
+        target.edit.assert_awaited_once()
         with self.assertRaises(ValueError):
             await manager.equip(guild, 42, 'unearned')
+
+    async def test_hard_title_updates_existing_bound_role_with_crown(self):
+        store, member, guild, target = self.objects()
+        store.titles.return_value = [('anniversary:ロザリー', 'ロザリーの右腕', None)]
+        store.role_map.return_value = {'anniversary:ロザリー': target.id}
+        await TitleRoles(store).equip(guild, 42, 'anniversary:ロザリー')
+        self.assertEqual(target.name, '👑 ロザリーの右腕')
 
     async def test_modified_role_is_rejected_and_owner_can_remove_safe_old_title(self):
         store, member, guild, target = self.objects()
@@ -347,6 +364,23 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any(isinstance(child, discord.ui.Select) for child in view.children))
         await view.on_timeout()
         self.assertTrue(all(child.disabled for child in view.children))
+        view.stop()
+
+    async def test_title_icons_match_in_earned_pending_equipped_and_selector(self):
+        rows = [('fortune10', '今日も神頼み', None), ('quiz100', '青蘭学園の秘密兵器', None),
+                ('bond100', 'エルエルを超えし者', None), ('anniversary:ロザリー', 'ロザリーの右腕', None)]
+        view = TitleView(42, rows, None, SimpleNamespace(id=1), 'quiz100',
+                         [(key, name, '条件') for key, name, _ in rows])
+        self.assertIn('【装着中】\n👑 青蘭学園の秘密兵器', view.embed().description)
+        options = next(child for child in view.children if isinstance(child, discord.ui.Select)).options
+        self.assertEqual([str(option.emoji) for option in options], ['🎖️', '👑', '👑', '👑'])
+        for mode in ('earned', 'pending'):
+            view.mode = mode
+            view.build()
+            text = view.embed().description
+            self.assertIn('🎖️ **今日も神頼み**', text)
+            for name in ('青蘭学園の秘密兵器', 'エルエルを超えし者', 'ロザリーの右腕'):
+                self.assertIn(f'👑 **{name}**', text)
         view.stop()
 
     async def test_missing_permission_and_role_hierarchy_block_changes(self):
