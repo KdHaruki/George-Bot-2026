@@ -56,6 +56,31 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.generate = AsyncMock(return_value=SimpleNamespace(text="こんにちはだぜ！"))
         self.chat.client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=self.generate)))
 
+    async def test_conversation_includes_current_usage_without_extra_generation(self):
+        from command_help import SLASH_COMMANDS
+        from present_catalog import ITEMS, CATEGORIES
+        await self.chat.reply((1, 42), 'お気に入りの登録方法と好物を教えて')
+        self.generate.assert_awaited_once()
+        instruction = self.generate.call_args.kwargs['config'].system_instruction
+        self.assertIn('【現在のBotの使い方案内】', instruction)
+        for example, _ in SLASH_COMMANDS:
+            self.assertIn(example, instruction)
+        for _, name in ITEMS.values():
+            self.assertIn(name, instruction)
+        for name, _ in CATEGORIES.values():
+            self.assertIn(name, instruction)
+        self.assertIn('通常＋2、好物は合計＋5、レア＋10', instruction)
+        self.assertIn('所持品・好感度・称号・設定の現在値は、この案内からは確認できません', instruction)
+        self.assertIn('廃止された機能や存在しないコマンドを作りません', instruction)
+        self.assertIn('コマンドやボタンを代理実行', instruction)
+
+    async def test_followup_keeps_usage_guide_alongside_reply_reference(self):
+        await self.chat.reply((1, 42), '称号って何？')
+        await self.chat.reply((1, 42), 'それってどうやるの？', reply_to='未獲得に切り替えると条件が見えるぜ。')
+        instruction = self.generate.call_args.kwargs['config'].system_instruction
+        self.assertIn('`/称号`は獲得済みと未獲得をボタンで切り替え', instruction)
+        self.assertIn('未獲得に切り替える', self.generate.call_args.kwargs['contents'][-1].parts[0].text)
+
     async def test_history_is_separate_and_bounded(self):
         for i in range(12):
             await self.chat.reply((1, 1), str(i))

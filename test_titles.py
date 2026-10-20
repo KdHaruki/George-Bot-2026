@@ -27,7 +27,11 @@ class TitleRulesTests(unittest.TestCase):
         self.assertIn('2/5世界', data['worlds'])
         self.assertIn('3/10人', data['bond10'])
         self.assertIn('12/365日', data['anniversary:ロザリー'])
-        self.assertIn('パーフェクトリンク', data['affection:ロザリー'])
+        self.assertEqual(data['anniversary:ロザリー'], 'お気に入りに設定して1年が経つ：12/365日（別人への変更・解除でリセット）')
+        keys = [key for key, _, _ in rows]
+        start = keys.index('gift10')
+        self.assertEqual(keys[start:start + 4], ['gift10', 'variety', 'worlds', 'reunion'])
+        self.assertEqual(data['affection:ロザリー'], '好感度100の状態で好物を贈る')
         self.assertNotIn('exchange10', data)
         self.assertFalse(any(':' in key for key, _, _ in pending_titles(set(), {}, 0)))
 
@@ -319,6 +323,7 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.mode, 'pending')
         self.assertIsNone(view.selected)
         self.assertIn('初回正解7/10回', view.embed().description)
+        self.assertNotIn('プログレス別の未獲得称号は', view.embed().description)
         self.assertFalse(any(isinstance(child, discord.ui.Select) for child in view.children))
         await view.apply(interaction, 'quiz10')
         roles.equip.assert_not_awaited()

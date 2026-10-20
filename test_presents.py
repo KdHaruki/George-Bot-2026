@@ -335,11 +335,12 @@ class StorageTests(unittest.TestCase):
         text = album_display((datetime(2026, 10, 19, 16, tzinfo=timezone.utc), None, None,
                               datetime(2026, 10, 20, 16, tzinfo=timezone.utc)))
         self.assertIn('初登録日：2026年10月20日', text)
-        self.assertIn('右腕の獲得日：未記録', text)
+        self.assertIn('右腕の称号獲得日：未記録', text)
         self.assertNotIn('初プレゼント', text)
         self.assertNotIn('好感度100達成', text)
         self.assertEqual(len(text.splitlines()), 4)
         self.assertIn('パーフェクトリンク達成：2026年10月21日', text)
+        self.assertEqual(text.splitlines()[-1], 'パーフェクトリンク達成：2026年10月21日')
 
     def test_album_uses_existing_perfect_link_timestamp_without_rewriting(self):
         self.assertIsNone(self.store.album(42, 'ロザリー')[3])
@@ -355,7 +356,7 @@ class StorageTests(unittest.TestCase):
         self.db.execute("INSERT INTO george_titles VALUES (42,'anniversary:ロザリー','ロザリーの右腕','2026-10-19T16:00:00+00:00')")
         self.db.commit()
         dates = self.store.album(42, 'ロザリー')
-        self.assertIn('右腕の獲得日：2026年10月20日', album_display(dates))
+        self.assertIn('右腕の称号獲得日：2026年10月20日', album_display(dates))
         self.assertEqual(self.store.album(42, 'ロザリー'), dates)
         self.assertIsNone(self.store.album(42, '日向美海')[1])
         self.assertIsNone(self.store.album(43, 'ロザリー')[1])

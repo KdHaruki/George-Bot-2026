@@ -28,19 +28,19 @@ def pending_titles(earned, state, affection_count, character=None, days=0):
         ('quiz10', 'quiz_first', 10, 'クイズを1回目で正解'),
         ('quiz100', 'quiz_first', 100, 'クイズを1回目で正解'),
         ('fortune10', 'fortunes', 10, 'おみくじ'),
-        ('great10', 'great', 10, '大吉'),
-        ('gift10', 'gifts', 10, 'プレゼントを贈る')):
+        ('great10', 'great', 10, '大吉')):
         add(key, COMMON[key], f'{label}：{min(state.get(metric, 0), target)}/{target}回')
     add('support', COMMON['support'], 'おみくじの応援ボーナスを初めて獲得')
+    add('gift10', COMMON['gift10'], f'プレゼントを贈る：{min(state.get("gifts", 0), 10)}/10回')
     add('variety', COMMON['variety'], f'通常プレゼント全{len(NORMAL_GIFTS)}種類を贈る：{len(set(state.get("gift_kinds", [])) & NORMAL_GIFTS)}/{len(NORMAL_GIFTS)}種類')
-    for target, key in ((10, 'bond10'), (100, 'bond100')):
-        add(key, COMMON[key], f'異なる{target}人の好感度を100にする：{min(affection_count, target)}/{target}人')
     add('worlds', COMMON['worlds'], f'5つの世界を検索：{len(set(state.get("worlds", [])) & set("青黒赤白緑"))}/5世界')
     add('reunion', COMMON['reunion'], 'ガチャで現在のお気に入り本人のUR・★3を引く')
+    for target, key in ((10, 'bond10'), (100, 'bond100')):
+        add(key, COMMON[key], f'異なる{target}人の好感度を100にする：{min(affection_count, target)}/{target}人')
     if character:
         add(f'favorite_gift:{character}', f'{character}の理解者', '好物の通常プレゼントを初めて贈る')
-        add(f'affection:{character}', f'{character}の良き理解者', '好感度100の状態で好物を贈り、パーフェクトリンクする')
-        add(f'anniversary:{character}', f'{character}の右腕', f'連続でお気に入りに設定：{min(days, 365)}/365日（別人への変更・解除でリセット）')
+        add(f'affection:{character}', f'{character}の良き理解者', '好感度100の状態で好物を贈る')
+        add(f'anniversary:{character}', f'{character}の右腕', f'お気に入りに設定して1年が経つ：{min(days, 365)}/365日（別人への変更・解除でリセット）')
     return rows
 
 

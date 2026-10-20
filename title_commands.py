@@ -103,7 +103,6 @@ class TitleView(discord.ui.View):
         if self.mode == 'pending':
             description += '【未獲得】\n'
             description += '\n\n'.join(f'**{discord.utils.escape_markdown(row[1])}**\n{discord.utils.escape_markdown(row[2])}' for row in rows) or '対象の称号はすべて獲得済みだぜ！'
-            description += '\n\nプログレス別の未獲得称号は、現在のお気に入り本人の分を表示するぜ。'
         else:
             description += '【獲得済み】\n'
             description += '\n'.join(discord.utils.escape_markdown(row[1]) + (f'（{row[2].astimezone(JST):%Y年%m月%d日}）' if isinstance(row[2], datetime) else '') for row in rows) or 'まだ称号はないぜ。クイズやプレゼントで集めてみよう！'

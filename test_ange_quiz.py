@@ -8,6 +8,24 @@ from ange_quiz import QuizView, hints_for
 
 
 class QuizTests(unittest.IsolatedAsyncioTestCase):
+    async def test_hint_order_varies_between_questions_but_is_fixed_during_question(self):
+        records = [dict(progressName=f'人物{i}', progressWorld='青', progressLike='お菓子',
+                        progressDisLike='雨', progressInscription='元気', progressDetail1='紹介') for i in range(4)]
+        first_hints = set()
+        for seed in range(20):
+            view = QuizView(42, records=records, rng=random.Random(seed))
+            expected = hints_for(view.answer)
+            self.assertCountEqual(view.hints, expected)
+            first_hints.add(view.hints[0][0])
+            original = list(view.hints)
+            wrong = next(button for button in view.children if button.label != view.answer['progressName'])
+            await wrong.callback(self.interaction())
+            self.assertEqual(view.hints, original)
+            self.assertEqual([field.name for field in view.embed().fields],
+                             [f'【{label}】' for label, _ in original[:2]])
+            view.stop()
+        self.assertEqual(first_hints, {'出身世界', '好きなもの', '苦手なもの', '座右の銘', 'プロフィール'})
+
     def interaction(self, user=42):
         return SimpleNamespace(user=SimpleNamespace(id=user), edit_original_response=AsyncMock(), response=SimpleNamespace(
             edit_message=AsyncMock(), send_message=AsyncMock(), defer=AsyncMock()))

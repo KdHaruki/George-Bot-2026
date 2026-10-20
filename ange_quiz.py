@@ -38,6 +38,7 @@ class QuizView(discord.ui.View):
         self.user_id = user_id
         self.reward_store, self.reward_id = reward_store, reward_id
         self.hints = hints_for(self.answer)
+        rng.shuffle(self.hints)
         self.revealed = 1
         self.message = None
         self.lock = asyncio.Lock()

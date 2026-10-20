@@ -13,6 +13,7 @@ from google.genai import errors, types
 import httpx
 from progress import progressData
 from ambient_chat import SKIP
+from bot_guide import bot_guide_context
 
 MANAGEMENT_REPLY = '会話の記録や管理の詳しい仕組みについては答えられないぜ。データの扱いはBotの管理者に確認してくれ。'
 
@@ -240,7 +241,7 @@ class GeorgeChat:
                     model=self.model,
                     contents=[*session.history, request_user],
                     config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_INSTRUCTION + context + preference + registered_context(notes),
+                        system_instruction=SYSTEM_INSTRUCTION + bot_guide_context() + context + preference + registered_context(notes),
                         max_output_tokens=2048,
                     ),
                 ),
