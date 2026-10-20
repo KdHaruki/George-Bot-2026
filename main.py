@@ -292,7 +292,7 @@ async def omikuji(interaction: discord.Interaction):
     elif reward and reward.get('support_matched'):
         text += '\n\nお気に入りからの応援が届いたぜ！ 追加の贈り物は今日は受け取り済みだ。'
     embed.add_field(name=gift_heading, value=text, inline=False)
-    await interaction.followup.send(embed=space_headings(embed), allowed_mentions=discord.AllowedMentions.none())
+    await interaction.followup.send(embed=space_headings(embed, space_first=False), allowed_mentions=discord.AllowedMentions.none())
     await notify_titles(interaction, client.present_store)
 
 

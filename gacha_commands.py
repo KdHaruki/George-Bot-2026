@@ -14,7 +14,6 @@ from relink_presentations import star3_embeds, presentation_files
 from presents import PresentStore, affection_display
 from present_view import open_presents
 from favorite_album import album_display
-from album_view import AlbumView
 from title_notifications import notify_titles
 from progress_profiles import character_key, normalize, profile_for
 
@@ -290,7 +289,6 @@ def register_gacha_commands(bot, store=None):
         await interaction.response.defer(ephemeral=True)
         try:
             rows = await asyncio.to_thread(store.owned, interaction.user.id)
-            favorite = await asyncio.to_thread(store.favorite, interaction.user.id)
         except MemoryUnavailable as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
             return
@@ -298,8 +296,7 @@ def register_gacha_commands(bot, store=None):
         rows = [(game, card, count) for game, card, count in rows
                 if (not query or query in normalize(character_key(card.character) + card.name))]
         rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
-        favorite_key = (favorite[0], favorite[1].id) if favorite else None
-        rows.sort(key=lambda row: ((row[0], row[1].id) != favorite_key, row[0], rank.get(row[1].rarity, 9), row[1].character, row[1].label, row[1].id))
+        rows.sort(key=lambda row: (rank.get(row[1].rarity, 9), row[0], row[1].character, row[1].label, row[1].id))
         lines = [f"`【{INVENTORY_RARITY[card.rarity]}】` {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
                  for game, card, count in rows]
         empty = '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
@@ -382,27 +379,21 @@ def register_gacha_commands(bot, store=None):
             game, card, count = selected
             embed = discord.Embed(title='⭐ お気に入り' + ('を登録したぜ！' if プログレス else ''),
                                   description=f'**{discord.utils.escape_markdown(favorite_card_label(card))}**\n{RULES[game].name}｜所持{count}枚', color=0xB06FE0)
-            introduction, comment = favorite_details(card)
-            comment = await ai_comment(collection_facts(game, [card], favorite=selected, viewing=True), comment)
+            introduction, _ = favorite_details(card)
             embed.add_field(name='【ジョージのプログレス紹介】', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
-            embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
             try:
                 points, perfect = await asyncio.to_thread(presents.affection_status, interaction.user.id, card.character)
                 embed.add_field(name='【好感度】', value=affection_display(points, perfect), inline=False)
             except MemoryUnavailable:
                 embed.add_field(name='【好感度】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
-            album_view = None
             try:
                 dates = await asyncio.to_thread(presents.album, interaction.user.id, card.character)
                 embed.add_field(name='【アルバム】', value=album_display(dates), inline=False)
-                owned = await asyncio.to_thread(store.owned, interaction.user.id) if len(dates) > 4 and dates[4] else ()
-                album_view = AlbumView(interaction.user.id, card, dates, owned)
             except MemoryUnavailable:
                 embed.add_field(name='【アルバム】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
             # Show existing local art only; never fetch the Wiki during a command.
             art = card if game == 'relink' and card.rarity == '★3' else None
-            options = {'view': album_view} if album_view is not None else {}
-            await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none(), **options)
+            await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
             await notify_titles(interaction, getattr(bot, 'title_store', None))
             if art is not None:
                 files = presentation_files([art])

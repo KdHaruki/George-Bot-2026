@@ -13,7 +13,7 @@ def fortune_embed(fortune, comment, lucky_progress=None):
     embed = discord.Embed(title='🎍 今日のおみくじ', description=f'## 【{fortune}】', color=0xE2AD48)
     embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment)[:1024], inline=False)
     embed.add_field(name='【ラッキープログレス】', value=discord.utils.escape_markdown(lucky_progress if lucky_progress is not None else random.choice(LUCKY_PROGRESS)), inline=False)
-    return space_headings(embed)
+    return space_headings(embed, space_first=False)
 
 
 

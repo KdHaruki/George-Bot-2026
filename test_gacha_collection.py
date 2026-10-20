@@ -439,16 +439,13 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertIn(card.character, interaction.followup.send.call_args.kwargs['embed'].fields[0].value)
         command = bot.tree.get_command('お気に入り').get_command('プログレス確認')
-        bot.george_chat.collection_comment.side_effect = None
+        bot.george_chat.collection_comment.reset_mock()
         await command.callback(interaction)
-        self.assertEqual(bot.george_chat.collection_comment.call_args.args[0]['action'], 'favorite_view')
-        facts = bot.george_chat.collection_comment.call_args.args[0]
-        self.assertNotIn('cards', facts)
-        self.assertNotIn('saved', facts)
+        bot.george_chat.collection_comment.assert_not_awaited()
         details = next(call.kwargs['embed'] for call in reversed(interaction.followup.send.call_args_list) if 'embed' in call.kwargs)
         self.assertFalse(details.footer.text)
         self.assertEqual(details.fields[0].name,'【ジョージのプログレス紹介】')
-        self.assertEqual(details.fields[1].name,'【ジョージの一言】')
+        self.assertNotIn('【ジョージの一言】', [field.name for field in details.fields])
         self.assertTrue(details.description.endswith('\n\u200b'))
         self.assertTrue(all(field.value.endswith('\n\u200b') for field in details.fields[:-1]))
         self.assertFalse(any('からの一言' in field.name for field in details.fields))
@@ -578,6 +575,19 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         await tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
         self.assertNotIn('embed', interaction.followup.send.call_args.kwargs)
+        await client.close()
+
+    async def test_inventory_rarity_precedes_game_and_favorite(self):
+        low = Card('r', 'ロザリー', 'ロザリー', 'R')
+        high = Card('s3', 'ロザリー', 'ロザリー【幻影のドレス】', '★3')
+        middle = Card('hr', 'ロザリー', 'ロザリー', 'HR')
+        store = SimpleNamespace(url='test', owned=Mock(return_value=[('vierge', low, 3), ('relink', high, 2), ('vierge', middle, 7)]),
+                                favorite=Mock(return_value=('vierge', low, 3)))
+        client, tree, interaction = self.objects(store)
+        await tree.get_command('所持カード').callback(interaction, 'ロザリー')
+        lines = interaction.followup.send.call_args.kwargs['embed'].description.splitlines()
+        self.assertEqual([line.split('`')[1] for line in lines if '`' in line], ['【★３】', '【ＨＲ】', '【Ｒ】'])
+        store.favorite.assert_not_called()
         await client.close()
 
     async def test_private_filtered_paginated_inventory_and_completion(self):

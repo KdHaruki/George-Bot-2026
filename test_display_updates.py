@@ -46,7 +46,7 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
         embed = fortune_embed('大吉', '今日はいい調子だぜ！')
         self.assertIn('大吉', embed.description)
         self.assertEqual(embed.fields[0].value.removesuffix('\n\u200b'), '今日はいい調子だぜ！')
-        self.assertTrue(embed.description.endswith('\n\u200b'))
+        self.assertEqual(embed.description, '## 【大吉】')
         self.assertEqual(len(embed.fields),2)
         from fun_features import LUCKY_PROGRESS
         self.assertEqual(embed.fields[1].name, '【ラッキープログレス】')
