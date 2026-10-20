@@ -2,7 +2,7 @@ import asyncio
 import discord
 from discord import app_commands
 from registered_memory import MemoryUnavailable
-from seasonal_calendar import DEFAULT_EVENTS, parse_event_date
+from seasonal_calendar import DEFAULT_EVENTS
 from command_permissions import require_administrator
 
 
@@ -61,33 +61,6 @@ def register_seasonal_commands(bot):
         except MemoryUnavailable as exc:
             text = str(exc)
         text += "\n\n" + await event_listing(interaction.guild_id)
-        await send(interaction, text)
-
-    @group.command(name="行事登録", description="サーバー固有の毎年の行事を登録・更新（管理者用）")
-    @app_commands.describe(日付="月-日。例：04-01", 名前="行事名。最大60文字")
-    async def add_event(interaction: discord.Interaction, 日付: str, 名前: str):
-        if not await manager(interaction):
-            return
-        try:
-            month, day = parse_event_date(日付)
-            await asyncio.to_thread(bot.seasonal_store.put_event, interaction.guild_id, 名前, month, day)
-            bot.seasonal.notify_changed()
-            text = f"毎年{month}月{day}日の「{名前.strip()}」を登録したぜ！" + ("2月29日はうるう年だけ通知するぞ。" if (month, day) == (2, 29) else "")
-        except (ValueError, MemoryUnavailable) as exc:
-            text = str(exc)
-        await send(interaction, text)
-
-    @group.command(name="行事削除", description="このサーバーで追加した独自行事を削除（管理者用）")
-    async def delete_event(interaction: discord.Interaction, 名前: str):
-        if not await manager(interaction):
-            return
-        try:
-            deleted = await asyncio.to_thread(bot.seasonal_store.delete_event, interaction.guild_id, 名前)
-            if deleted:
-                bot.seasonal.notify_changed()
-            text = "独自行事を削除したぜ。" if deleted else "追加した行事が見つからないぜ。削除できるのはこのサーバーで登録した固有行事だけだぞ。"
-        except MemoryUnavailable as exc:
-            text = str(exc)
         await send(interaction, text)
 
     bot.tree.add_command(group)

@@ -334,7 +334,7 @@ class StorageTests(unittest.TestCase):
     def test_album_dates_use_japan_time(self):
         text = album_display((datetime(2026, 10, 19, 16, tzinfo=timezone.utc), None, None,
                               datetime(2026, 10, 20, 16, tzinfo=timezone.utc)))
-        self.assertIn('初登録日：2026年10月20日', text)
+        self.assertIn('お気に入り登録日：2026年10月20日', text)
         self.assertIn('右腕の称号獲得日：未記録', text)
         self.assertNotIn('初プレゼント', text)
         self.assertNotIn('好感度100達成', text)

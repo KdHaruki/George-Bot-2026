@@ -17,7 +17,7 @@ class AdminCommandsTests(unittest.IsolatedAsyncioTestCase):
                 interaction = SimpleNamespace(guild_id=123,
                     permissions=discord.Permissions(manage_guild=True),
                     response=SimpleNamespace(send_message=AsyncMock(), defer=AsyncMock()))
-                args = {'行事登録': ['04-01', '行事'], '行事削除': ['行事']}.get(item.name, [])
+                args = []
                 await item.callback(interaction, *args)
                 interaction.response.send_message.assert_awaited_once()
                 interaction.response.defer.assert_not_called()

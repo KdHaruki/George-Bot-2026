@@ -14,6 +14,7 @@ from relink_presentations import star3_embeds, presentation_files
 from presents import PresentStore, affection_display
 from present_view import open_presents
 from favorite_album import album_display
+from album_view import AlbumView
 from title_notifications import notify_titles
 from progress_profiles import character_key, normalize, profile_for
 
@@ -390,14 +391,18 @@ def register_gacha_commands(bot, store=None):
                 embed.add_field(name='【好感度】', value=affection_display(points, perfect), inline=False)
             except MemoryUnavailable:
                 embed.add_field(name='【好感度】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
+            album_view = None
             try:
                 dates = await asyncio.to_thread(presents.album, interaction.user.id, card.character)
                 embed.add_field(name='【アルバム】', value=album_display(dates), inline=False)
+                owned = await asyncio.to_thread(store.owned, interaction.user.id) if len(dates) > 4 and dates[4] else ()
+                album_view = AlbumView(interaction.user.id, card, dates, owned)
             except MemoryUnavailable:
                 embed.add_field(name='【アルバム】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
             # Show existing local art only; never fetch the Wiki during a command.
             art = card if game == 'relink' and card.rarity == '★3' else None
-            await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+            options = {'view': album_view} if album_view is not None else {}
+            await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none(), **options)
             await notify_titles(interaction, getattr(bot, 'title_store', None))
             if art is not None:
                 files = presentation_files([art])

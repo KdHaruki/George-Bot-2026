@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 import discord
 from registered_memory import MemoryStore, MemoryUnavailable
-from seasonal_calendar import HolidayCalendar, events_for, JST, DEFAULT_EVENTS
+from seasonal_calendar import HolidayCalendar, events_for, JST
 
 
 def event_header(names):
@@ -65,28 +65,6 @@ class SeasonalStore(MemoryStore):
     def events(self, guild_id):
         with self.connect() as connection:
             return connection.execute("SELECT name,month,day,enabled FROM george_seasonal_events WHERE guild_id=%s ORDER BY month,day,name", (guild_id,)).fetchall()
-
-    def put_event(self, guild_id, name, month=None, day=None, enabled=True):
-        name = name.strip()
-        if not 1 <= len(name) <= 60:
-            raise ValueError("行事名は1〜60文字で頼むぜ。")
-        if month is not None and name in DEFAULT_EVENTS.values():
-            raise ValueError("共通の季節行事と同じ名前は追加できないぜ。有効・無効は /行事切替 で指定してくれ。")
-        with self.connect() as connection:
-            connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"george-events:{guild_id}",))
-            rows = connection.execute("SELECT name FROM george_seasonal_events WHERE guild_id=%s", (guild_id,)).fetchall()
-            if len(rows) >= 50 and name not in {row[0] for row in rows}:
-                raise ValueError("行事の追加・切替設定は合計50件までだぜ。")
-            if month is None:
-                connection.execute("""INSERT INTO george_seasonal_events (guild_id,name,enabled) VALUES (%s,%s,%s)
-                    ON CONFLICT(guild_id,name) DO UPDATE SET enabled=EXCLUDED.enabled""", (guild_id, name, enabled))
-            else:
-                connection.execute("""INSERT INTO george_seasonal_events VALUES (%s,%s,%s,%s,%s)
-                    ON CONFLICT(guild_id,name) DO UPDATE SET month=EXCLUDED.month,day=EXCLUDED.day,enabled=EXCLUDED.enabled""", (guild_id, name, month, day, enabled))
-
-    def delete_event(self, guild_id, name):
-        with self.connect() as connection:
-            return connection.execute("DELETE FROM george_seasonal_events WHERE guild_id=%s AND name=%s AND month IS NOT NULL", (guild_id, name.strip())).rowcount > 0
 
     def load_calendar(self):
         with self.connect() as connection:

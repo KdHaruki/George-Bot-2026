@@ -114,16 +114,7 @@ class SeasonalTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(group.get_command('行事切替'))
         self.assertIsNone(group.get_command('行事一覧'))
         self.assertIsNone(group.get_command('停止'))
-        store = SimpleNamespace(put_event=Mock(), delete_event=Mock(return_value=True))
-        scheduler = SimpleNamespace(notify_changed=Mock())
-        interaction = SimpleNamespace(permissions=SimpleNamespace(administrator=True), guild_id=123,
-            response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
-        with patch.object(bot, 'seasonal_store', store), patch.object(bot, 'seasonal', scheduler):
-            await group.get_command('行事登録').callback(interaction, '04-01', '設立記念日')
-            store.put_event.assert_called_once_with(123, '設立記念日', 4, 1)
-            await group.get_command('行事削除').callback(interaction, '設立記念日')
-            store.delete_event.assert_called_once_with(123, '設立記念日')
-        self.assertEqual(scheduler.notify_changed.call_count, 2)
+        self.assertEqual({command.name for command in group.commands}, {'設定', '確認'})
 
     async def test_status_includes_common_and_custom_events_even_without_channel(self):
         import main
