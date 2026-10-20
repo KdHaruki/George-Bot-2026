@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import discord
 import test_presents
-from title_core import COMMON, NORMAL_GIFTS, event_result, record_event, change_streak, seed_existing_streaks
+from title_core import COMMON, NORMAL_GIFTS, event_result, record_event
 from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import TitleView
@@ -14,59 +14,22 @@ from registered_memory import MemoryUnavailable
 
 
 class TitleRulesTests(unittest.TestCase):
-    def test_ambassador_counts_unique_worlds_and_information_title_counts_unique_people(self):
-        from progress import progressData
-        state = {}
-        for world in '青青黒赤白':
-            state, unlocked = event_result(state, 'favorite_world', {'world': world})
-            self.assertNotIn(('ambassador', '青蘭学園の親善大使'), unlocked)
-        state, unlocked = event_result(state, 'favorite_world', {'world': '緑'})
-        self.assertIn(('ambassador', '青蘭学園の親善大使'), unlocked)
-        state, _ = event_result({}, 'profile_search', {'character': '美海'})
-        state, _ = event_result(state, 'profile_search', {'character': '日向美海'})
-        self.assertEqual(state['profile_names'], ['日向美海'])
-        state = {}
-        for index, record in enumerate(progressData[:10]):
-            state, unlocked = event_result(state, 'profile_search', {'character': record['progressName']})
-            self.assertEqual(('profile30', '青蘭学園の情報通') in unlocked, index == 9)
 
-    def test_royal_flush_requires_all_four_rarities_in_one_vierge_batch(self):
-        from title_core import title_condition, pending_titles
-        from title_notifications import title_icon
-        facts = dict(game='vierge', count=7, rarities=['UR', 'SR', 'HR', 'R'])
-        self.assertIn(('royal_flush', '青蘭学園のロイヤルフラッシュ'), event_result({}, 'royal_flush', facts)[1])
-        for change in (dict(game='relink'), dict(count=6), dict(count=14), dict(rarities=['UR', 'SR', 'R'])):
-            self.assertEqual(event_result({}, 'royal_flush', facts | change)[1], [])
-        self.assertEqual(title_icon('royal_flush'), '🎖️')
-        self.assertIn('7連', title_condition('royal_flush'))
-        self.assertIn('royal_flush', {key for key, _, _ in pending_titles(set(), {}, 0)})
 
-    def test_triple_rare_threshold_icon_and_condition(self):
-        from title_core import title_condition
-        from title_notifications import title_icon
-        for count in (0, 1, 2):
-            self.assertEqual(event_result({}, 'triple_rare', {'count': count})[1], [])
-        for count in (3, 4, 7, 10):
-            self.assertEqual(event_result({}, 'triple_rare', {'count': count})[1], [('triple_rare', '奇跡を束ねし者')])
-        self.assertEqual(title_icon('triple_rare'), '👑')
-        self.assertNotIn('同じカード', title_condition('triple_rare'))
-
-    def test_all_six_fortunes_title_counts_distinct_results_and_uses_current_names(self):
-        from title_core import FORTUNE_TYPES, pending_titles, title_condition
-        from fun_features import FORTUNES
-        from title_notifications import title_icon
-        self.assertEqual(FORTUNE_TYPES, {name for name, _ in FORTUNES})
+    def test_deleted_titles_do_not_unlock_or_appear_and_green_requires_full_batch(self):
+        from title_core import RETIRED_TITLES, pending_titles
+        self.assertTrue(RETIRED_TITLES.isdisjoint({key for key, _, _ in pending_titles(set(), {}, 100, 'ロザリー')}))
         state = {}
-        for fortune in ('大吉', '大吉', '吉', '中吉', '小吉', '末吉'):
-            state, unlocked = event_result(state, 'fortune', {'fortune': fortune})
-            self.assertNotIn(('fortune_all', '運命を巡りし者'), unlocked)
-        pending = {key: condition for key, _, condition in pending_titles(set(), state, 0, 'ロザリー')}
-        self.assertIn('5/6種類', pending['fortune_all'])
-        self.assertFalse(any('好物' in condition for condition in pending.values()))
-        self.assertNotIn('好物', title_condition('affection:ロザリー'))
-        state, unlocked = event_result(state, 'fortune', {'fortune': '凶'})
-        self.assertIn(('fortune_all', '運命を巡りし者'), unlocked)
-        self.assertEqual(title_icon('fortune_all'), '🎖️')
+        for _ in range(100):
+            state, unlocked = event_result(state, 'fortune', {'fortune': '大吉'})
+            self.assertTrue(RETIRED_TITLES.isdisjoint({key for key, _ in unlocked}))
+        for game, count in (('vierge', 7), ('relink', 10)):
+            facts = dict(game=game, count=count, worlds=['緑'])
+            self.assertEqual(event_result({}, 'all_green', facts)[1], [('all_green', '青蘭学園の叛逆者')])
+            for change in (dict(count=1), dict(worlds=['緑', '青']), dict(worlds=[]), dict(game='invalid')):
+                self.assertEqual(event_result({}, 'all_green', facts | change)[1], [])
+
+
 
     def test_quiz_streak_threshold_reset_and_retired_collection(self):
         from title_core import pending_titles
@@ -87,15 +50,14 @@ class TitleRulesTests(unittest.TestCase):
             self.assertNotIn('確認できません', title_condition(key))
         self.assertEqual(title_condition('fortune10'), 'おみくじを累計10回')
         self.assertIn('全14種類', title_condition('variety'))
-        self.assertEqual(title_condition('affection:ロザリー'), 'ロザリーの好感度100の状態で喜ばれる贈り物を贈る')
-        self.assertIn('プログレスの変更または解除でリセット', title_condition('anniversary:ロザリー'))
+        self.assertEqual(title_condition('favorite_gift:ロザリー'), '好感度100で喜ばれる贈り物を贈る')
         self.assertIn('喜ばれる贈り物', title_condition('favorite_gift:ロザリー'))
 
     def test_pending_conditions_counters_and_favorite_scope(self):
         from title_core import pending_titles
         rows = pending_titles({'fortune10', 'favorite_gift:ロザリー'},
                               {'quiz_first': 7, 'fortunes': 10, 'gift_kinds': ['book', 'rare'], 'worlds': ['赤', '青']},
-                              3, 'ロザリー', 12)
+                              3, 'ロザリー')
         data = {key: condition for key, _, condition in rows}
         self.assertNotIn('fortune10', data)
         self.assertNotIn('favorite_gift:ロザリー', data)
@@ -105,24 +67,21 @@ class TitleRulesTests(unittest.TestCase):
         self.assertIn('3/5人', data['bond10'])
         self.assertIn('クイズをヒント1回目で正解', data['quiz10'])
         self.assertNotIn('不正解・時間切れ', data['quiz_streak10'])
-        self.assertIn('お気に入りに登録する：', data['ambassador'])
-        self.assertIn('プログレスを10人名前で検索する：', data['profile30'])
         keys = list(data)
-        self.assertEqual(keys.index('quiz_streak10'), keys.index('quiz100') + 1)
-        self.assertIn('12/365日', data['anniversary:ロザリー'])
-        self.assertEqual(data['anniversary:ロザリー'], 'お気に入りに設定して1年が経つ：12/365日（プログレスの変更または解除でリセット）')
+        self.assertEqual(keys.index('quiz_streak10'), keys.index('quiz10') + 1)
+        self.assertNotIn('triple_rare', keys)
+        self.assertNotIn('anniversary:ロザリー', data)
         keys = [key for key, _, _ in rows]
-        start = keys.index('gift10')
-        self.assertEqual(keys[start:start + 4], ['gift10', 'variety', 'worlds', 'reunion'])
-        self.assertEqual(data['affection:ロザリー'], '好感度100の状態で喜ばれる贈り物を贈る')
+        start = keys.index('variety')
+        self.assertEqual(keys[start:start + 3], ['variety', 'preferred_gifts10:ロザリー', 'worlds'])
+        self.assertNotIn('affection:ロザリー', data)
         self.assertNotIn('exchange10', data)
         self.assertFalse(any(':' in key for key, _, _ in pending_titles(set(), {}, 0)))
 
     def test_all_counter_thresholds_and_exact_names(self):
         for kind, facts, thresholds in [
-            ('quiz', {'attempts': 1}, {10: 'quiz10', 100: 'quiz100'}),
-            ('fortune', {'fortune': '大吉'}, {10: 'great10'}),
-            ('gift', {'character': '美海', 'item': 'rare'}, {10: 'gift10'}),
+            ('quiz', {'attempts': 1}, {10: 'quiz10'}),
+            ('fortune', {'fortune': '大吉'}, {10: 'fortune10'}),
         ]:
             state = {}
             for number in range(1, max(thresholds) + 1):
@@ -133,12 +92,43 @@ class TitleRulesTests(unittest.TestCase):
         _, unlocked = event_result({}, 'fortune', {'fortune': '凶', 'bonus': True})
         self.assertIn(('support', 'エール・フレンドを受けし者'), unlocked)
 
+    def test_preferred_gifts_count_per_person_and_order_follows_sommelier(self):
+        from title_core import pending_titles, title_condition
+        from title_notifications import title_icon
+        state = {}
+        for number in range(1, 11):
+            state, unlocked = event_result(state, 'gift', dict(character='美海' if number % 2 else '日向美海', item='book', preferred=True))
+            self.assertEqual(any(key == 'preferred_gifts10:日向美海' for key, _ in unlocked), number == 10)
+            self.assertFalse(any(key.startswith('favorite_gift:') for key, _ in unlocked))
+        state, _ = event_result(state, 'gift', dict(character='ロザリー', item='magic', preferred=True))
+        state, _ = event_result(state, 'gift', dict(character='美海', item='rare', preferred=True))
+        state, _ = event_result(state, 'gift', dict(character='美海', item='food', preferred=False))
+        self.assertEqual(state['preferred_gift_counts'], {'日向美海': 10, 'ロザリー': 1})
+        rows = pending_titles(set(), state, 0, '日向美海')
+        keys = [key for key, _, _ in rows]
+        self.assertEqual(keys[keys.index('variety') + 1], 'preferred_gifts10:日向美海')
+        self.assertIn('10/10個', dict((key, condition) for key, _, condition in rows)['preferred_gifts10:日向美海'])
+        self.assertEqual(title_icon('preferred_gifts10:日向美海'), '🎖️')
+        self.assertIn('累計10個', title_condition('preferred_gifts10:日向美海'))
+
+    def test_idol_producer_requires_nozomi_ur_in_vierge_seven_and_order(self):
+        from title_core import pending_titles, title_condition
+        from title_notifications import title_icon
+        facts = dict(game='vierge', count=7, character='小鳥遊希美', rarity='UR')
+        self.assertEqual(event_result({}, 'idol_producer', facts)[1], [('idol_producer', '青蘭学園のアイドルプロデューサー')])
+        for change in (dict(game='relink'), dict(count=1), dict(character='ロザリー'), dict(rarity='SR')):
+            self.assertEqual(event_result({}, 'idol_producer', facts | change)[1], [])
+        keys = [key for key, _, _ in pending_titles(set(), {}, 0)]
+        self.assertEqual(keys.index('idol_producer') + 1, keys.index('reunion'))
+        self.assertEqual(title_icon('idol_producer'), '🎖️')
+        self.assertIn('小鳥遊希美', title_condition('idol_producer'))
+
     def test_sets_and_personal_titles(self):
         state = {}
         for kind in NORMAL_GIFTS:
             state, unlocked = event_result(state, 'gift', {'character': '美海', 'item': kind, 'preferred': True})
         self.assertIn(('variety', '青蘭学園のソムリエ'), unlocked)
-        self.assertIn(('favorite_gift:日向美海', '日向美海の理解者'), unlocked)
+        self.assertIn(('preferred_gifts10:日向美海', '日向美海の良き理解者'), unlocked)
         _, rare = event_result({}, 'gift', {'character': '美海', 'item': 'rare', 'preferred': True})
         self.assertFalse(any(key.startswith('favorite_gift:') for key, _ in rare))
         state = {}
@@ -150,28 +140,7 @@ class TitleRulesTests(unittest.TestCase):
 
 
 class TitleStorageTests(unittest.TestCase):
-    def test_past_registration_album_can_unlock_ambassador_without_re_registering(self):
-        from favorite_album import record_registration
-        from progress import progressData
-        with self.store.connect() as conn:
-            for world in '青黒赤白緑':
-                person = next(record for record in progressData if record['progressWorld'] == world)
-                record_registration(conn, 42, person['progressName'])
-        self.assertIn('ambassador', self.keys())
-        self.assertNotIn('ambassador', self.keys(43))
-        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM george_title_notices WHERE title_key='ambassador'").fetchone()[0], 1)
-        self.keys()
-        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM george_title_notices WHERE title_key='ambassador'").fetchone()[0], 1)
 
-    def test_named_profile_search_counts_canonical_names_and_replay_once(self):
-        store = self.setUpTitles()
-        store.profile_search(42, 501, '美海')
-        store.profile_search(42, 502, '日向美海')
-        store.profile_search(42, 502, 'ロザリー')
-        store.profile_search(42, 503, '存在しない名前')
-        store.world_search(42, 504, '赤')
-        row = self.db.execute('SELECT data FROM george_title_stats WHERE user_id=42').fetchone()
-        self.assertEqual(json.loads(row[0])['profile_names'], ['日向美海'])
 
     def test_reunion_rename_keeps_key_date_and_does_not_renotify(self):
         old_name = '奇跡の再会を手繰り寄せし者'
@@ -193,15 +162,6 @@ class TitleStorageTests(unittest.TestCase):
         row = self.db.execute('SELECT data FROM george_title_stats WHERE user_id=42').fetchone()
         self.assertEqual(json.loads(row[0])['quiz_first'], 10)
 
-    def test_all_fortunes_title_counts_same_day_and_is_user_scoped_once(self):
-        for index, fortune in enumerate(('大吉', '吉', '中吉', '小吉', '末吉', '凶')):
-            with patch('presents.draw_present', return_value='food'):
-                self.store.claim(42, 700 + index, fortune)
-                self.store.claim(42, 700 + index, '凶')
-            self.assertEqual('fortune_all' in self.keys(), index == 5)
-        self.assertNotIn('fortune_all', self.keys(43))
-        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM george_title_notices WHERE title_key='fortune_all'").fetchone()[0], 1)
-        self.assertEqual(sum(self.store.inventory(42).values()), 1)
 
     def test_pending_loads_saved_counts_and_current_favorite(self):
         self.db.execute('INSERT INTO george_title_stats VALUES (42,?)', (json.dumps({'quiz_first': 7}),))
@@ -209,7 +169,7 @@ class TitleStorageTests(unittest.TestCase):
         rows = self.setUpTitles().pending(42, [('fortune10', '今日も神頼み', None)])
         data = {key: condition for key, _, condition in rows}
         self.assertIn('7/10回', data['quiz10'])
-        self.assertIn('anniversary:ロザリー', data)
+        self.assertNotIn('anniversary:ロザリー', data)
         self.assertNotIn('fortune10', data)
         self.assertIn('0/10回', dict((key, condition) for key, _, condition in self.setUpTitles().pending(43, []))['quiz10'])
 
@@ -248,29 +208,10 @@ class TitleStorageTests(unittest.TestCase):
         self.db.commit()
         keys = self.keys()
         self.assertIn('bond10', keys)
-        self.assertIn('bond100', keys)
+        self.assertNotIn('bond100', keys)
         self.assertNotIn('affection:東条遥', keys)
         self.assertNotIn('bond10', self.keys(43))
 
-    def test_continuous_streak_preserves_costumes_resets_characters_and_retains_awards(self):
-        with self.store.connect() as conn:
-            change_streak(conn, 42, '美海')
-        since = (datetime.now(timezone.utc) - timedelta(days=364)).strftime('%Y-%m-%d %H:%M:%S')
-        self.db.execute('UPDATE george_title_streaks SET since=? WHERE user_id=42', (since,))
-        self.db.commit()
-        with self.store.connect() as conn:
-            change_streak(conn, 42, '日向美海')
-        self.assertEqual(self.db.execute('SELECT since FROM george_title_streaks').fetchone()[0], since)
-        with self.store.connect() as conn:
-            change_streak(conn, 42, 'ロザリー')
-        self.assertNotEqual(self.db.execute('SELECT since FROM george_title_streaks').fetchone()[0], since)
-        old = (datetime.now(timezone.utc) - timedelta(days=366)).strftime('%Y-%m-%d %H:%M:%S')
-        self.db.execute('UPDATE george_title_streaks SET since=? WHERE user_id=42', (old,))
-        self.db.commit()
-        with self.store.connect() as conn:
-            change_streak(conn, 42, None)
-        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM george_title_streaks').fetchone()[0], 0)
-        self.assertIn('anniversary:ロザリー', self.keys())
 
     def test_world_searches_and_replay_are_user_scoped(self):
         store = self.setUpTitles()
@@ -299,17 +240,32 @@ class TitleStorageTests(unittest.TestCase):
         store.save_equipped(1, 42)
         self.assertIsNone(store.equipped(1, 42))
 
-    def test_existing_streaks_begin_at_migration_and_are_not_reseeded(self):
-        self.db.execute('CREATE TABLE george_gacha_migrations(name TEXT PRIMARY KEY)')
-        with self.store.connect() as conn:
-            seed_existing_streaks(conn)
-        row = self.db.execute('SELECT character,since FROM george_title_streaks').fetchone()
-        self.assertEqual(row[0], 'ロザリー')
-        self.assertIsNotNone(row[1])
-        with self.store.connect() as conn:
-            change_streak(conn, 42, None)
-            seed_existing_streaks(conn)
-        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM george_title_streaks').fetchone()[0], 0)
+
+    def test_removed_titles_and_renames_preserve_remaining_ownership_and_dates(self):
+        from title_core import RETIRED_TITLES, grant
+        store = self.setUpTitles()
+        store.titles(42)
+        for key in RETIRED_TITLES | {'affection:ロザリー', 'anniversary:ロザリー'}:
+            self.db.execute('INSERT INTO george_titles(user_id,title_key,name) VALUES (42,?,?)', (key, key))
+        self.db.execute("INSERT INTO george_titles VALUES (42,'favorite_gift:ロザリー','ロザリーの理解者','2026-10-18T00:00:00+00:00')")
+        self.db.commit()
+        rows = {key: (name, day) for key, name, day in store.titles(42)}
+        self.assertTrue(RETIRED_TITLES.isdisjoint(rows))
+        self.assertNotIn('affection:ロザリー', rows)
+        self.assertNotIn('anniversary:ロザリー', rows)
+        self.assertNotIn('triple_rare', rows)
+        self.assertEqual(rows['favorite_gift:ロザリー'][0], 'ロザリーの右腕')
+        self.assertEqual(datetime.fromisoformat(rows['favorite_gift:ロザリー'][1]).day, 18)
+        for guild in (1, 2):
+            store.bind_role(guild, 'quiz100', guild * 10)
+            store.save_equipped(guild, 42, 'quiz100', guild * 10)
+        store.retire_title(1, 'quiz100', 10)
+        self.assertEqual(store.role_map(1), {})
+        self.assertEqual(store.role_map(2), {'quiz100': 20})
+        self.assertIsNone(store.equipped(2, 42))
+        with self.assertRaises(ValueError):
+            store.retire_title(2, 'fortune10', 20)
+        self.assertEqual(self.setUpTitles().titles(43), [])
 
     def test_retired_exchange_title_is_hidden_and_cleanup_is_server_scoped(self):
         store = self.setUpTitles()
@@ -327,7 +283,7 @@ class TitleStorageTests(unittest.TestCase):
         self.assertEqual(store.role_map(1), {})
         self.assertEqual(store.role_map(2), {'exchange10': 20})
         self.assertIsNone(store.equipped(1, 42))
-        self.assertEqual(store.equipped(2, 42), 'exchange10')
+        self.assertIsNone(store.equipped(2, 42))
 
     def test_retired_collection_title_is_hidden_and_cleanup_is_server_scoped(self):
         store = self.setUpTitles()
@@ -345,29 +301,28 @@ class TitleStorageTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             store.retire_collection(2, 'fortune10', 20)
 
-    def test_real_registration_keeps_same_person_streak_and_resets_on_clear(self):
-        from dataclasses import asdict
-        from gacha import Gacha
-        from gacha_collection import CollectionStore
-        engine = Gacha()
-        cards = [c for c in engine.pools['relink']['★3'] if c.character == '美海']
-        self.db.execute('DELETE FROM george_gacha_favorites')
-        self.db.execute('DELETE FROM george_gacha_cards')
-        self.db.execute('CREATE UNIQUE INDEX favorite_user ON george_gacha_favorites(user_id)')
-        self.db.execute('ALTER TABLE george_gacha_cards ADD COLUMN quantity BIGINT')
-        for card in cards:
-            self.db.execute('INSERT INTO george_gacha_cards VALUES (42,?,?,?,1)', ('relink', card.id, json.dumps(asdict(card))))
+
+    def test_ten_preferred_gifts_are_transactional_idempotent_and_user_scoped(self):
+        self.claim()
+        self.db.execute("UPDATE george_present_items SET quantity=11 WHERE user_id=42")
         self.db.commit()
-        store = CollectionStore('unused')
-        store.set_favorite(42, 'relink', cards[0].id, toggle=True)
-        old = (datetime.now(timezone.utc) - timedelta(days=364)).strftime('%Y-%m-%d %H:%M:%S')
-        self.db.execute('UPDATE george_title_streaks SET since=?', (old,))
-        self.db.commit()
-        store.set_favorite(42, 'relink', cards[1].id, toggle=True)
-        self.assertEqual(self.db.execute('SELECT character,since FROM george_title_streaks').fetchone(), ('日向美海', old))
-        store.set_favorite(42, 'relink', cards[1].id, toggle=True)
-        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM george_title_streaks').fetchone()[0], 0)
-        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM george_gacha_cards').fetchone()[0], len(cards))
+        for number in range(9):
+            self.store.give(42, 500 + number, 'ロザリー', 'magic')
+        self.store.give(42, 508, 'ロザリー', 'magic')
+        self.assertNotIn('preferred_gifts10:ロザリー', self.keys())
+        self.assertNotIn('favorite_gift:ロザリー', self.keys())
+        self.fail_on = 'INSERT INTO george_title_notices'
+        with self.assertRaises(MemoryUnavailable):
+            self.store.give(42, 509, 'ロザリー', 'magic')
+        self.fail_on = None
+        self.assertEqual(self.store.inventory(42), {'magic': 2})
+        self.store.give(42, 509, 'ロザリー', 'magic')
+        self.store.give(42, 509, 'ロザリー', 'magic')
+        self.assertIn('preferred_gifts10:ロザリー', self.keys())
+        self.assertNotIn('preferred_gifts10:ロザリー', self.keys(43))
+        state = json.loads(self.db.execute('SELECT data FROM george_title_stats WHERE user_id=42').fetchone()[0])
+        self.assertEqual(state['preferred_gift_counts']['ロザリー'], 10)
+        self.assertEqual(self.store.inventory(42), {'magic': 1})
 
     def test_existing_full_affection_can_earn_preferred_gift_title_without_fake_date(self):
         self.claim()
@@ -376,20 +331,22 @@ class TitleStorageTests(unittest.TestCase):
         self.assertNotIn('affection:ロザリー', self.keys())
         self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (0, 100, True))
         self.assertIn('favorite_gift:ロザリー', self.keys())
-        self.assertIn('affection:ロザリー', self.keys())
+        self.assertNotIn('affection:ロザリー', self.keys())
         self.assertEqual(self.store.inventory(42), {})
         self.assertIsNone(self.store.album(42, 'ロザリー')[2])
 
-    def test_perfect_link_unlocks_good_understanding_and_existing_titles_are_kept(self):
+    def test_perfect_link_title_is_retired_but_progress_and_album_are_retained(self):
         self.store.points(42, 'ロザリー')
         self.db.execute("INSERT INTO george_affection VALUES (42,'ロザリー',100)")
         self.db.execute("INSERT INTO george_perfect_links(user_id,character) VALUES (42,'ロザリー')")
-        self.db.execute("INSERT INTO george_titles(user_id,title_key,name) VALUES (42,'affection:東条遥','東条遥の良き理解者')")
+        self.db.execute("INSERT INTO george_titles(user_id,title_key,name) VALUES (42,'affection:東条遥','東条遥の右腕')")
         self.db.commit()
         keys = self.keys()
-        self.assertIn('affection:ロザリー', keys)
-        self.assertIn('affection:東条遥', keys)
+        self.assertNotIn('affection:ロザリー', keys)
+        self.assertNotIn('affection:東条遥', keys)
         self.assertNotIn('affection:ロザリー', self.keys(43))
+        self.assertIsNotNone(self.store.album(42, 'ロザリー')[3])
+        self.assertIn('favorite_gift:ロザリー', self.keys())
 
 
 class FakeRole:
@@ -438,10 +395,10 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_hard_title_updates_existing_bound_role_with_crown(self):
         store, member, guild, target = self.objects()
-        store.titles.return_value = [('anniversary:ロザリー', 'ロザリーの右腕', None)]
-        store.role_map.return_value = {'anniversary:ロザリー': target.id}
-        await TitleRoles(store).equip(guild, 42, 'anniversary:ロザリー')
-        self.assertEqual(target.name, '👑 ロザリーの右腕')
+        store.titles.return_value = [('all_green', '青蘭学園の叛逆者', None)]
+        store.role_map.return_value = {'all_green': target.id}
+        await TitleRoles(store).equip(guild, 42, 'all_green')
+        self.assertEqual(target.name, '👑 青蘭学園の叛逆者')
 
     async def test_modified_role_is_rejected_and_owner_can_remove_safe_old_title(self):
         store, member, guild, target = self.objects()
@@ -509,11 +466,11 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         view.stop()
 
     async def test_title_icons_match_in_earned_pending_equipped_and_selector(self):
-        rows = [('fortune10', '今日も神頼み', None), ('quiz100', '青蘭学園の秘密兵器', None),
-                ('bond100', 'エルエルを超えし者', None), ('anniversary:ロザリー', 'ロザリーの右腕', None)]
-        view = TitleView(42, rows, None, SimpleNamespace(id=1), 'quiz100',
+        rows = [('fortune10', '今日も神頼み', None), ('quiz_streak10', '青蘭学園の名探偵', None),
+                ('bond10', 'エール・フレンドを繋ぎし者', None), ('all_green', '青蘭学園の叛逆者', None)]
+        view = TitleView(42, rows, None, SimpleNamespace(id=1), 'quiz_streak10',
                          [(key, name, '条件') for key, name, _ in rows])
-        self.assertIn('【装着中】\n🎖️ 青蘭学園の秘密兵器', view.embed().description)
+        self.assertIn('【装着中】\n🎖️ 青蘭学園の名探偵', view.embed().description)
         options = next(child for child in view.children if isinstance(child, discord.ui.Select)).options
         self.assertEqual([str(option.emoji) for option in options], ['🎖️', '🎖️', '👑', '👑'])
         for mode in ('earned', 'pending'):
@@ -524,8 +481,8 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn('【装着中】', text)
                 self.assertNotIn('【未獲得】', text)
             self.assertIn('🎖️ **今日も神頼み**', text)
-            self.assertIn('🎖️ **青蘭学園の秘密兵器**', text)
-            for name in ('エルエルを超えし者', 'ロザリーの右腕'):
+            self.assertIn('🎖️ **青蘭学園の名探偵**', text)
+            for name in ('エール・フレンドを繋ぎし者', '青蘭学園の叛逆者'):
                 self.assertIn(f'👑 **{name}**', text)
         view.stop()
 
@@ -580,6 +537,23 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
             await TitleRoles(store).retire_collections(guild)
         target.delete.assert_not_awaited()
         store.retire_collection.assert_not_called()
+
+    async def test_deleted_title_cleanup_deletes_only_safe_registered_roles(self):
+        store, member, guild, target = self.objects()
+        old = guild.fetch_roles.return_value[0]
+        old.delete, target.delete = AsyncMock(), AsyncMock()
+        store.role_map.return_value = {'anniversary:ロザリー': old.id, 'fortune10': target.id}
+        store.retire_title = Mock()
+        await TitleRoles(store).retire_removed(guild)
+        old.delete.assert_awaited_once()
+        target.delete.assert_not_awaited()
+        store.retire_title.assert_called_once_with(guild.id, 'anniversary:ロザリー', old.id)
+        old.delete.reset_mock()
+        store.retire_title.reset_mock()
+        old.permissions = discord.Permissions(administrator=True)
+        await TitleRoles(store).retire_removed(guild)
+        old.delete.assert_not_awaited()
+        store.retire_title.assert_not_called()
 
     async def test_retired_cleanup_without_permission_preserves_role_and_mapping(self):
         store, member, guild, target = self.objects()

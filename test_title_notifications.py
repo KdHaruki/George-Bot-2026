@@ -35,35 +35,42 @@ class NotificationStorageTests(unittest.TestCase):
         self.unlock()
         self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune10', '今日も神頼み')])
 
-    def test_special_agent_requires_all_three_and_is_awarded_once(self):
-        from title_core import pending_titles, title_condition
-        self.unlock('gift10')
-        self.unlock('profile30')
-        self.assertIsNone(self.db.execute("SELECT 1 FROM george_titles WHERE user_id=42 AND title_key='special_agent'").fetchone())
-        pending = {key: condition for key, _, condition in pending_titles({'gift10', 'profile30'}, {}, 0)}
-        self.assertIn('2/3称号', pending['special_agent'])
-        self.unlock('quiz_streak10')
-        self.unlock('quiz_streak10')
-        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM george_titles WHERE user_id=42 AND title_key='special_agent'").fetchone()[0], 1)
+
+
+    def test_deleted_title_notices_are_skipped_and_renamed_notices_use_current_name(self):
+        from title_core import RETIRED_TITLES
+        for key in RETIRED_TITLES | {'affection:ロザリー', 'anniversary:ロザリー'}:
+            self.db.execute('INSERT INTO george_title_notices(user_id,title_key,name) VALUES (42,?,?)', (key, key))
+        self.db.execute("INSERT INTO george_title_notices(user_id,title_key,name) VALUES (42,'favorite_gift:ロザリー','ロザリーの理解者')")
+        self.db.commit()
         rows = self.store.claim_title_notifications(42, 'one')
-        self.assertEqual(rows.count(('special_agent', '青蘭学園の特命係')), 1)
-        self.assertEqual(title_icon('special_agent'), '🎖️')
-        self.assertIn('青蘭学園の名探偵', title_condition('special_agent'))
+        self.assertEqual(rows, [('favorite_gift:ロザリー', 'ロザリーの右腕')])
+        self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
+
+    def test_all_green_title_unlock_is_user_scoped_and_idempotent(self):
+        from title_core import record_event
+        with self.store.connect() as conn:
+            record_event(conn, 42, 'all-green:100', 'all_green', game='vierge', count=7, worlds=['緑'])
+            record_event(conn, 42, 'all-green:100', 'all_green', game='vierge', count=7, worlds=['緑'])
+            record_event(conn, 42, 'all-green:101', 'all_green', game='relink', count=10, worlds=['緑'])
+        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('all_green', '青蘭学園の叛逆者')])
         self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
         self.store.finish_title_notifications(42, 'one', True)
-        self.assertEqual(self.store.claim_title_notifications(42, 'again'), [])
+        self.assertEqual(self.store.claim_title_notifications(42, 'next'), [])
 
-    def test_special_agent_backfills_existing_titles_without_duplicate_notice(self):
-        for key in ('profile30', 'quiz_streak10', 'gift10'):
-            self.db.execute('INSERT INTO george_titles(user_id,title_key,name) VALUES (42,?,?)', (key, key))
-        self.db.commit()
-        self.assertEqual(self.store.claim_title_notifications(42, 'first'), [('special_agent', '青蘭学園の特命係')])
-        self.store.finish_title_notifications(42, 'first', True)
+    def test_idol_producer_unlocks_once_and_is_user_scoped(self):
+        from title_core import record_event
+        with self.store.connect() as conn:
+            for event in ('idol-producer:1', 'idol-producer:1', 'idol-producer:2'):
+                record_event(conn, 42, event, 'idol_producer', game='vierge', count=7, character='小鳥遊希美', rarity='UR')
+        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('idol_producer', '青蘭学園のアイドルプロデューサー')])
+        self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
+        self.store.finish_title_notifications(42, 'one', True)
         self.assertEqual(self.store.claim_title_notifications(42, 'next'), [])
 
     def test_multiple_unlocks_and_failed_delivery_retry(self):
         self.unlock()
-        self.unlock('great10')
+        self.unlock('quiz10')
         rows = self.store.claim_title_notifications(42, 'first')
         self.assertEqual(len(rows), 2)
         self.assertEqual(self.store.claim_title_notifications(42, 'second'), [])
@@ -89,35 +96,29 @@ class NotificationStorageTests(unittest.TestCase):
             self.unlock()
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM george_titles').fetchone()[0], 0)
 
-    def test_right_arm_is_detected_on_next_operation_and_not_again(self):
-        self.db.execute("INSERT INTO george_title_streaks VALUES (42,'ロザリー','2020-01-01')")
-        self.db.commit()
-        self.assertEqual(self.store.claim_title_notifications(42, 'first'), [('anniversary:ロザリー', 'ロザリーの右腕')])
-        self.store.finish_title_notifications(42, 'first', True)
-        self.assertEqual(self.store.claim_title_notifications(42, 'next'), [])
 
 
 class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_difficult_titles_get_crown_and_mixed_unlocks_keep_each_icon(self):
-        for key in ('quiz100',):
+        for key in ('quiz_streak10',):
             self.assertEqual(title_icon(key), '🎖️')
-        for key in ('bond100', 'anniversary:ロザリー', 'triple_rare'):
+        for key in ('bond10', 'all_green', 'favorite_gift:ロザリー'):
             self.assertEqual(title_icon(key), '👑')
-        for key in ('quiz10', 'bond10', 'affection:ロザリー', 'fortune10', 'variety'):
+        for key in ('quiz10', 'affection:ロザリー', 'fortune10', 'variety'):
             self.assertEqual(title_icon(key), '🎖️')
-        rows = [('fortune10', '今日も神頼み'), ('quiz100', '青蘭学園の秘密兵器')]
+        rows = [('fortune10', '今日も神頼み'), ('quiz_streak10', '青蘭学園の名探偵')]
         store = SimpleNamespace(claim_title_notifications=Mock(side_effect=[rows, []]), finish_title_notifications=Mock())
         interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
         await notify_titles(interaction, store)
         text = interaction.followup.send.call_args.args[0]
         self.assertIn('🎖️ **今日も神頼み**', text)
-        self.assertIn('🎖️ **青蘭学園の秘密兵器**', text)
+        self.assertIn('🎖️ **青蘭学園の名探偵**', text)
         self.assertNotIn('🏅', text)
         self.assertNotIn('👑', text)
         self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
 
     async def test_batched_notification_is_always_ephemeral_and_no_mentions(self):
-        rows = [('fortune10', '今日も神頼み'), ('great10', '幸運を引き寄せし者')]
+        rows = [('fortune10', '今日も神頼み'), ('quiz10', '青蘭学園の知恵袋')]
         store = SimpleNamespace(claim_title_notifications=Mock(side_effect=[rows, []]), finish_title_notifications=Mock())
         interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
         await notify_titles(interaction, store)
@@ -126,7 +127,7 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(call.kwargs['ephemeral'])
         self.assertEqual(call.kwargs['allowed_mentions'].to_dict(), discord.AllowedMentions.none().to_dict())
         self.assertIn('今日も神頼み', call.args[0])
-        self.assertIn('幸運を引き寄せし者', call.args[0])
+        self.assertIn('青蘭学園の知恵袋', call.args[0])
         self.assertTrue(store.finish_title_notifications.call_args.args[-1])
 
     async def test_failed_send_releases_for_later_private_retry(self):

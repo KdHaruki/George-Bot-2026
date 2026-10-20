@@ -5,7 +5,7 @@ import random
 from gacha_collection import CollectionStore
 from progress_profiles import profile_for, character_key
 from favorite_album import record_gift, record_completions
-from title_core import record_event, refresh_affection, settle_streak
+from title_core import record_event, refresh_affection
 from daily_affection import MAX_AFFECTION, settle_daily, link_level, affection_limit
 from present_catalog import ITEMS, NORMAL_ITEMS, preferred_items
 from quiz_rounds import QuizRounds
@@ -103,7 +103,6 @@ class PresentStore(QuizRounds, CollectionStore):
     def album(self, user_id, character):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
-            settle_streak(connection, user_id)
             params = (user_id, character_key(character))
             record_completions(connection, user_id, (character,))
             dates = connection.execute('''SELECT first_registered_at,first_gift_at,max_affection_at
@@ -111,11 +110,9 @@ class PresentStore(QuizRounds, CollectionStore):
                 params).fetchone() or (None, None, None)
             perfect = connection.execute('''SELECT achieved_at FROM george_perfect_links
                 WHERE user_id=%s AND character=%s''', params).fetchone()
-            right_arm = connection.execute('''SELECT acquired_at FROM george_titles
-                WHERE user_id=%s AND title_key=%s''', (user_id, f'anniversary:{params[1]}')).fetchone()
             completion = connection.execute('''SELECT achieved_at FROM george_character_completions
                 WHERE user_id=%s AND character=%s''', params).fetchone()
-            return (dates[0], right_arm[0] if right_arm else None, dates[2], perfect[0] if perfect else None,
+            return (dates[0], None, dates[2], perfect[0] if perfect else None,
                     completion[0] if completion else None)
 
     @staticmethod
@@ -195,7 +192,7 @@ class PresentStore(QuizRounds, CollectionStore):
                     level=EXCLUDED.level,achieved_at=CURRENT_TIMESTAMP''', (user_id, character, perfect))
             record_gift(connection, user_id, character, current < MAX_AFFECTION <= points)
             record_event(connection, user_id, f'gift:{interaction_id}', 'gift', character=character, item=item,
-                         preferred=item in preferred_items(character))
+                         preferred=item in preferred_items(character), first_perfect_link=advanced and level == 0)
             if points >= MAX_AFFECTION:
                 refresh_affection(connection, user_id)
             connection.execute('INSERT INTO george_present_receipts(interaction_id,user_id,character,item,gain,points) VALUES (%s,%s,%s,%s,%s,%s)',

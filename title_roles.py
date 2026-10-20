@@ -5,6 +5,7 @@ import discord
 
 from registered_memory import MemoryUnavailable
 from title_notifications import title_icon
+from title_core import is_retired_title
 
 
 class TitleRoles:
@@ -60,6 +61,24 @@ class TitleRoles:
                     self.safe_role(guild, role, self.bot_top(guild, roles))
                     await role.delete(reason='廃止されたカード収集称号を削除')
                 await asyncio.to_thread(self.store.retire_collection, guild.id, key, role_id)
+
+    async def retire_removed(self, guild):
+        async with self.lock(guild.id):
+            mapping = await asyncio.to_thread(self.store.role_map, guild.id)
+            retired = {key: role_id for key, role_id in mapping.items() if is_retired_title(key) and key != 'exchange10' and not key.startswith('collection:')}
+            if not retired:
+                return
+            roles = await guild.fetch_roles()
+            for key, role_id in retired.items():
+                try:
+                    role = next((role for role in roles if role.id == role_id), None)
+                    if role is not None:
+                        self.check_bot(guild)
+                        self.safe_role(guild, role, self.bot_top(guild, roles))
+                        await role.delete(reason='廃止された称号を削除')
+                    await asyncio.to_thread(self.store.retire_title, guild.id, key, role_id)
+                except (MemoryUnavailable, ValueError, discord.HTTPException) as exc:
+                    logging.warning('Retired title cleanup failed: guild=%s type=%s', guild.id, type(exc).__name__)
 
     async def equip(self, guild, user_id, key=None):
         async with self.lock(guild.id):

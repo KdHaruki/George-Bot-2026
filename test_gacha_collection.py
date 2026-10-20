@@ -14,44 +14,45 @@ from registered_memory import MemoryUnavailable
 
 
 class StoreTests(unittest.TestCase):
-    def test_triple_rare_counts_saved_batch_after_guarantee_without_favorite(self):
-        engine = Gacha()
-        for game, total in (('vierge', 4), ('relink', 100)):
-            highest = engine.pools[game][RULES[game].normal[0][0]][0]
-            lower = engine.pools[game][RULES[game].normal[-1][0]][0]
-            cards = [highest, highest] + [lower] * (RULES[game].batch_size - 2)
-            connection = Mock()
-            receipts = {}
 
-            def execute(sql, params):
-                import json
-                if sql.startswith('SELECT user_id'):
-                    return SimpleNamespace(fetchone=lambda: receipts.get(params[0]))
-                if sql.startswith('SELECT c.card'):
-                    return SimpleNamespace(fetchone=lambda: None)
-                if sql.startswith('INSERT INTO george_gacha_draws'):
-                    receipts[params[0]] = (params[1], params[2], json.loads(params[3]))
-                return SimpleNamespace(fetchone=lambda: (total if sql.startswith(('INSERT INTO george_relink_counts', 'INSERT INTO george_gacha_batches')) else 1,))
 
-            connection.execute.side_effect = execute
-
-            @contextmanager
-            def connect():
-                yield connection
-
-            store = CollectionStore('test')
-            with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record:
-                result = store.save_draw(42, game, 800, cards)
-                self.assertEqual(sum(row['card']['rarity'] == highest.rarity for row in result), 3)
-                record.assert_called_once_with(connection, 42, 'triple-rare:800', 'triple_rare', count=3)
-                record.reset_mock()
-                store.save_draw(42, game, 800, cards)
-                record.assert_not_called()
-
-    def test_royal_flush_records_saved_result_once_after_guarantee(self):
+    def test_all_green_batch_uses_final_cards_and_replay_is_idempotent(self):
         import json
         engine = Gacha()
-        cards = [engine.pools['vierge'][rarity][0] for rarity in ('UR', 'SR', 'HR', 'R', 'R', 'R', 'R')]
+        for game in ('vierge', 'relink'):
+            for worlds in ('green', 'mixed', 'unknown'):
+                cards = [engine.pools[game][RULES[game].normal[-1][0]][0]] * RULES[game].batch_size
+                connection, receipts = Mock(), {}
+                def execute(sql, params):
+                    if sql.startswith('SELECT user_id'):
+                        return SimpleNamespace(fetchone=lambda: receipts.get(params[0]))
+                    if sql.startswith('SELECT c.card'):
+                        return SimpleNamespace(fetchone=lambda: None)
+                    if sql.startswith('INSERT INTO george_gacha_draws'):
+                        receipts[params[0]] = (params[1], params[2], json.loads(params[3]))
+                    return SimpleNamespace(fetchone=lambda: (4 if game == 'vierge' else 100,))
+                connection.execute.side_effect = execute
+                @contextmanager
+                def connect():
+                    yield connection
+                store = CollectionStore('test')
+                profiles = ([{'progressWorld': '緑'}] * (len(cards) - 1)
+                            + [None if worlds == 'unknown' else {'progressWorld': '青' if worlds == 'mixed' else '緑'}])
+                with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record, patch('gacha_collection.profile_for', side_effect=profiles):
+                    store.save_draw(42, game, 900, cards)
+                    if worlds == 'green':
+                        record.assert_called_once_with(connection, 42, 'all-green:900', 'all_green', game=game, count=len(cards), worlds=['緑'])
+                    else:
+                        record.assert_not_called()
+                    record.reset_mock()
+                    store.save_draw(42, game, 900, cards)
+                    record.assert_not_called()
+
+    def test_idol_producer_includes_guarantee_and_replay_does_not_reaward(self):
+        import json
+        engine = Gacha()
+        target = next(c for c in engine.pools['vierge']['UR'] if c.character == '小鳥遊希美')
+        cards = [engine.pools['vierge']['R'][0]] * 7
         connection, receipts = Mock(), {}
         def execute(sql, params):
             if sql.startswith('SELECT user_id'):
@@ -60,23 +61,23 @@ class StoreTests(unittest.TestCase):
                 return SimpleNamespace(fetchone=lambda: None)
             if sql.startswith('INSERT INTO george_gacha_draws'):
                 receipts[params[0]] = (params[1], params[2], json.loads(params[3]))
-            return SimpleNamespace(fetchone=lambda: (1,))
+            return SimpleNamespace(fetchone=lambda: (4,))
         connection.execute.side_effect = execute
         @contextmanager
         def connect():
             yield connection
         store = CollectionStore('test')
-        with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record:
-            result = store.save_draw(42, 'vierge', 900, cards)
-            self.assertEqual({row['card']['rarity'] for row in result}, {'UR', 'SR', 'HR', 'R'})
-            record.assert_called_once_with(connection, 42, 'royal-flush:900', 'royal_flush',
-                                           game='vierge', count=7, rarities=['HR', 'R', 'SR', 'UR'])
+        with patch.object(store, 'connect', connect), patch('gacha.Gacha.choose_card', return_value=target), patch('gacha_collection.profile_for', return_value={'progressWorld': '青'}), patch('gacha_collection.record_event') as record:
+            result = store.save_draw(42, 'vierge', 901, cards)
+            self.assertEqual(result[-1]['card']['character'], '小鳥遊希美')
+            self.assertEqual(result[-1]['card']['rarity'], 'UR')
+            record.assert_called_once_with(connection, 42, 'idol-producer:901', 'idol_producer', game='vierge', count=7, character='小鳥遊希美', rarity='UR')
             record.reset_mock()
-            store.save_draw(42, 'vierge', 900, cards)
+            store.save_draw(42, 'vierge', 901, cards)
             record.assert_not_called()
 
     def setUp(self):
-        for name in ('change_streak', 'record_event', 'settle_daily', 'start_daily', 'record_completions'):
+        for name in ('record_event', 'settle_daily', 'start_daily', 'record_completions'):
             helper = patch('gacha_collection.' + name)
             helper.start()
             self.addCleanup(helper.stop)

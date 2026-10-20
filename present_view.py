@@ -62,7 +62,8 @@ class PresentView(discord.ui.View):
             description=(f'{status}\n\n' if status else '') + f'好感度：{affection_display(self.points, self.perfect)}\n\n喜ばれる贈り物：{likes}')
         limit = affection_limit(self.perfect)
         if self.points >= limit:
-            embed.description += f'\n好感度{limit}では＋0。喜ばれる贈り物を1個贈ると次のパーフェクトリンクになり、上限が{limit + 100}になるぜ。'
+            gift = '喜ばれる贈り物'
+            embed.description += f'\n好感度{limit}では＋0。{gift}を1個贈ると次のパーフェクトリンクになり、上限が{limit + 100}になるぜ。'
         if not self.keys:
             embed.add_field(name='手持ちのプレゼントはないぜ！', value='/おみくじ や /クイズ で1日1個もらえるぞ。', inline=False)
         elif show_instruction:

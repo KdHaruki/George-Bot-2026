@@ -1,12 +1,10 @@
+import json
 from contextlib import contextmanager
 from presents import PresentStore
-from title_core import change_streak, refresh_affection, record_event
+from title_core import refresh_affection, record_event
 from daily_affection import settle_daily
-from title_core import pending_titles, COMMON, grant, refresh_special_agent
-import json
-from datetime import datetime, timezone
+from title_core import pending_titles, current_title_name, is_retired_title
 from quiz_rounds import expire_round
-from progress_profiles import profile_for
 
 
 class TitleStore(PresentStore):
@@ -17,13 +15,7 @@ class TitleStore(PresentStore):
             state = json.loads(row[0]) if row else {}
             people = conn.execute('SELECT character FROM george_affection WHERE user_id=%s AND points>=100', (user_id,)).fetchall()
             character = self.current_character(conn, user_id, required=False)
-            streak = conn.execute('SELECT character,since FROM george_title_streaks WHERE user_id=%s', (user_id,)).fetchone()
-            days = 0
-            if streak and streak[0] == character:
-                since = streak[1] if isinstance(streak[1], datetime) else datetime.fromisoformat(streak[1])
-                since = since.replace(tzinfo=timezone.utc) if since.tzinfo is None else since
-                days = max(0, (datetime.now(timezone.utc) - since).days)
-            return pending_titles({row[0] for row in earned}, state, len(people), character, days)
+            return pending_titles({row[0] for row in earned}, state, len(people), character)
 
     @contextmanager
     def connect(self):
@@ -41,24 +33,13 @@ class TitleStore(PresentStore):
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             settle_daily(conn, user_id)
             expire_round(conn, user_id)
-            # Existing album dates prove past registrations; no historical guesses.
-            registrations = conn.execute('SELECT character FROM george_favorite_album WHERE user_id=%s AND first_registered_at IS NOT NULL', (user_id,)).fetchall()
-            stats = conn.execute('SELECT data FROM george_title_stats WHERE user_id=%s', (user_id,)).fetchone()
-            state = json.loads(stats[0]) if stats else {}
-            counted = set(state.get('favorite_worlds', []))
-            if len(set(state.get('profile_names', []))) >= 10:
-                grant(conn, user_id, 'profile30')
-            worlds = {profile['progressWorld'] for (name,) in registrations if (profile := profile_for(name))}
-            for world in sorted(worlds - counted):
-                record_event(conn, user_id, f'favorite-world-history:{world}', 'favorite_world', world=world)
             refresh_affection(conn, user_id)
-            character = self.current_character(conn, user_id, required=False)
-            change_streak(conn, user_id, character)
-            refresh_special_agent(conn, user_id)
             rows = conn.execute("SELECT title_key,name,acquired_at FROM george_titles WHERE user_id=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s ORDER BY name,title_key", (user_id, 'collection:%')).fetchall()
             result = []
             for key, name, acquired in rows:
-                current_name = COMMON.get(key, name)
+                if is_retired_title(key):
+                    continue
+                current_name = current_title_name(key, name)
                 if current_name != name:
                     conn.execute('UPDATE george_titles SET name=%s WHERE user_id=%s AND title_key=%s', (current_name, user_id, key))
                 result.append((key, current_name, acquired))
@@ -68,14 +49,6 @@ class TitleStore(PresentStore):
         with self.connect() as conn:
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             record_event(conn, user_id, f'world:{interaction_id}', 'world', world=world)
-
-    def profile_search(self, user_id, interaction_id, character):
-        profile = profile_for(character)
-        if not profile:
-            return
-        with self.connect() as conn:
-            conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
-            record_event(conn, user_id, f'profile:{interaction_id}', 'profile_search', character=profile['progressName'])
 
     def role_map(self, guild_id):
         with self.connect() as conn:
@@ -102,7 +75,7 @@ class TitleStore(PresentStore):
     def equipped(self, guild_id, user_id):
         with self.connect() as conn:
             row = conn.execute('SELECT title_key FROM george_title_equipped WHERE guild_id=%s AND user_id=%s', (guild_id, user_id)).fetchone()
-            return row[0] if row and not row[0].startswith('collection:') else None
+            return row[0] if row and not is_retired_title(row[0]) else None
 
     def retire_exchange(self, guild_id, role_id):
         with self.connect() as conn:
@@ -112,6 +85,13 @@ class TitleStore(PresentStore):
     def retire_collection(self, guild_id, key, role_id):
         if not key.startswith('collection:'):
             raise ValueError('Not a retired collection title')
+        with self.connect() as conn:
+            conn.execute('DELETE FROM george_title_equipped WHERE guild_id=%s AND title_key=%s AND role_id=%s', (guild_id, key, role_id))
+            conn.execute('DELETE FROM george_title_roles WHERE guild_id=%s AND title_key=%s AND role_id=%s', (guild_id, key, role_id))
+
+    def retire_title(self, guild_id, key, role_id):
+        if not is_retired_title(key):
+            raise ValueError('Not a retired title')
         with self.connect() as conn:
             conn.execute('DELETE FROM george_title_equipped WHERE guild_id=%s AND title_key=%s AND role_id=%s', (guild_id, key, role_id))
             conn.execute('DELETE FROM george_title_roles WHERE guild_id=%s AND title_key=%s AND role_id=%s', (guild_id, key, role_id))

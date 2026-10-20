@@ -8,7 +8,7 @@ from gacha import BATCH_GUARANTEE, RULES, Card, Gacha, vierge_character_card, cu
 import random
 from registered_memory import MemoryStore, MemoryUnavailable
 from favorite_album import ensure_album, record_registration, record_completions
-from title_core import ensure_titles, seed_existing_streaks, record_event, change_streak, settle_streak, refresh_special_agent
+from title_core import ensure_titles, record_event, is_retired_title, current_title_name, refresh_perfect_titles
 from progress_profiles import character_key, profile_for
 from daily_affection import ensure_daily, seed_daily, settle_daily, start_daily
 
@@ -17,12 +17,12 @@ class CollectionStore(MemoryStore):
     def claim_title_notifications(self, user_id, token):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
-            settle_streak(connection, user_id)
-            refresh_special_agent(connection, user_id)
+            refresh_perfect_titles(connection, user_id)
             now = int(time.time())
             rows = connection.execute('''SELECT title_key,name FROM george_title_notices
                 WHERE user_id=%s AND claimed_until<=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s
-                ORDER BY title_key LIMIT 10''', (user_id, now, 'collection:%')).fetchall()
+                ORDER BY title_key''', (user_id, now, 'collection:%')).fetchall()
+            rows = [(key, current_title_name(key, name)) for key, name in rows if not is_retired_title(key)][:10]
             for key, _ in rows:
                 connection.execute('''UPDATE george_title_notices SET claimed_until=%s,claim_token=%s
                     WHERE user_id=%s AND title_key=%s''', (now + 120, token, user_id, key))
@@ -62,7 +62,6 @@ class CollectionStore(MemoryStore):
                 ensure_album(connection)
                 ensure_daily(connection)
                 ensure_titles(connection)
-                seed_existing_streaks(connection)
                 seed_daily(connection)
                 yield connection
         except MemoryUnavailable:
@@ -139,12 +138,14 @@ class CollectionStore(MemoryStore):
             if favorite and any(card.rarity == RULES[game].normal[0][0] and
                                 character_key(card.character) == character_key(favorite[0]['character']) for card in cards):
                 record_event(connection, user_id, f'reunion:{interaction_id}', 'reunion')
-            highest_count = sum(card.rarity == RULES[game].normal[0][0] for card in cards)
-            if len(cards) == RULES[game].batch_size and highest_count >= 3:
-                record_event(connection, user_id, f'triple-rare:{interaction_id}', 'triple_rare', count=highest_count)
-            if game == 'vierge' and len(cards) == 7 and {'UR', 'SR', 'HR', 'R'} <= {card.rarity for card in cards}:
-                record_event(connection, user_id, f'royal-flush:{interaction_id}', 'royal_flush',
-                             game=game, count=len(cards), rarities=sorted({card.rarity for card in cards}))
+            if game == 'vierge' and len(cards) == 7 and any(card.rarity == 'UR' and character_key(card.character) == '小鳥遊希美' for card in cards):
+                record_event(connection, user_id, f'idol-producer:{interaction_id}', 'idol_producer',
+                             game=game, count=7, character='小鳥遊希美', rarity='UR')
+            if len(cards) == RULES[game].batch_size:
+                profiles = [profile_for(card.character) for card in cards]
+                if all(profile and profile['progressWorld'] == '緑' for profile in profiles):
+                    record_event(connection, user_id, f'all-green:{interaction_id}', 'all_green',
+                                 game=game, count=len(cards), worlds=['緑'])
             record_completions(connection, user_id, (card.character for card in cards))
             # Receipts only prevent short-term redelivery; owned cards never expire.
             connection.execute("DELETE FROM george_gacha_draws WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
@@ -183,25 +184,19 @@ class CollectionStore(MemoryStore):
             if toggle:
                 current = connection.execute('SELECT game,card_id FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).fetchone()
                 if current == (game, card_id):
-                    change_streak(connection, user_id, None)
                     start_daily(connection, user_id, None)
                     connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,))
                     return None
             connection.execute("""INSERT INTO george_gacha_favorites(user_id,game,card_id) VALUES (%s,%s,%s)
                 ON CONFLICT(user_id) DO UPDATE SET game=EXCLUDED.game,card_id=EXCLUDED.card_id""", (user_id, game, card_id))
             record_registration(connection, user_id, current_card(game, Card(**row[0])).character)
-            change_streak(connection, user_id, current_card(game, Card(**row[0])).character)
             start_daily(connection, user_id, current_card(game, Card(**row[0])).character)
-            profile = profile_for(row[0]['character'])
-            if profile:
-                record_event(connection, user_id, f'favorite-world:{game}:{card_id}', 'favorite_world', world=profile['progressWorld'])
         return game, current_card(game, Card(**row[0])), row[1]
 
     def clear_favorite(self, user_id):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             settle_daily(connection, user_id)
-            change_streak(connection, user_id, None)
             start_daily(connection, user_id, None)
             return connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).rowcount > 0
 

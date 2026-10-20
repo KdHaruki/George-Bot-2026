@@ -14,7 +14,7 @@ class LinkLevelTests(unittest.TestCase):
         self.store.snapshot(42)
         self.db.execute("INSERT INTO george_affection VALUES (42,'ロザリー',?)", (points,))
         self.db.execute("INSERT INTO george_present_items VALUES (42,'magic',20)")
-        self.db.execute("INSERT INTO george_present_items VALUES (42,'rare',2)")
+        self.db.execute("INSERT INTO george_present_items VALUES (42,'rare',3)")
         self.db.commit()
 
     def test_stages_require_gift_at_boundary_and_keep_first_date(self):
@@ -67,3 +67,4 @@ class LinkLevelTests(unittest.TestCase):
         self.store.give(42, 101, 'ロザリー', 'magic')
         self.assertEqual(self.store.give(42, 100, 'ロザリー', 'magic'), (0, 105, 1))
         self.assertEqual(self.store.inventory(42)['magic'], 18)
+        self.assertEqual(self.store.inventory(42)['rare'], 3)

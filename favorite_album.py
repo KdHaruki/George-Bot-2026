@@ -60,7 +60,7 @@ def record_gift(connection, user_id, character, reached_max):
 
 
 def album_display(dates):
-    milestones = ((0, 'お気に入り登録日'), (1, '右腕の称号獲得日'), (4, 'カード全種類収集'), (3, 'パーフェクトリンク達成'))
+    milestones = ((0, 'お気に入り登録日'), (4, 'カード全種類収集'), (3, 'パーフェクトリンク達成'))
     lines = []
     for index, label in milestones:
         value = dates[index] if index < len(dates) else None

@@ -245,24 +245,21 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(self.store.snapshot(42)[1], {})
         self.assertEqual(self.store.points(42, 'ロザリー'), 100)
 
-    def test_perfect_link_requires_preexisting_hundred_and_preferred_normal_item(self):
+    def test_perfect_link_requires_preexisting_hundred_and_preferred_gift(self):
         self.claim()
         self.db.execute("UPDATE george_present_items SET quantity=5 WHERE user_id=42")
         self.db.execute("INSERT INTO george_affection VALUES (42,'ロザリー',99)")
         self.db.execute("INSERT INTO george_present_items VALUES (42,'rare',1)")
         self.db.execute("INSERT INTO george_present_items VALUES (42,'food',1)")
         self.db.commit()
-        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (1, 100, False))
-        self.assertEqual(self.store.give(42, 201, 'ロザリー', 'rare'), (0, 100, False))
-        self.assertEqual(self.store.give(42, 202, 'ロザリー', 'food'), (0, 100, False))
-        self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, True))
-        self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, True))
+        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (1, 100, 0))
+        self.assertEqual(self.store.give(42, 201, 'ロザリー', 'rare'), (0, 100, 0))
+        self.assertEqual(self.store.give(42, 202, 'ロザリー', 'food'), (0, 100, 0))
+        self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
+        self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
         self.assertEqual(self.store.inventory(42), {'magic': 3})
         self.assertEqual(self.store.give(42, 204, 'ロザリー', 'magic'), (5, 105, 1))
-        self.assertEqual(self.store.inventory(42), {'magic': 2})
-        self.assertTrue(self.store.snapshot(42)[3])
-        self.assertIn('パーフェクトリンク', affection_display(100, True))
-        # Reopening with a new store instance and changing favorites preserves the marker.
+        self.assertIsNotNone(self.store.album(42, 'ロザリー')[3])
         self.set_favorite('美海')
         self.assertFalse(self.store.snapshot(42)[3])
         self.set_favorite('ロザリー')
@@ -335,10 +332,10 @@ class StorageTests(unittest.TestCase):
         text = album_display((datetime(2026, 10, 19, 16, tzinfo=timezone.utc), None, None,
                               datetime(2026, 10, 20, 16, tzinfo=timezone.utc)))
         self.assertIn('お気に入り登録日：2026年10月20日', text)
-        self.assertIn('右腕の称号獲得日：未記録', text)
+        self.assertNotIn('専属αドライバー', text)
         self.assertNotIn('初プレゼント', text)
         self.assertNotIn('好感度100達成', text)
-        self.assertEqual(len(text.splitlines()), 4)
+        self.assertEqual(len(text.splitlines()), 3)
         self.assertIn('パーフェクトリンク達成：2026年10月21日', text)
         self.assertEqual(text.splitlines()[-1], 'パーフェクトリンク達成：2026年10月21日')
 
@@ -352,14 +349,15 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(self.store.album(42, 'ロザリー'), dates)
         self.assertIsNone(self.store.album(43, 'ロザリー')[3])
 
-    def test_album_reads_personal_right_arm_title_and_keeps_original_date(self):
-        self.db.execute("INSERT INTO george_titles VALUES (42,'anniversary:ロザリー','ロザリーの右腕','2026-10-19T16:00:00+00:00')")
+
+    def test_retired_anniversary_title_is_not_read_or_shown_in_album(self):
+        self.db.execute("INSERT INTO george_titles VALUES (42,'anniversary:ロザリー','ロザリーの専属αドライバー','2026-10-19T00:00:00+00:00')")
         self.db.commit()
         dates = self.store.album(42, 'ロザリー')
-        self.assertIn('右腕の称号獲得日：2026年10月20日', album_display(dates))
-        self.assertEqual(self.store.album(42, 'ロザリー'), dates)
-        self.assertIsNone(self.store.album(42, '日向美海')[1])
-        self.assertIsNone(self.store.album(43, 'ロザリー')[1])
+        self.assertIsNone(dates[1])
+        self.assertNotIn('専属αドライバー', album_display(dates))
+        self.assertEqual(len(album_display(dates).splitlines()), 3)
+        self.assertIsNotNone(self.db.execute("SELECT 1 FROM george_titles WHERE title_key='anniversary:ロザリー'").fetchone())
 
     def test_completion_requires_both_games_and_retains_first_date(self):
         from favorite_album import collection_targets, record_completions

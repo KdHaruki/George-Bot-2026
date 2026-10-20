@@ -27,7 +27,6 @@ from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import register_title_commands
 from title_notifications import notify_titles
-from progress_profiles import profile_for
 from discord_layout import space_headings
 
 ########################################
@@ -130,7 +129,7 @@ async def on_guild_join(guild):
 
 
 async def cleanup_retired_title(guild):
-    for cleanup in (client.title_roles.retire_exchange, client.title_roles.retire_collections):
+    for cleanup in (client.title_roles.retire_exchange, client.title_roles.retire_collections, client.title_roles.retire_removed):
         try:
             await cleanup(guild)
         except (MemoryUnavailable, ValueError, discord.HTTPException) as exc:
@@ -223,14 +222,7 @@ async def progress(interaction: discord.Interaction, name: str):
             logging.warning('World search title update failed')
             await interaction.followup.send('検索結果は表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
         await notify_titles(interaction, client.title_store)
-    elif result.startswith('【名前】') and profile_for(name) is not None:
-        character = result.splitlines()[0].removeprefix('【名前】').strip()
-        try:
-            await asyncio.to_thread(client.title_store.profile_search, interaction.user.id, interaction.id, character)
-        except MemoryUnavailable:
-            logging.warning('Profile search title update failed')
-            await interaction.followup.send('プロフィールは表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
-        await notify_titles(interaction, client.title_store)
+
 
 ########################################
 # メッセージイベント
