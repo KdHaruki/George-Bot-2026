@@ -72,8 +72,8 @@ class HelpTests(unittest.TestCase):
             self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
             self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧】', '【スラッシュコマンド一覧（あなただけに表示されます）】', '【メンション一覧】'])
             text = embed.fields[1].value.removesuffix('\n\u200b') + '\n\n' + embed.fields[2].value
-            examples = ['/おみくじ', '/ガチャ アンジュ・ヴィエルジュ',
-                        '/ガチャ アンジュ・リリンク', '/ガチャ確率', '/クイズ', '/所持カード ロザリー', '/収集率', '/プログレス ロザリー',
+            examples = ['/ガチャ アンジュ・ヴィエルジュ',
+                        '/ガチャ アンジュ・リリンク', '/おみくじ', '/ガチャ確率', '/クイズ', '/収集率', '/所持カード ロザリー', '/プログレス ロザリー',
                         '/お気に入り プログレス登録 ロザリー カード', '/お気に入り プログレス確認', '/お気に入り プレゼント',
                         '/称号', '/ヘルプ']
             self.assertEqual([block.split('`')[1] for block in text.split('\n\n')], examples)
