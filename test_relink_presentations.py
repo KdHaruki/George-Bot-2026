@@ -25,7 +25,8 @@ class PresentationTests(unittest.TestCase):
                 embed = star3_embeds([card, card])[0]
                 self.assertEqual(embed.image.url, 'attachment://' + path.name)
                 self.assertFalse(embed.thumbnail.url)
-                self.assertFalse(embed.footer.text)
+                self.assertEqual(embed.footer.text, PRESENTATIONS[card.id]['quote'])
+                self.assertEqual(len(star3_embeds([card, card])), 1)
                 files = presentation_files([card, card])
                 try:
                     self.assertEqual(len(files), 1)
@@ -51,10 +52,10 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(rosalie.name, 'ロザリー【幻影のドレス】')
         self.assertEqual(PRESENTATIONS[rosalie.id]['quote'], 'キミのこと、\nずーーっと待ってたよ！')
         embeds = star3_embeds([rosalie, rosalie] + engine.pools['relink']['★1'][:1])
-        self.assertEqual(len(embeds), 2)
+        self.assertEqual(len(embeds), 1)
         self.assertIn('×2', embeds[0].title)
         self.assertFalse(embeds[0].description)
-        self.assertEqual(embeds[1].description, PRESENTATIONS[rosalie.id]['quote'])
+        self.assertEqual(embeds[0].footer.text, PRESENTATIONS[rosalie.id]['quote'])
 
     def test_import_preserves_exact_punctuation_and_newlines(self):
         raw = '<img data-src="https://cdn.gamerch.com/banner"><div class="mu__box"><p>キミのこと、<br />ずーーっと待ってたよ！</p></div><h2 id="outline__%E5%9F%BA%E6%9C%AC%E6%83%85%E5%A0%B1"'
@@ -76,7 +77,8 @@ class PresentationCommandTests(unittest.IsolatedAsyncioTestCase):
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         calls = interaction.followup.send.call_args_list
         self.assertIn(card.name, calls[0].kwargs['embed'].description)
-        self.assertEqual(calls[1].kwargs['embeds'][1].description, PRESENTATIONS[card.id]['quote'])
+        self.assertEqual(calls[1].kwargs['embeds'][0].footer.text, PRESENTATIONS[card.id]['quote'])
+        self.assertEqual(len(calls[1].kwargs['embeds']), 1)
         self.assertFalse(calls[1].kwargs['allowed_mentions'].everyone)
         store.save_draw.assert_called_once()
         await client.close()

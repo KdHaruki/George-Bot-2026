@@ -14,19 +14,6 @@ from registered_memory import MemoryUnavailable
 
 
 class DrawHighlightTests(unittest.TestCase):
-    def test_draw_collection_field_is_game_specific_and_after_count(self):
-        engine = Gacha()
-        for game in RULES:
-            card = next(iter(engine.pools[game].values()))[0]
-            embed = result_embed(engine, game, [card], saved=[{'new': True}],
-                                 batch_counts={game: 1}, collection=(12, 100, 30, 0))
-            fields = list(embed.fields)
-            names = [field.name.strip() for field in fields]
-            position = names.index('【ガチャカウント】') + 1
-            self.assertEqual(names[position], f'【{RULES[game].name}の収集率】')
-            self.assertIn('12/100種類（12.0%）', fields[position].value)
-
-
     def test_features_use_canonical_people_and_actual_rarities(self):
         from gacha_commands import draw_highlights, collection_facts
         def card(name, rarity='R'):

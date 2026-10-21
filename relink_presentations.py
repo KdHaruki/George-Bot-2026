@@ -43,8 +43,8 @@ def star3_embeds(cards):
         path = local_image(card_id)
         if path:
             embed.set_image(url='attachment://' + path.name)
+            embed.set_footer(text=entry['quote'])
             result.append(embed)
-            result.append(discord.Embed(description=discord.utils.escape_markdown(entry['quote']), color=0xE2AD48))
         else:
             embed.description = discord.utils.escape_markdown(entry['quote'])
             result.append(embed)
