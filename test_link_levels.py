@@ -3,7 +3,7 @@ import unittest
 
 import test_presents
 from presents import affection_display, PresentStore
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 
 
 class LinkLevelTests(unittest.TestCase):

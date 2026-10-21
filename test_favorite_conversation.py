@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 from george_chat import GeorgeChat
 from gacha import Gacha
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 
 class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
     async def test_current_favorite_is_user_scoped_and_failure_is_optional(self):

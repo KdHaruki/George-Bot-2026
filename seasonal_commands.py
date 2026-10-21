@@ -1,7 +1,7 @@
 import asyncio
 import discord
 from discord import app_commands
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from seasonal_calendar import DEFAULT_EVENTS
 from command_permissions import require_administrator
 

@@ -1,9 +1,8 @@
 import asyncio
 import logging
 import discord
-from discord import app_commands
 
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from favorite_album import JST
 from title_notifications import notify_titles, title_icon
 from title_core import title_condition

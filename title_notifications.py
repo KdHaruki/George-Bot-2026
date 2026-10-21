@@ -5,7 +5,7 @@ import uuid
 
 import discord
 
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from title_core import COMMON, title_condition
 
 

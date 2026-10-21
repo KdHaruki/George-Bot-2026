@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import json
 import logging
 import discord
-from registered_memory import MemoryStore, MemoryUnavailable
+from database import DatabaseStore, MemoryUnavailable
 
 
 def command_record(interaction):
@@ -26,7 +26,7 @@ def command_record(interaction):
             ' '.join(names)[:100], json.dumps(arguments, ensure_ascii=False))
 
 
-class CommandHistoryStore(MemoryStore):
+class CommandHistoryStore(DatabaseStore):
     @contextmanager
     def connect(self):
         if not self.url:

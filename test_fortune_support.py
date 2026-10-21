@@ -5,7 +5,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import test_presents
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 
 
 class FortuneSupportTests(unittest.TestCase):

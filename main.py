@@ -12,7 +12,7 @@ from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_err
 import progress as progress_module
 from keep_alive import keep_alive
 from fun_features import FORTUNES, LUCKY_PROGRESS, fortune_embed
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from reply_context import george_reply_target
 from command_help import command_help, annotate_private_commands
 from health_check import HealthCheck
@@ -95,7 +95,7 @@ async def conversation_favorite(bot, user_id):
         selected = await asyncio.wait_for(asyncio.to_thread(store.favorite, user_id), timeout=12)
         if selected:
             _, card, _ = selected
-            return {'character': card.character, 'profile': favorite_details(card)[0]}
+            return {'character': card.character, 'profile': favorite_details(card)}
     except Exception as exc:
         logging.warning('Conversation favorite skipped: type=%s', type(exc).__name__)
     return None
@@ -351,7 +351,7 @@ async def on_message(message):
                     async with message.channel.typing():
                         favorite = await conversation_favorite(client, message.author.id)
                         options = {'favorite': favorite} if favorite else {}
-                        answer = await client.george_chat.reply(key, text, [],
+                        answer = await client.george_chat.reply(key, text,
                                                                reply_to=target.content if target is not None else '', **options)
             except MemoryUnavailable as exc:
                 answer = str(exc)
@@ -381,7 +381,7 @@ async def on_message(message):
         context = await load_ambient_history(message)
         if not context or not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
             return
-        answer = await client.george_chat.ambient_reply(context, [])
+        answer = await client.george_chat.ambient_reply(context)
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())

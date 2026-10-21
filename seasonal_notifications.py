@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 
 import discord
-from registered_memory import MemoryStore, MemoryUnavailable
+from database import DatabaseStore, MemoryUnavailable
 from seasonal_calendar import HolidayCalendar, events_for, JST
 
 
@@ -14,7 +14,7 @@ def event_header(names):
     return "・".join(shown) + (f" ほか{len(names) - 10}件" if len(names) > 10 else "")
 
 
-class SeasonalStore(MemoryStore):
+class SeasonalStore(DatabaseStore):
     def toggle(self, guild_id, channel_id, can_send):
         with self.connect() as connection:
             connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f'george-seasonal-toggle:{guild_id}',))

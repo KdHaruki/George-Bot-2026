@@ -112,12 +112,6 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn((1, 1), self.chat.sessions)
         self.assertIn((1, 2), self.chat.sessions)
 
-    async def test_shared_notes_only_used_when_supplied(self):
-        await self.chat.reply((1, 1), "好きなゲームは？", [("サーバー設定", "合言葉はテスト共有資料")])
-        self.assertIn("テスト共有資料", self.generate.call_args.kwargs["config"].system_instruction)
-        await self.chat.reply((2, 1), "こんにちは")
-        self.assertNotIn("テスト共有資料", self.generate.call_args.kwargs["config"].system_instruction)
-
     async def test_reply_quote_is_included_without_other_users_history(self):
         await self.chat.reply((1, 1), "別の人の話")
         await self.chat.reply((1, 2), "詳しく教えて", reply_to="ロザリーについての返事")
@@ -144,17 +138,6 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('個人の会話', self.generate.call_args.kwargs['contents'])
         self.assertIn('かわいこちゃん', self.generate.call_args.kwargs['config'].system_instruction)
         for answer in ('', 'あ' * 141, 'https://example.com'):
-            self.generate.return_value = SimpleNamespace(text=answer)
-            with self.assertRaises(ValueError):
-                await self.chat.collection_comment(facts)
-
-    async def test_favorite_comment_treats_progress_as_person(self):
-        self.generate.return_value = SimpleNamespace(text='ロザリーはおしゃれが好きな子だぜ！ オマエも一緒に楽しんでくれよな！')
-        facts = {'action': 'favorite_view', 'character': 'ロザリー'}
-        self.assertIn('ロザリー', await self.chat.collection_comment(facts))
-        instruction = self.generate.call_args.kwargs['config'].system_instruction
-        self.assertIn('同じ世界に実在する人物', instruction)
-        for answer in ('カードを眺めてるんだな！', 'コレクションが増えたな！'):
             self.generate.return_value = SimpleNamespace(text=answer)
             with self.assertRaises(ValueError):
                 await self.chat.collection_comment(facts)

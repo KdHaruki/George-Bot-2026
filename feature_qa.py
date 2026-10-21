@@ -1,12 +1,11 @@
 """Read-only, bounded feature answers. The model selects facts, never writes them."""
-import json
 import re
 from conversation_access import ADMIN_TOPICS, ADMIN_REPLY, mentions_admin_details
 
-from command_help import SLASH_COMMANDS, PUBLIC_COMMANDS
+from command_help import SLASH_COMMANDS
 from bot_guide import gift_fact_answer, title_fact_answer
 from title_core import COMMON, title_condition
-from present_catalog import ITEMS, CATEGORIES, preferred_categories
+from present_catalog import ITEMS
 from progress_profiles import character_key, profile_for, NAME_ALIASES
 from progress import progressData
 from gacha import RULES, BATCH_GUARANTEE, VIERGE_CHARACTERS
@@ -145,7 +144,6 @@ def resolve(text, favorite=None, previous_topic=None, previous_person=None, repl
         if not person:
             return facts[topic] + '\n誰への贈り物か名前を教えてくれ！', topic, None
         from presents import affection_gain
-        from present_catalog import preferred_items
         mentioned = [key for key, (_, label) in ITEMS.items() if label in text]
         if mentioned:
             lines = [f'{person}への贈り物だな！']

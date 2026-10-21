@@ -4,7 +4,7 @@ import logging
 import discord
 
 from presents import ITEMS, affection_display, affection_limit, link_label
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from title_notifications import notify_titles
 from present_catalog import CATEGORIES, ITEM_CATEGORY, preferred_categories, preferred_items
 from progress_profiles import profile_for

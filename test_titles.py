@@ -10,7 +10,7 @@ from title_core import COMMON, NORMAL_GIFTS, event_result, record_event
 from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import TitleView
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 
 
 class TitleRulesTests(unittest.TestCase):

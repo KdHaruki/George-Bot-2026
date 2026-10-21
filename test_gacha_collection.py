@@ -8,9 +8,9 @@ import discord
 from discord import app_commands
 
 from gacha import Card, Gacha, RULES, vierge_character_card
-from gacha_collection import CollectionStore, collection_summary, unowned_cards
+from gacha_collection import CollectionStore, collection_summary
 from gacha_commands import CardListView, favorite_details, gacha_comment, register_gacha_commands, result_embed
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 
 
 class DrawHighlightTests(unittest.TestCase):
@@ -267,18 +267,6 @@ class StoreTests(unittest.TestCase):
             self.assertFalse(any(call.args[0].startswith('INSERT') for call in connection.execute.call_args_list))
             found[0] = (asdict(card), 2)
             self.assertEqual(store.set_favorite(10, 'vierge', 'id'), ('vierge', card, 2))
-            self.assertTrue(store.clear_favorite(10))
-            self.assertEqual(connection.execute.call_args.args, ('DELETE FROM george_gacha_favorites WHERE user_id=%s', (10,)))
-
-    def test_unowned_compares_card_ids_within_game_and_excludes_archived_cards(self):
-        first = Card('first', 'ロザリー', 'ロザリー', 'UR')
-        second = Card('second', 'ロザリー', 'ロザリー', 'SR')
-        other = Card('first', '別作品の子', '別作品の子', '★3')
-        engine = SimpleNamespace(pools={'vierge': {'UR': [first], 'SR': [second]}, 'relink': {'★3': [other]}})
-        rows = [('vierge', first, 20), ('vierge', Card('old', '旧カード', '旧カード', 'UR'), 1)]
-        self.assertEqual(unowned_cards(engine, rows), [('vierge', second, 0), ('relink', other, 0)])
-        self.assertEqual(unowned_cards(engine, rows, 'vierge'), [('vierge', second, 0)])
-        self.assertEqual(unowned_cards(engine, [], 'relink'), [('relink', other, 0)])
 
     def test_duplicate_cards_increment_and_receipt_prevents_double_award(self):
         card = vierge_character_card('ロザリー', 'UR')
@@ -369,11 +357,10 @@ class ResultCommentTests(unittest.TestCase):
 
     def test_favorite_introduction_exact_short_and_unknown_names(self):
         for name in ('ロザリー', 'ユーフィリア'):
-            introduction, comment = favorite_details(Card('id', name, name, 'UR'))
+            introduction = favorite_details(Card('id', name, name, 'UR'))
             self.assertIn('紹介だぜ', introduction)
-            self.assertIn(name, comment)
             self.assertNotIn('https://', introduction)
-        introduction, _ = favorite_details(Card('id', '存在しない名前', '不明', 'UR'))
+        introduction = favorite_details(Card('id', '存在しない名前', '不明', 'UR'))
         self.assertIn('分からねえ', introduction)
 
     def test_favorite_exact_and_same_character_take_priority(self):

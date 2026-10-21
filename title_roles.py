@@ -3,7 +3,7 @@ import asyncio
 import logging
 import discord
 
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from title_notifications import title_icon
 from title_core import is_retired_title
 

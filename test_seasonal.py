@@ -5,7 +5,7 @@ from unittest.mock import Mock, AsyncMock, MagicMock, patch
 import sys
 from contextlib import contextmanager
 
-from seasonal_calendar import parse_holidays, events_for, parse_event_date, HolidayCalendar, JST
+from seasonal_calendar import parse_holidays, events_for, HolidayCalendar, JST
 from seasonal_notifications import SeasonalScheduler, SeasonalStore
 
 
@@ -55,9 +55,6 @@ class CalendarTests(unittest.TestCase):
         overrides = [("元日", None, None, False), ("設立記念日", 1, 1, True)]
         self.assertEqual(events_for(day, calendar, overrides), ["設立記念日"])
         self.assertEqual(events_for(day, calendar, []), ["元日"])
-        self.assertEqual(parse_event_date("02-29"), (2, 29))
-        with self.assertRaises(ValueError):
-            parse_event_date("02-30")
 
     def test_database_scope_and_unique_daily_claim(self):
         connection = MagicMock()

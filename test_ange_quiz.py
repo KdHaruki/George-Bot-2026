@@ -2,7 +2,7 @@ import random
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 
 from ange_quiz import QuizView, hints_for
 

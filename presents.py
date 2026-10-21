@@ -3,7 +3,7 @@ from contextlib import contextmanager
 import random
 
 from gacha_collection import CollectionStore
-from progress_profiles import profile_for, character_key
+from progress_profiles import character_key
 from favorite_album import record_gift, record_completions
 from title_core import record_event, refresh_affection
 from daily_affection import MAX_AFFECTION, settle_daily, link_level, affection_limit

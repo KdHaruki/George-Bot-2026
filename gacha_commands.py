@@ -9,7 +9,7 @@ from discord_layout import space_headings
 
 from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
 from gacha_collection import CollectionStore, collection_summary
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from relink_presentations import star3_embeds, presentation_files
 from presents import PresentStore, affection_display
 from present_view import open_presents
@@ -61,12 +61,7 @@ def favorite_details(card):
     detail = record.get('progressDetail1', '') if record else ''
     name = character_key(card.character)
     introduction = f'{name}の紹介だぜ！\n{detail}' if detail else f'{name}の詳しい紹介は、まだ俺にも分からねえな。'
-    comment = random.choice([
-        f'お気に入りは{card.character}か！ いいセンスだ！',
-        f'{card.character}がお気に入りなんだな！ いいセンスだ！',
-        f'おっ、{card.character}じゃねえか！ いいセンスだ！',
-    ])
-    return introduction, comment
+    return introduction
 
 
 def favorite_card_label(card):
@@ -99,10 +94,7 @@ def draw_highlights(cards):
     return highlights
 
 
-def collection_facts(game, cards, saved=None, favorite=None, viewing=False):
-    if viewing:
-        return dict(action='favorite_view', character=cards[0].character,
-                    profiles=[favorite_details(cards[0])[0]])
+def collection_facts(game, cards, saved=None, favorite=None):
     picked = favorite[1] if favorite and favorite[0] == game else None
     relation = 'none'
     if picked:
@@ -110,12 +102,12 @@ def collection_facts(game, cards, saved=None, favorite=None, viewing=False):
             relation = 'exact_card'
         elif any(card.character == picked.character for card in cards):
             relation = 'same_character_other_card'
-    return dict(action='favorite_view' if viewing else 'draw', game=RULES[game].name,
+    return dict(action='draw', game=RULES[game].name,
                 cards=[dict(name=card.name, character=card.character, rarity=card.rarity) for card in cards],
                 highlights=draw_highlights(cards), saved=saved is not None, new_count=sum(bool(entry['new']) for entry in saved) if saved is not None else None,
                 highest=RULES[game].normal[0][0], favorite_relation=relation,
                 favorite_character=picked.character if picked else None,
-                profiles=[favorite_details(card)[0] for card in {card.character: card for card in cards}.values()][:4])
+                profiles=[favorite_details(card) for card in {card.character: card for card in cards}.values()][:4])
 
 
 def gacha_comment(game, cards, saved=None, favorite=None):
@@ -399,7 +391,7 @@ def register_gacha_commands(bot, store=None):
             game, card, count = selected
             embed = discord.Embed(title='⭐ お気に入り' + ('を登録したぜ！' if プログレス else ''),
                                   description=f'**{discord.utils.escape_markdown(favorite_card_label(card))}**\n{RULES[game].name}｜所持{count}枚', color=0xE2AD48)
-            introduction, _ = favorite_details(card)
+            introduction = favorite_details(card)
             embed.add_field(name='【ジョージのプログレス紹介】', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
             try:
                 points, perfect = await asyncio.to_thread(presents.affection_status, interaction.user.id, card.character)

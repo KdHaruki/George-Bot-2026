@@ -2,7 +2,7 @@
 import csv
 import io
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -88,11 +88,3 @@ def events_for(day, holidays, overrides):
     result.extend(name for name, month, number, enabled in overrides
                   if enabled and (month, number) == (day.month, day.day))
     return list(dict.fromkeys(name for name in result if name not in muted))
-
-
-def parse_event_date(value):
-    try:
-        parsed = datetime.strptime("2000-" + value.strip(), "%Y-%m-%d")
-    except ValueError:
-        raise ValueError("日付は「04-01」のように月-日で指定してくれ。") from None
-    return parsed.month, parsed.day

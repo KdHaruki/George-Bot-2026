@@ -6,7 +6,7 @@ import random
 import discord
 from progress import progressData
 from presents import ITEMS
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from title_notifications import notify_titles
 
 

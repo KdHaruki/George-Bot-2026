@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import main
 from fun_features import FORTUNES
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 
 
 class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):

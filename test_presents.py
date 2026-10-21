@@ -1,3 +1,4 @@
+from progress_profiles import profile_for
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 import json
@@ -8,9 +9,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 from gacha_collection import CollectionStore
-from presents import PresentStore, RARE_RATES, ITEMS, draw_present, draw_quiz_present, affection_gain, character_key, profile_for, affection_display
+from presents import PresentStore, RARE_RATES, ITEMS, draw_present, draw_quiz_present, affection_gain, character_key, affection_display
 from present_view import PresentView
-from registered_memory import MemoryUnavailable
+from database import MemoryUnavailable
 from favorite_album import ensure_album, record_registration, album_display
 from title_core import ensure_titles
 from daily_affection import ensure_daily

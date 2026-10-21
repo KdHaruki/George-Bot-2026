@@ -1,7 +1,6 @@
 """Shared, rate-limited active checks without credentials or user content."""
 import asyncio
 import time
-from datetime import timezone, timedelta
 import discord
 from google.genai import types
 from george_chat import describe_chat_error

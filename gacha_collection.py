@@ -6,14 +6,14 @@ import time
 
 from gacha import BATCH_GUARANTEE, RULES, Card, Gacha, vierge_character_card, current_card
 import random
-from registered_memory import MemoryStore, MemoryUnavailable
+from database import DatabaseStore, MemoryUnavailable
 from favorite_album import ensure_album, record_registration, record_completions
 from title_core import ensure_titles, record_event, is_retired_title, current_title_name, refresh_perfect_titles, refresh_collection_titles, refresh_registration_title, refresh_preferred_titles, grant
 from progress_profiles import character_key, profile_for
 from daily_affection import ensure_daily, seed_daily, settle_daily, start_daily
 
 
-class CollectionStore(MemoryStore):
+class CollectionStore(DatabaseStore):
     def claim_title_notifications(self, user_id, token):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
@@ -199,23 +199,9 @@ class CollectionStore(MemoryStore):
             start_daily(connection, user_id, current_card(game, Card(**row[0])).character)
         return game, current_card(game, Card(**row[0])), row[1]
 
-    def clear_favorite(self, user_id):
-        with self.connect() as connection:
-            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
-            settle_daily(connection, user_id)
-            start_daily(connection, user_id, None)
-            return connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).rowcount > 0
-
 
 def collection_summary(engine, rows, game):
     current = {card.id for pool in engine.pools[game].values() for card in pool}
     owned = {card.id for row_game, card, _ in rows if row_game == game}
     total_copies = sum(count for row_game, _, count in rows if row_game == game)
     return len(current & owned), len(current), total_copies, len(owned - current)
-
-
-def unowned_cards(engine, rows, game=None):
-    """Compare by game and stable card ID, never by character name alone."""
-    owned = {(row_game, card.id) for row_game, card, count in rows if count > 0}
-    return [(key, card, 0) for key in ([game] if game else engine.pools)
-            for pool in engine.pools[key].values() for card in pool if (key, card.id) not in owned]
