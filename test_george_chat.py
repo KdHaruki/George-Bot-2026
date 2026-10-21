@@ -56,10 +56,31 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.generate = AsyncMock(return_value=SimpleNamespace(text="こんにちはだぜ！"))
         self.chat.client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=self.generate)))
 
+    async def test_gift_preferences_match_ui_for_current_favorite(self):
+        answer = await self.chat.reply((1, 42), 'その子に喜ばれる贈り物ってなに？', favorite={'character': 'ロザリー'})
+        self.assertIn('ファッション・美容', answer)
+        self.assertIn('魔法・機械', answer)
+        self.assertNotIn('食べ物・飲み物', answer)
+        self.generate.assert_not_awaited()
+        answer = await self.chat.reply((1, 42), 'もう一度ロザリーの喜ばれる贈り物を教えて')
+        self.assertIn('魔法・機械', answer)
+        self.assertNotIn('聞き逃', answer)
+        self.generate.assert_not_awaited()
+
+    async def test_title_condition_is_authoritative_without_generation(self):
+        answer = await self.chat.reply((1, 42), '青蘭学園の叛逆者はどちらが取得しやすい？')
+        self.assertIn('リリンク10連は7枚以上', answer)
+        self.assertIn('両作品が対象', answer)
+        self.generate.assert_not_awaited()
+        followup = await self.chat.reply((1, 42), 'リリンクでも取得できるよね？', reply_to='青蘭学園の叛逆者はヴィエルジュ限定だぜ')
+        self.assertIn('ヴィエルジュ限定じゃねえ', followup)
+        self.generate.assert_not_awaited()
+        self.assertEqual(len(self.chat.sessions[(1, 42)].history), 4)
+
     async def test_conversation_includes_current_usage_without_extra_generation(self):
         from command_help import SLASH_COMMANDS
         from present_catalog import ITEMS, CATEGORIES
-        await self.chat.reply((1, 42), 'お気に入りの登録方法と好物を教えて')
+        await self.chat.reply((1, 42), '今日は元気だよ！')
         self.generate.assert_awaited_once()
         instruction = self.generate.call_args.kwargs['config'].system_instruction
         self.assertIn('【現在のBotの使い方案内】', instruction)
@@ -76,11 +97,11 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('コマンドやボタンを代理実行', instruction)
 
     async def test_followup_keeps_usage_guide_alongside_reply_reference(self):
-        await self.chat.reply((1, 42), '称号って何？')
-        await self.chat.reply((1, 42), 'それってどうやるの？', reply_to='未獲得に切り替えると条件が見えるぜ。')
-        instruction = self.generate.call_args.kwargs['config'].system_instruction
-        self.assertIn('`/称号`は獲得済みと未獲得をボタンで切り替え', instruction)
-        self.assertIn('未獲得に切り替える', self.generate.call_args.kwargs['contents'][-1].parts[0].text)
+        answer = await self.chat.reply((1, 42), '称号って何？')
+        self.assertIn('獲得済み・未獲得', answer)
+        answer = await self.chat.reply((1, 42), 'それってどうやるの？', reply_to='未獲得に切り替えると条件が見えるぜ。')
+        self.assertIn('/称号', answer)
+        self.generate.assert_not_awaited()
 
     async def test_history_is_separate_and_bounded(self):
         for i in range(12):
