@@ -14,6 +14,19 @@ from registered_memory import MemoryUnavailable
 
 
 class DrawHighlightTests(unittest.TestCase):
+    def test_draw_collection_field_is_game_specific_and_after_count(self):
+        engine = Gacha()
+        for game in RULES:
+            card = next(iter(engine.pools[game].values()))[0]
+            embed = result_embed(engine, game, [card], saved=[{'new': True}],
+                                 batch_counts={game: 1}, collection=(12, 100, 30, 0))
+            fields = list(embed.fields)
+            names = [field.name.strip() for field in fields]
+            position = names.index('【ガチャカウント】') + 1
+            self.assertEqual(names[position], f'【{RULES[game].name}の収集率】')
+            self.assertIn('12/100種類（12.0%）', fields[position].value)
+
+
     def test_features_use_canonical_people_and_actual_rarities(self):
         from gacha_commands import draw_highlights, collection_facts
         def card(name, rarity='R'):
@@ -435,7 +448,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_draw_always_saves_game_batch_size(self):
         def save(uid, game, interaction_id, cards):
             return [dict(card=asdict(card), quantity=2, new=False) for card in cards]
-        store = SimpleNamespace(url='test', save_draw=Mock(side_effect=save))
+        store = SimpleNamespace(url='test', owned=Mock(return_value=[]), save_draw=Mock(side_effect=save))
         client, tree, interaction = self.objects(store)
         for game, size in [('vierge', 7), ('relink', 10)]:
             await tree.get_command('ガチャ').callback(interaction, game)
@@ -464,7 +477,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_draw_ai_uses_saved_facts_and_falls_back_on_failure(self):
         card = Gacha().pools['relink']['★1'][0]
         saved = [dict(card=asdict(card), quantity=1, new=True)]
-        store = SimpleNamespace(url='test', save_draw=Mock(return_value=saved))
+        store = SimpleNamespace(url='test', owned=Mock(return_value=[]), save_draw=Mock(return_value=saved))
         client = discord.Client(intents=discord.Intents.default())
         bot = SimpleNamespace(tree=app_commands.CommandTree(client), present_store=SimpleNamespace(affection_status=Mock(return_value=(0, False)), album=Mock(return_value=(None, None, None))), george_chat=SimpleNamespace(collection_comment=AsyncMock(return_value='お気に入りも増えて楽しいな！')))
         store.favorite = Mock(return_value=('relink', card, 1))
@@ -604,7 +617,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         engine = Gacha()
         card = engine.pools['relink']['★1'][0]
         saved = [dict(card=asdict(card), quantity=1, new=True)]
-        store = SimpleNamespace(url='test', save_draw=Mock(return_value=saved))
+        store = SimpleNamespace(url='test', owned=Mock(return_value=[]), save_draw=Mock(return_value=saved))
         client, tree, interaction = self.objects(store)
         await tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertEqual(store.save_draw.call_args.args[:3], (10, 'relink', 100))

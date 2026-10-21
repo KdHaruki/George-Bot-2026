@@ -66,7 +66,7 @@ class PresentationTests(unittest.TestCase):
 class PresentationCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_persisted_star3_result_sent_before_art_and_art_failure_is_optional(self):
         card = Gacha().pools['relink']['★3'][0]
-        store = SimpleNamespace(url='test', save_draw=Mock(return_value=[dict(card=asdict(card), quantity=1, new=True)]),
+        store = SimpleNamespace(url='test', owned=Mock(return_value=[]), save_draw=Mock(return_value=[dict(card=asdict(card), quantity=1, new=True)]),
                                 favorite=Mock(return_value=None), batch_counts=Mock(return_value={'relink': 100}))
         client = discord.Client(intents=discord.Intents.default())
         bot = SimpleNamespace(tree=app_commands.CommandTree(client))

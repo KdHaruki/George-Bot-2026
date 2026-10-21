@@ -150,7 +150,7 @@ def gacha_comment(game, cards, saved=None, favorite=None):
     return random.choice(['今回はこんな顔ぶれだぜ！ 気になる子はいたか？', '結果が出たぜ！ どのかわいこちゃんもじっくり見てみな！'])
 
 
-def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=None, on_day=None):
+def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=None, on_day=None, collection=None):
     rules = RULES[game]
     lines = []
     rank = {rarity: index for index, (rarity, _) in enumerate(rules.normal)}
@@ -173,6 +173,11 @@ def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=No
             message = '次回10連で★3確定！' if remaining <= 10 else f'★3確定まであと{remaining}'
         unit = '' if game == 'relink' else '回'
         embed.add_field(name='【ガチャカウント】', value=f'{progress}/{limit}{unit}：**{message}**', inline=False)
+    if collection is not None:
+        unique, total = collection[:2]
+        percentage = unique / total * 100 if total else 0
+        embed.add_field(name=f'【{rules.name}の収集率】',
+                        value=f'{unique}/{total}種類（{percentage:.1f}%）', inline=False)
     if saved is None:
         embed.add_field(name='保存なし', value='DATABASE_URL未設定のため、この結果はコレクションに保存されないぞ。', inline=False)
     names = engine.birthday_targets(on_day, game)
@@ -240,6 +245,7 @@ def register_gacha_commands(bot, store=None):
         saved = None
         favorite = None
         batch_counts = None
+        collection = None
         if store.url:
             try:
                 saved = await asyncio.to_thread(store.save_draw, interaction.user.id, 作品, interaction.id, cards)
@@ -256,7 +262,13 @@ def register_gacha_commands(bot, store=None):
                 batch_counts = await asyncio.to_thread(store.batch_counts, interaction.user.id)
             except MemoryUnavailable:
                 logging.warning('Gacha batch counts lookup unavailable')
-        embed = result_embed(engine, 作品, cards, saved, favorite, batch_counts)
+        if saved is not None:
+            try:
+                rows = await asyncio.to_thread(store.owned, interaction.user.id, 作品)
+                collection = collection_summary(engine, rows, 作品)
+            except MemoryUnavailable:
+                logging.warning('Gacha collection summary unavailable')
+        embed = result_embed(engine, 作品, cards, saved, favorite, batch_counts, collection=collection)
         comment = await ai_comment(collection_facts(作品, cards, saved, favorite), gacha_comment(作品, cards, saved, favorite))
         embed.set_field_at(0, name='【ジョージの一言】', value=discord.utils.escape_markdown(comment), inline=False)
         await interaction.followup.send(embed=space_headings(embed),
@@ -442,8 +454,8 @@ def register_gacha_commands(bot, store=None):
             return
         embed = discord.Embed(title='カード収集率', color=0xE2AD48)
         for game in RULES:
-            unique, total, copies, _ = collection_summary(engine, rows, game)
-            text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）\n重複込みの所持数：{copies}枚'
+            unique, total, _, _ = collection_summary(engine, rows, game)
+            text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）'
             embed.add_field(name=f'【{RULES[game].name}】', value=text, inline=False)
         await interaction.followup.send(embed=space_headings(embed), ephemeral=True)
         await notify_titles(interaction, getattr(bot, 'title_store', None))
