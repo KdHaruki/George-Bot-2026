@@ -19,7 +19,7 @@ ITEMS = {
     'towel': ('🧺', 'タオル'), 'charm': ('🧿', 'お守り'),
     'magic': ('📕', '魔道書'), 'tools': ('🧰', '工具セット'),
     'plant': ('🪴', '鉢植え'), 'aroma': ('🕯️', 'アロマセット'),
-    'rare': ('💐', '花束（虹）'),
+    'rare': ('💐', '虹色の花束'),
 }
 NORMAL_ITEMS = tuple(key for key in ITEMS if key != 'rare')
 ITEM_CATEGORY = {item: category for category, (_, items) in CATEGORIES.items() for item in items}

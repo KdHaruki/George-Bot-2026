@@ -22,7 +22,7 @@ class PresentRulesTests(unittest.TestCase):
             'sweets': 'チョコクッキー', 'food': '紅茶', 'fashion': 'リボン', 'mirror': '手鏡',
             'book': '本', 'pen': '万年筆', 'game': 'ぬいぐるみ', 'music': 'オルゴール',
             'towel': 'タオル', 'charm': 'お守り', 'magic': '魔道書', 'tools': '工具セット',
-            'plant': '鉢植え', 'aroma': 'アロマセット', 'rare': '花束（虹）'})
+            'plant': '鉢植え', 'aroma': 'アロマセット', 'rare': '虹色の花束'})
         self.assertEqual(affection_gain('ロザリー', 'magic'), 5)
         self.assertEqual(affection_gain('不明な人物', 'game'), 2)
 
@@ -449,7 +449,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('\n\n喜ばれる贈り物：', text)
         self.assertNotIn('通常＋2', text)
         self.assertNotIn('好物＋5', text)
-        self.assertNotIn('花束（虹）＋10', text)
+        self.assertNotIn('虹色の花束＋10', text)
         self.assertTrue(text.endswith('ボタンを押すと1個贈るぜ！'))
         self.assertEqual(text.count('ボタンを押すと1個贈るぜ！'), 1)
         view.stop()
@@ -495,7 +495,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.page, 2)
         self.assertEqual(len(view.children), 5)
         self.assertTrue(view.children[-1].disabled)
-        self.assertIn('花束（虹）', view.children[2].label)
+        self.assertIn('虹色の花束', view.children[2].label)
         self.assertIn('喜ばれる贈り物', view.embed().description)
         interaction = self.interaction()
         await view.give(interaction, 'magic')
