@@ -4,6 +4,7 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 
 COOLDOWN = 60 * 60
+RETRY_DELAY = 5 * 60
 REACTION_CHANCE = 0.20
 PARTICIPATION_CHANCE = REACTION_CHANCE
 SKIP = "__SKIP__"
@@ -48,12 +49,17 @@ class AmbientChat:
 
     def reserve(self, state, now=None):
         state.busy = True
-        state.next_attempt = (time.monotonic() if now is None else now) + COOLDOWN
+        state.next_attempt = (time.monotonic() if now is None else now) + RETRY_DELAY
 
     def note_reply(self, channel_id):
         state = self.states.get(channel_id)
         if state:
-            state.next_attempt = time.monotonic() + COOLDOWN
+            state.messages.clear()
+
+    def note_auto_reply(self, channel_id, now=None):
+        state = self.states.get(channel_id)
+        if state:
+            state.next_attempt = (time.monotonic() if now is None else now) + COOLDOWN
             state.messages.clear()
 
     def still_current(self, channel_id, state):

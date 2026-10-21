@@ -21,7 +21,8 @@ def affection_display(points, perfect=False):
     points = max(0, min(limit, points))
     filled = points * 10 // limit
     label = f'**{link_label(perfect)}**\n' if perfect else ''
-    return label + f'**{points}/{limit}**\n' + '🟪' * filled + '⬜' * (10 - filled)
+    colors = ('🟢', '🟩') if points * 4 < limit else ('🟡', '🟨') if points * 2 < limit else ('🟠', '🟧') if points * 4 < limit * 3 else ('🔴', '🟥')
+    return label + f'**{points}/{limit}**\n' + colors[0] + ' ' + colors[1] * filled + '⬜' * (10 - filled)
 
 
 def link_label(level):
@@ -112,8 +113,10 @@ class PresentStore(QuizRounds, CollectionStore):
                 WHERE user_id=%s AND character=%s''', params).fetchone()
             completion = connection.execute('''SELECT achieved_at FROM george_character_completions
                 WHERE user_id=%s AND character=%s''', params).fetchone()
+            support = connection.execute('''SELECT achieved_at FROM george_character_supports
+                WHERE user_id=%s AND character=%s''', params).fetchone()
             return (dates[0], None, dates[2], perfect[0] if perfect else None,
-                    completion[0] if completion else None)
+                    completion[0] if completion else None, support[0] if support else None)
 
     @staticmethod
     def current_character(connection, user_id, required=True):

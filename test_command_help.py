@@ -70,7 +70,7 @@ class HelpTests(unittest.TestCase):
             embed = command_help(in_guild)
             self.assertLessEqual(len(embed), 6000)
             self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧】', '【スラッシュコマンド一覧（非公開）】', '【メンション一覧】'])
+            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧】', '【スラッシュコマンド一覧（あなただけに表示されます）】', '【メンション一覧】'])
             text = embed.fields[1].value.removesuffix('\n\u200b') + '\n\n' + embed.fields[2].value
             examples = ['/おみくじ', '/ガチャ アンジュ・ヴィエルジュ',
                         '/ガチャ アンジュ・リリンク', '/ガチャ確率', '/所持カード ロザリー', '/収集率', '/プログレス ロザリー',

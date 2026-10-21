@@ -426,3 +426,4 @@ def register_gacha_commands(bot, store=None):
             text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）\n重複込みの所持数：{copies}枚'
             embed.add_field(name=f'【{RULES[game].name}】', value=text, inline=False)
         await interaction.followup.send(embed=space_headings(embed), ephemeral=True)
+        await notify_titles(interaction, getattr(bot, 'title_store', None))

@@ -1,10 +1,11 @@
 import json
 from contextlib import contextmanager
 from presents import PresentStore
-from title_core import refresh_affection, record_event
+from title_core import refresh_affection, record_event, grant, FORTUNE_TYPES
 from daily_affection import settle_daily
-from title_core import pending_titles, current_title_name, is_retired_title
+from title_core import pending_titles, current_title_name, is_retired_title, refresh_collection_titles, refresh_registration_title, title_sort_key, refresh_preferred_titles
 from quiz_rounds import expire_round
+from progress_profiles import profile_for, character_key
 
 
 class TitleStore(PresentStore):
@@ -33,7 +34,19 @@ class TitleStore(PresentStore):
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             settle_daily(conn, user_id)
             expire_round(conn, user_id)
+            stats = conn.execute('SELECT data FROM george_title_stats WHERE user_id=%s', (user_id,)).fetchone()
+            if stats and set(json.loads(stats[0]).get('worlds', [])) >= set('青黒赤白緑'):
+                grant(conn, user_id, 'worlds')
+            if stats and set(json.loads(stats[0]).get('fortunes_seen', [])) >= FORTUNE_TYPES:
+                grant(conn, user_id, 'fortune_set')
+            if stats and len({character_key(name) for name in json.loads(stats[0]).get('profile_names', [])}) >= 10:
+                grant(conn, user_id, 'named10')
+            if stats and json.loads(stats[0]).get('special_gift_given'):
+                grant(conn, user_id, 'special_gift')
+            refresh_preferred_titles(conn, user_id)
             refresh_affection(conn, user_id)
+            refresh_collection_titles(conn, user_id)
+            refresh_registration_title(conn, user_id)
             rows = conn.execute("SELECT title_key,name,acquired_at FROM george_titles WHERE user_id=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s ORDER BY name,title_key", (user_id, 'collection:%')).fetchall()
             result = []
             for key, name, acquired in rows:
@@ -43,12 +56,20 @@ class TitleStore(PresentStore):
                 if current_name != name:
                     conn.execute('UPDATE george_titles SET name=%s WHERE user_id=%s AND title_key=%s', (current_name, user_id, key))
                 result.append((key, current_name, acquired))
-            return sorted(result, key=lambda row: (row[1], row[0]))
+            return sorted(result, key=title_sort_key)
 
     def world_search(self, user_id, interaction_id, world):
         with self.connect() as conn:
             conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             record_event(conn, user_id, f'world:{interaction_id}', 'world', world=world)
+
+    def named_profile_search(self, user_id, interaction_id, character):
+        profile = profile_for(character)
+        if not profile:
+            return
+        with self.connect() as conn:
+            conn.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            record_event(conn, user_id, f'profile:{interaction_id}', 'profile_search', character=profile['progressName'])
 
     def role_map(self, guild_id):
         with self.connect() as conn:

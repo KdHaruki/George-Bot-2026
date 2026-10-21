@@ -42,6 +42,6 @@ def command_help(in_guild, introduction=None):
     public = [entry for entry in SLASH_COMMANDS if entry[0].split()[0][1:] in PUBLIC_COMMANDS]
     private = [entry for entry in SLASH_COMMANDS if entry[0].split()[0][1:] not in PUBLIC_COMMANDS]
     embed.add_field(name='【スラッシュコマンド一覧】', value=format_commands(public) + '\n\u200b', inline=False)
-    embed.add_field(name='【スラッシュコマンド一覧（非公開）】', value=format_commands(private) + '\n\u200b', inline=False)
+    embed.add_field(name='【スラッシュコマンド一覧（あなただけに表示されます）】', value=format_commands(private) + '\n\u200b', inline=False)
     embed.add_field(name='【メンション一覧】', value=format_commands(DM_COMMANDS), inline=False)
     return embed

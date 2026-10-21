@@ -27,6 +27,7 @@ from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import register_title_commands
 from title_notifications import notify_titles
+from progress_profiles import profile_for
 from discord_layout import space_headings
 
 ########################################
@@ -222,6 +223,14 @@ async def progress(interaction: discord.Interaction, name: str):
             logging.warning('World search title update failed')
             await interaction.followup.send('検索結果は表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
         await notify_titles(interaction, client.title_store)
+    elif result.startswith('【名前】') and profile_for(name) is not None:
+        character = result.splitlines()[0].removeprefix('【名前】').strip()
+        try:
+            await asyncio.to_thread(client.title_store.named_profile_search, interaction.user.id, interaction.id, character)
+        except MemoryUnavailable:
+            logging.warning('Named profile title update failed')
+            await interaction.followup.send('プロフィールは表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
+        await notify_titles(interaction, client.title_store)
 
 
 ########################################
@@ -372,12 +381,11 @@ async def on_message(message):
         context = await load_ambient_history(message)
         if not context or not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
             return
-        if not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
-            return
         answer = await client.george_chat.ambient_reply(context, [])
         # If users have moved on or the context was evicted, stay quiet.
         if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
+            client.ambient.note_auto_reply(message.channel.id)
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Ambient chat skipped: %s", diagnostic)

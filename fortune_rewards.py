@@ -54,6 +54,9 @@ def fortune_reward(store, connection, user_id, interaction_id, fortune, lucky_pr
                 ON CONFLICT(user_id) DO UPDATE SET interaction_id=EXCLUDED.interaction_id,
                 lucky_progress=EXCLUDED.lucky_progress,bonus_item=EXCLUDED.bonus_item''', (user_id, interaction_id, lucky_progress, bonus))
         if bonus:
+            connection.execute('''INSERT INTO george_character_supports(user_id,character)
+                VALUES (%s,%s) ON CONFLICT(user_id,character) DO NOTHING''',
+                (user_id, character_key(favorite)))
             connection.execute('''INSERT INTO george_fortune_bonus_daily VALUES (%s,%s,%s,%s)
                 ON CONFLICT(user_id) DO UPDATE SET reward_day=EXCLUDED.reward_day,
                 interaction_id=EXCLUDED.interaction_id,item=EXCLUDED.item''', (user_id, day, interaction_id, bonus))

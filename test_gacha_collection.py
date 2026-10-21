@@ -14,13 +14,11 @@ from registered_memory import MemoryUnavailable
 
 
 class StoreTests(unittest.TestCase):
-
-
     def test_all_green_batch_uses_final_cards_and_replay_is_idempotent(self):
         import json
         engine = Gacha()
         for game in ('vierge', 'relink'):
-            for worlds in ('green', 'mixed', 'unknown'):
+            for green_count in (6, 7, RULES[game].batch_size):
                 cards = [engine.pools[game][RULES[game].normal[-1][0]][0]] * RULES[game].batch_size
                 connection, receipts = Mock(), {}
                 def execute(sql, params):
@@ -36,12 +34,11 @@ class StoreTests(unittest.TestCase):
                 def connect():
                     yield connection
                 store = CollectionStore('test')
-                profiles = ([{'progressWorld': '緑'}] * (len(cards) - 1)
-                            + [None if worlds == 'unknown' else {'progressWorld': '青' if worlds == 'mixed' else '緑'}])
+                profiles = [{'progressWorld': '緑'}] * green_count + [None] * (len(cards) - green_count)
                 with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record, patch('gacha_collection.profile_for', side_effect=profiles):
                     store.save_draw(42, game, 900, cards)
-                    if worlds == 'green':
-                        record.assert_called_once_with(connection, 42, 'all-green:900', 'all_green', game=game, count=len(cards), worlds=['緑'])
+                    if green_count >= 7:
+                        record.assert_called_once_with(connection, 42, 'all-green:900', 'all_green', game=game, count=len(cards), green_count=green_count)
                     else:
                         record.assert_not_called()
                     record.reset_mock()
@@ -76,8 +73,9 @@ class StoreTests(unittest.TestCase):
             store.save_draw(42, 'vierge', 901, cards)
             record.assert_not_called()
 
+
     def setUp(self):
-        for name in ('record_event', 'settle_daily', 'start_daily', 'record_completions'):
+        for name in ('record_event', 'grant', 'refresh_collection_titles', 'settle_daily', 'start_daily', 'record_completions'):
             helper = patch('gacha_collection.' + name)
             helper.start()
             self.addCleanup(helper.stop)

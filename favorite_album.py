@@ -9,6 +9,10 @@ JST = timezone(timedelta(hours=9))
 
 
 def ensure_album(connection):
+    connection.execute('''CREATE TABLE IF NOT EXISTS george_character_supports (
+        user_id BIGINT NOT NULL, character TEXT NOT NULL,
+        achieved_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(user_id,character))''')
     connection.execute('''CREATE TABLE IF NOT EXISTS george_character_completions (
         user_id BIGINT NOT NULL, character TEXT NOT NULL,
         achieved_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -60,7 +64,7 @@ def record_gift(connection, user_id, character, reached_max):
 
 
 def album_display(dates):
-    milestones = ((0, 'お気に入り登録日'), (4, 'カード全種類収集'), (3, 'パーフェクトリンク達成'))
+    milestones = ((0, 'お気に入り登録日'), (4, 'カード全種類収集'), (5, '初めての応援ボーナス'), (3, 'パーフェクトリンク達成'))
     lines = []
     for index, label in milestones:
         value = dates[index] if index < len(dates) else None

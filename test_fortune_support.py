@@ -12,6 +12,20 @@ class FortuneSupportTests(unittest.TestCase):
     setUp = test_presents.StorageTests.setUp
     set_favorite = test_presents.StorageTests.set_favorite
 
+    def test_album_support_first_date_is_per_person_and_retained(self):
+        with patch('presents.draw_present', return_value='food'):
+            self.store.claim(42, 700, '吉', '日向美海')
+            self.assertIsNone(self.store.album(42, 'ロザリー')[5])
+            self.store.claim(42, 701, '吉', 'ロザリー')
+            first = self.store.album(42, 'ロザリー')[5]
+            self.assertIsNotNone(first)
+            self.assertIsNone(self.store.album(43, 'ロザリー')[5])
+            self.assertIsNone(self.store.album(42, '日向美海')[5])
+            self.store.claim(42, 701, '吉', 'ロザリー')
+            self.day += timedelta(days=1)
+            self.store.claim(42, 702, '吉', 'ロザリー')
+            self.assertEqual(self.store.album(42, 'ロザリー')[5], first)
+
     def test_late_matches_count_every_run_but_gifts_are_daily(self):
         with patch('presents.draw_present', return_value='food'), patch('fortune_rewards.random.choice', return_value='book'):
             self.store.claim(42, 100, '吉', '日向美海')

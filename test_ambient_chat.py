@@ -1,5 +1,5 @@
 import unittest
-from ambient_chat import AmbientChat, COOLDOWN
+from ambient_chat import AmbientChat, COOLDOWN, RETRY_DELAY
 
 
 class AmbientTests(unittest.TestCase):
@@ -21,9 +21,20 @@ class AmbientTests(unittest.TestCase):
         chat.reserve(state, now=102)
         state.busy = False
         self.assertIsNone(chat.observe(1, 20, "そうだね", now=103))
-        self.assertEqual(state.next_attempt, 102 + COOLDOWN)
+        self.assertEqual(state.next_attempt, 102 + RETRY_DELAY)
         chat.states.pop(1)
         self.assertFalse(chat.still_current(1, state))
+
+    def test_only_successful_ambient_reply_starts_hour_cooldown(self):
+        chat = AmbientChat()
+        state = self.conversation(chat)
+        chat.reserve(state, now=102)
+        self.assertEqual(state.next_attempt, 102 + RETRY_DELAY)
+        chat.note_reply(1)
+        self.assertEqual(state.next_attempt, 102 + RETRY_DELAY)
+        chat.note_auto_reply(1, now=500)
+        self.assertEqual(state.next_attempt, 500 + COOLDOWN)
+        self.assertEqual(len(state.messages), 0)
 
     def test_directed_and_serious_context(self):
         chat = AmbientChat()

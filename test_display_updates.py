@@ -3,15 +3,18 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 class DisplayTests(unittest.IsolatedAsyncioTestCase):
-    async def test_named_search_has_no_removed_title_tracking(self):
+    async def test_only_successful_named_search_records_person(self):
         import main
-        self.assertFalse(hasattr(main.client.title_store, 'profile_search'))
         interaction = SimpleNamespace(id=101, user=SimpleNamespace(id=42),
             response=SimpleNamespace(send_message=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
-        with patch.object(main.client.title_store, 'world_search', Mock()) as world:
+        with patch.object(main.client.title_store, 'named_profile_search', Mock()) as named, patch.object(main.client.title_store, 'world_search', Mock()) as world, patch('main.notify_titles', AsyncMock()):
             await main.progress.callback(interaction, 'ロザリー')
-            world.assert_not_called()
-            self.assertIn('ロザリー', interaction.response.send_message.call_args.args[0])
+            named.assert_called_once_with(42, 101, 'ロザリー')
+            named.reset_mock()
+            await main.progress.callback(interaction, '赤の世界')
+            await main.progress.callback(interaction, '存在しない名前')
+            named.assert_not_called()
+            world.assert_called_once()
 
     async def test_world_search_and_choices(self):
         import main
@@ -19,6 +22,9 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
         helper = patch.object(main.client.title_store, 'world_search', Mock())
         helper.start()
         self.addCleanup(helper.stop)
+        notifier = patch('main.notify_titles', AsyncMock())
+        notifier.start()
+        self.addCleanup(notifier.stop)
         interaction = SimpleNamespace(id=100, user=SimpleNamespace(id=42), response=SimpleNamespace(send_message=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
         for color in '青黒赤白緑':
             choices = await main.progress_autocomplete(interaction, color + 'の世界')

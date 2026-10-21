@@ -58,8 +58,14 @@ class PresentRulesTests(unittest.TestCase):
         for points, filled in [(0, 0), (35, 3), (99, 9), (100, 10), (150, 10)]:
             text = affection_display(points)
             self.assertIn(f'{min(points, 100)}/100', text)
-            self.assertEqual(text.count('🟪'), filled)
+            self.assertEqual(sum(text.count(color) for color in ('🟩', '🟨', '🟧', '🟥')), filled)
             self.assertEqual(text.count('⬜'), 10 - filled)
+
+    def test_gauge_colors_move_from_green_to_red_by_percentage(self):
+        for points, icon in ((0, '🟢'), (24, '🟢'), (25, '🟡'), (49, '🟡'), (50, '🟠'), (74, '🟠'), (75, '🔴'), (100, '🔴')):
+            self.assertIn(icon, affection_display(points))
+        self.assertIn('🟠', affection_display(100, 1))
+        self.assertIn('🔴', affection_display(200, 1))
 
     def test_exact_rare_boundaries_for_every_fortune(self):
         self.assertEqual(RARE_RATES, {'大吉': 10, '吉': 5, '中吉': 4, '小吉': 3, '末吉': 2, '凶': 1})
@@ -305,7 +311,7 @@ class StorageTests(unittest.TestCase):
             self.assertEqual(self.store.snapshot(42)[1]['food'], 2)
 
     def test_album_first_dates_are_retained_and_no_history_is_invented(self):
-        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None, None, None))
+        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None, None, None, None))
         with self.store.connect() as connection:
             record_registration(connection, 42, 'ロザリー')
         first = self.store.album(42, 'ロザリー')[0]
@@ -326,7 +332,7 @@ class StorageTests(unittest.TestCase):
         with self.store.connect() as connection:
             record_registration(connection, 42, 'ロザリー')
         self.assertEqual(self.store.album(42, 'ロザリー'), completed)
-        self.assertEqual(self.store.album(43, 'ロザリー'), (None, None, None, None, None))
+        self.assertEqual(self.store.album(43, 'ロザリー'), (None, None, None, None, None, None))
 
     def test_album_dates_use_japan_time(self):
         text = album_display((datetime(2026, 10, 19, 16, tzinfo=timezone.utc), None, None,
@@ -335,7 +341,7 @@ class StorageTests(unittest.TestCase):
         self.assertNotIn('専属αドライバー', text)
         self.assertNotIn('初プレゼント', text)
         self.assertNotIn('好感度100達成', text)
-        self.assertEqual(len(text.splitlines()), 3)
+        self.assertEqual(len(text.splitlines()), 4)
         self.assertIn('パーフェクトリンク達成：2026年10月21日', text)
         self.assertEqual(text.splitlines()[-1], 'パーフェクトリンク達成：2026年10月21日')
 
@@ -356,7 +362,7 @@ class StorageTests(unittest.TestCase):
         dates = self.store.album(42, 'ロザリー')
         self.assertIsNone(dates[1])
         self.assertNotIn('専属αドライバー', album_display(dates))
-        self.assertEqual(len(album_display(dates).splitlines()), 3)
+        self.assertEqual(len(album_display(dates).splitlines()), 4)
         self.assertIsNotNone(self.db.execute("SELECT 1 FROM george_titles WHERE title_key='anniversary:ロザリー'").fetchone())
 
     def test_completion_requires_both_games_and_retains_first_date(self):
@@ -389,7 +395,7 @@ class StorageTests(unittest.TestCase):
         self.fail_on = None
         self.assertEqual(self.store.snapshot(42)[1], {'magic': 1})
         self.assertEqual(self.store.points(42, 'ロザリー'), 0)
-        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None, None, None))
+        self.assertEqual(self.store.album(42, 'ロザリー'), (None, None, None, None, None, None))
 
     def test_parallel_quiz_correct_answers_only_award_once(self):
         from concurrent.futures import ThreadPoolExecutor

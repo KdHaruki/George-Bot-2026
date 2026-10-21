@@ -8,7 +8,7 @@ from gacha import BATCH_GUARANTEE, RULES, Card, Gacha, vierge_character_card, cu
 import random
 from registered_memory import MemoryStore, MemoryUnavailable
 from favorite_album import ensure_album, record_registration, record_completions
-from title_core import ensure_titles, record_event, is_retired_title, current_title_name, refresh_perfect_titles
+from title_core import ensure_titles, record_event, is_retired_title, current_title_name, refresh_perfect_titles, refresh_collection_titles, refresh_registration_title, refresh_preferred_titles, grant
 from progress_profiles import character_key, profile_for
 from daily_affection import ensure_daily, seed_daily, settle_daily, start_daily
 
@@ -17,7 +17,10 @@ class CollectionStore(MemoryStore):
     def claim_title_notifications(self, user_id, token):
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            refresh_preferred_titles(connection, user_id)
             refresh_perfect_titles(connection, user_id)
+            refresh_collection_titles(connection, user_id)
+            refresh_registration_title(connection, user_id)
             now = int(time.time())
             rows = connection.execute('''SELECT title_key,name FROM george_title_notices
                 WHERE user_id=%s AND claimed_until<=%s AND title_key<>'exchange10' AND title_key NOT LIKE %s
@@ -143,10 +146,12 @@ class CollectionStore(MemoryStore):
                              game=game, count=7, character='小鳥遊希美', rarity='UR')
             if len(cards) == RULES[game].batch_size:
                 profiles = [profile_for(card.character) for card in cards]
-                if all(profile and profile['progressWorld'] == '緑' for profile in profiles):
+                green_count = sum(bool(profile and profile['progressWorld'] == '緑') for profile in profiles)
+                if green_count >= 7:
                     record_event(connection, user_id, f'all-green:{interaction_id}', 'all_green',
-                                 game=game, count=len(cards), worlds=['緑'])
+                                 game=game, count=len(cards), green_count=green_count)
             record_completions(connection, user_id, (card.character for card in cards))
+            refresh_collection_titles(connection, user_id)
             # Receipts only prevent short-term redelivery; owned cards never expire.
             connection.execute("DELETE FROM george_gacha_draws WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
         return result
@@ -190,6 +195,7 @@ class CollectionStore(MemoryStore):
             connection.execute("""INSERT INTO george_gacha_favorites(user_id,game,card_id) VALUES (%s,%s,%s)
                 ON CONFLICT(user_id) DO UPDATE SET game=EXCLUDED.game,card_id=EXCLUDED.card_id""", (user_id, game, card_id))
             record_registration(connection, user_id, current_card(game, Card(**row[0])).character)
+            grant(connection, user_id, 'favorite_registered')
             start_daily(connection, user_id, current_card(game, Card(**row[0])).character)
         return game, current_card(game, Card(**row[0])), row[1]
 

@@ -24,7 +24,7 @@ class NotificationStorageTests(unittest.TestCase):
         self.unlock()
         self.unlock()
         self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
-        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune10', '今日も神頼み')])
+        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune10', '神頼み')])
         self.store.finish_title_notifications(42, 'one', True)
         self.unlock()
         self.assertEqual(self.store.claim_title_notifications(42, 'again'), [])
@@ -33,7 +33,7 @@ class NotificationStorageTests(unittest.TestCase):
         with self.store.connect() as conn:
             grant(conn, 42, 'collection:ロザリー', 'ロザリーとの縁を紡ぎし者')
         self.unlock()
-        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune10', '今日も神頼み')])
+        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune10', '神頼み')])
 
 
 
@@ -50,9 +50,9 @@ class NotificationStorageTests(unittest.TestCase):
     def test_all_green_title_unlock_is_user_scoped_and_idempotent(self):
         from title_core import record_event
         with self.store.connect() as conn:
-            record_event(conn, 42, 'all-green:100', 'all_green', game='vierge', count=7, worlds=['緑'])
-            record_event(conn, 42, 'all-green:100', 'all_green', game='vierge', count=7, worlds=['緑'])
-            record_event(conn, 42, 'all-green:101', 'all_green', game='relink', count=10, worlds=['緑'])
+            record_event(conn, 42, 'all-green:100', 'all_green', game='vierge', count=7, green_count=7)
+            record_event(conn, 42, 'all-green:100', 'all_green', game='vierge', count=7, green_count=7)
+            record_event(conn, 42, 'all-green:101', 'all_green', game='relink', count=10, green_count=7)
         self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('all_green', '青蘭学園の叛逆者')])
         self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
         self.store.finish_title_notifications(42, 'one', True)
@@ -67,6 +67,17 @@ class NotificationStorageTests(unittest.TestCase):
         self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
         self.store.finish_title_notifications(42, 'one', True)
         self.assertEqual(self.store.claim_title_notifications(42, 'next'), [])
+
+
+
+    def test_fortune_set_counts_same_day_runs_and_is_awarded_once(self):
+        for number, fortune in enumerate(('大吉', '吉', '中吉', '小吉', '末吉', '凶')):
+            self.store.claim(42, 500 + number, fortune)
+            self.store.claim(42, 500 + number, fortune)
+        self.assertEqual(self.store.claim_title_notifications(42, 'one'), [('fortune_set', '占い師')])
+        self.store.finish_title_notifications(42, 'one', True)
+        self.assertEqual(self.store.claim_title_notifications(42, 'next'), [])
+        self.assertEqual(self.store.claim_title_notifications(43, 'other'), [])
 
     def test_multiple_unlocks_and_failed_delivery_retry(self):
         self.unlock()
@@ -106,19 +117,19 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(title_icon(key), '👑')
         for key in ('quiz10', 'affection:ロザリー', 'fortune10', 'variety'):
             self.assertEqual(title_icon(key), '🎖️')
-        rows = [('fortune10', '今日も神頼み'), ('quiz_streak10', '青蘭学園の名探偵')]
+        rows = [('fortune10', '神頼み'), ('quiz_streak10', '青蘭学園の名探偵')]
         store = SimpleNamespace(claim_title_notifications=Mock(side_effect=[rows, []]), finish_title_notifications=Mock())
         interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
         await notify_titles(interaction, store)
         text = interaction.followup.send.call_args.args[0]
-        self.assertIn('🎖️ **今日も神頼み**', text)
+        self.assertIn('🎖️ **神頼み**', text)
         self.assertIn('🎖️ **青蘭学園の名探偵**', text)
         self.assertNotIn('🏅', text)
         self.assertNotIn('👑', text)
         self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
 
     async def test_batched_notification_is_always_ephemeral_and_no_mentions(self):
-        rows = [('fortune10', '今日も神頼み'), ('quiz10', '青蘭学園の知恵袋')]
+        rows = [('fortune10', '神頼み'), ('quiz10', '青蘭学園の知恵袋')]
         store = SimpleNamespace(claim_title_notifications=Mock(side_effect=[rows, []]), finish_title_notifications=Mock())
         interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
         await notify_titles(interaction, store)
@@ -126,17 +137,21 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
         call = interaction.followup.send.call_args
         self.assertTrue(call.kwargs['ephemeral'])
         self.assertEqual(call.kwargs['allowed_mentions'].to_dict(), discord.AllowedMentions.none().to_dict())
-        self.assertIn('今日も神頼み', call.args[0])
+        self.assertIn('神頼み', call.args[0])
         self.assertIn('青蘭学園の知恵袋', call.args[0])
+        self.assertIn('おみくじに累計10回挑戦する。', call.args[0])
+        self.assertIn('クイズをヒント1回目で累計10回正解する。', call.args[0])
         self.assertTrue(store.finish_title_notifications.call_args.args[-1])
 
     async def test_failed_send_releases_for_later_private_retry(self):
-        store = SimpleNamespace(claim_title_notifications=Mock(return_value=[('fortune10', '今日も神頼み')]), finish_title_notifications=Mock())
+        store = SimpleNamespace(claim_title_notifications=Mock(return_value=[('fortune10', '神頼み')]), finish_title_notifications=Mock())
         failure = discord.HTTPException(SimpleNamespace(status=500, reason='test'), 'test')
         interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock(side_effect=failure)))
         await notify_titles(interaction, store)
         self.assertFalse(store.finish_title_notifications.call_args.args[-1])
         store.claim_title_notifications.assert_called_once()
+
+
 
     async def test_no_unlock_sends_nothing(self):
         store = SimpleNamespace(claim_title_notifications=Mock(return_value=[]), finish_title_notifications=Mock())

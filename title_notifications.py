@@ -6,11 +6,11 @@ import uuid
 import discord
 
 from registered_memory import MemoryUnavailable
-from title_core import COMMON
+from title_core import COMMON, title_condition
 
 
 def title_icon(key):
-    return '👑' if key in ('bond10', 'all_green') or key.startswith('favorite_gift:') else '🎖️'
+    return '👑' if key in ('bond10', 'all_green', 'kaguya', 'complete_vierge', 'complete_relink') or key.startswith('favorite_gift:') else '🎖️'
 
 
 async def notify_titles(interaction, store):
@@ -27,7 +27,14 @@ async def notify_titles(interaction, store):
             return
         delivered = False
         try:
-            text = '**称号獲得！**\n' + '\n'.join(f'{title_icon(key)} **{discord.utils.escape_markdown(COMMON.get(key, name))}**' for key, name in rows)
+            header = '**称号獲得！**\n'
+            text = header
+            for key, name in rows:
+                block = f'{title_icon(key)} **{discord.utils.escape_markdown(COMMON.get(key, name))}**\n{discord.utils.escape_markdown(title_condition(key))}'
+                if len(text) + len(block) + 2 > 1800:
+                    await interaction.followup.send(text, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+                    text = header
+                text += ('\n\n' if text != header else '') + block
             await interaction.followup.send(text, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
             delivered = True
         except discord.HTTPException:
