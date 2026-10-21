@@ -484,6 +484,22 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             response=SimpleNamespace(defer=AsyncMock(), send_message=AsyncMock()),
             edit_original_response=AsyncMock(), followup=SimpleNamespace(send=AsyncMock()))
 
+    async def test_gift_comment_generation_failure_does_not_repeat_spend(self):
+        store = SimpleNamespace(give=Mock(return_value=(2, 2, False)))
+        view = PresentView(42, store, 'ロザリー', {'food': 1}, 0)
+        interaction = self.interaction()
+        chat = SimpleNamespace(collection_comment=AsyncMock(side_effect=RuntimeError('offline')))
+        interaction.client = SimpleNamespace(george_chat=chat)
+        await view.give(interaction, 'food')
+        await view.give(interaction, 'food')
+        store.give.assert_called_once()
+        chat.collection_comment.assert_awaited_once()
+        self.assertEqual(view.items['food'], 0)
+        embed = interaction.edit_original_response.call_args.kwargs['embed']
+        self.assertEqual(embed.fields[-1].name, '【ジョージの一言】')
+        self.assertIn('ロザリー', embed.fields[-1].value)
+        view.stop()
+
     async def test_pages_spend_and_duplicate_event(self):
         store = SimpleNamespace(give=Mock(return_value=(5, 5, False)))
         view = PresentView(42, store, 'ロザリー', dict.fromkeys(ITEMS, 1), 0)

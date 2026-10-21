@@ -13,6 +13,22 @@ from gacha_commands import CardListView, favorite_details, gacha_comment, regist
 from registered_memory import MemoryUnavailable
 
 
+class DrawHighlightTests(unittest.TestCase):
+    def test_features_use_canonical_people_and_actual_rarities(self):
+        from gacha_commands import draw_highlights, collection_facts
+        def card(name, rarity='R'):
+            return SimpleNamespace(character=name, rarity=rarity, name=name)
+        cards = [card('美海', 'UR'), card('日向美海', 'UR'), card('美海', 'UR')]
+        text = ' '.join(draw_highlights(cards))
+        self.assertIn('日向美海が3枚', text)
+        self.assertIn('最高レアが3枚', text)
+        self.assertNotIn('全員違う', text)
+        names = ['ロザリー', '日向美海', '御影葵', 'ソフィーナ', 'ユーフィリア', 'エルエル', '東条遥']
+        self.assertIn('全員違う', ' '.join(draw_highlights([card(name) for name in names])))
+        self.assertEqual(draw_highlights([card('ロザリー'), card('ソフィーナ')]), [])
+        self.assertEqual(draw_highlights([]), [])
+
+
 class StoreTests(unittest.TestCase):
     def test_all_green_batch_uses_final_cards_and_replay_is_idempotent(self):
         import json

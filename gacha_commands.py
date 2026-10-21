@@ -82,6 +82,23 @@ def favorite_matches(rows, query):
     return exact or [row for row in rows if query and query in normalize(character_key(row[1].character))]
 
 
+def draw_highlights(cards):
+    from collections import Counter
+    counts = Counter(character_key(card.character) for card in cards)
+    highlights = []
+    if not cards:
+        return highlights
+    name, count = counts.most_common(1)[0]
+    if count >= 3:
+        highlights.append(f'{name}が{count}枚も来たぜ！ 今日は縁があるな！')
+    if len(cards) >= 7 and len(counts) == len(cards):
+        highlights.append('全員違う顔ぶれだぜ！ にぎやかな出会いになったな！')
+    top = sum(card.rarity in ('UR', '★3') for card in cards)
+    if top >= 3:
+        highlights.append(f'最高レアが{top}枚！ こいつは見事な引きだぜ！')
+    return highlights
+
+
 def collection_facts(game, cards, saved=None, favorite=None, viewing=False):
     if viewing:
         return dict(action='favorite_view', character=cards[0].character,
@@ -95,13 +112,16 @@ def collection_facts(game, cards, saved=None, favorite=None, viewing=False):
             relation = 'same_character_other_card'
     return dict(action='favorite_view' if viewing else 'draw', game=RULES[game].name,
                 cards=[dict(name=card.name, character=card.character, rarity=card.rarity) for card in cards],
-                saved=saved is not None, new_count=sum(bool(entry['new']) for entry in saved) if saved is not None else None,
+                highlights=draw_highlights(cards), saved=saved is not None, new_count=sum(bool(entry['new']) for entry in saved) if saved is not None else None,
                 highest=RULES[game].normal[0][0], favorite_relation=relation,
                 favorite_character=picked.character if picked else None,
                 profiles=[favorite_details(card)[0] for card in {card.character: card for card in cards}.values()][:4])
 
 
 def gacha_comment(game, cards, saved=None, favorite=None):
+    highlights = draw_highlights(cards)
+    if highlights:
+        return ' '.join(highlights)[:140]
     if favorite and favorite[0] == game:
         picked = favorite[1]
         if any(card.id == picked.id for card in cards):

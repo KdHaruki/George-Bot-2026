@@ -6,7 +6,8 @@ import discord
 from presents import ITEMS, affection_display, affection_limit, link_label
 from registered_memory import MemoryUnavailable
 from title_notifications import notify_titles
-from present_catalog import CATEGORIES, ITEM_CATEGORY, preferred_categories
+from present_catalog import CATEGORIES, ITEM_CATEGORY, preferred_categories, preferred_items
+from progress_profiles import profile_for
 
 
 class PresentView(discord.ui.View):
@@ -96,7 +97,23 @@ class PresentView(discord.ui.View):
             status = f'{ITEMS[key][1]}を贈ったぜ！ 好感度 **＋{gain}**'
             if advanced:
                 status = f'{ITEMS[key][1]}を贈って、**{link_label(perfect)}達成！**'
+            # Show the saved result immediately; a failed optional comment never retries the gift.
             await interaction.edit_original_response(embed=self.embed(status), view=self)
+            preferred = key in preferred_items(self.character)
+            comment = (f'{self.character}にぴったりの贈り物だな！ 喜んでくれそうだぜ！' if preferred else
+                       f'{self.character}のために選んだ贈り物だな。オマエの気持ちも伝わるといいな！')
+            chat = getattr(getattr(interaction, 'client', None), 'george_chat', None)
+            if chat is not None:
+                try:
+                    comment = await asyncio.wait_for(chat.collection_comment(dict(
+                        action='gift_thanks', character=self.character, gift=ITEMS[key][1],
+                        preferred=preferred, gain=gain, perfect_link_advanced=advanced,
+                        profile=profile_for(self.character))), timeout=11)
+                except Exception as exc:
+                    logging.warning('Gift comment fallback: type=%s', type(exc).__name__)
+            embed = self.embed(status)
+            embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment), inline=False)
+            await interaction.edit_original_response(embed=embed, view=self)
             await notify_titles(interaction, self.store)
 
     async def on_timeout(self):
