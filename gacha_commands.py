@@ -437,5 +437,5 @@ def register_gacha_commands(bot, store=None):
             unique, total, _, _ = collection_summary(engine, rows, game)
             text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）'
             embed.add_field(name=f'【{RULES[game].name}】', value=text, inline=False)
-        await interaction.followup.send(embed=space_headings(embed), ephemeral=True)
+        await interaction.followup.send(embed=space_headings(embed, space_first=False), ephemeral=True)
         await notify_titles(interaction, getattr(bot, 'title_store', None))

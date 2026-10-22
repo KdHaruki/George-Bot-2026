@@ -29,6 +29,7 @@ class QuizTests(unittest.IsolatedAsyncioTestCase):
             view = QuizView(42, records=records, rng=random.Random(seed))
             expected = hints_for(view.answer)
             self.assertCountEqual(view.hints, expected)
+            self.assertEqual(view.hints[-1][0], '出身世界')
             first_hints.add(view.hints[0][0])
             original = list(view.hints)
             wrong = next(button for button in view.children if button.label != view.answer['progressName'])
@@ -37,7 +38,7 @@ class QuizTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual([field.name for field in view.embed().fields],
                              [f'【{label}】' for label, _ in original[:2]])
             view.stop()
-        self.assertEqual(first_hints, {'出身世界', '好きなもの', '苦手なもの', '座右の銘', 'プロフィール'})
+        self.assertEqual(first_hints, {'好きなもの', '苦手なもの', '座右の銘', 'プロフィール'})
 
     def interaction(self, user=42):
         return SimpleNamespace(user=SimpleNamespace(id=user), edit_original_response=AsyncMock(), response=SimpleNamespace(

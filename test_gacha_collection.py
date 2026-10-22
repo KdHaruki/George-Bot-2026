@@ -641,6 +641,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.removesuffix('\n\u200b').splitlines()), 4)
         await tree.get_command('収集率').callback(interaction)
         embed = interaction.followup.send.call_args.kwargs['embed']
+        self.assertFalse(embed.description)
         self.assertIn('100.0%', embed.fields[0].value)
         self.assertTrue(all(field.name.startswith('【') and field.name.endswith('】') for field in embed.fields))
         self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
