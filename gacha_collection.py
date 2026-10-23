@@ -198,10 +198,3 @@ class CollectionStore(DatabaseStore):
             grant(connection, user_id, 'favorite_registered')
             start_daily(connection, user_id, current_card(game, Card(**row[0])).character)
         return game, current_card(game, Card(**row[0])), row[1]
-
-
-def collection_summary(engine, rows, game):
-    current = {card.id for pool in engine.pools[game].values() for card in pool}
-    owned = {card.id for row_game, card, _ in rows if row_game == game}
-    total_copies = sum(count for row_game, _, count in rows if row_game == game)
-    return len(current & owned), len(current), total_copies, len(owned - current)

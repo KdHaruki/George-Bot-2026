@@ -19,7 +19,7 @@ COMMON = {
     'special_gift': '青蘭学園のロマンチスト', 'variety': 'ソムリエの証', 'worlds': '青蘭学園の歩く図書館', 'named10': '青蘭学園の勉強家',
     'bond10': 'エール・フレンドを繋ぎし者',
     'idol_producer': '青蘭学園のアイドルプロデューサー', 'favorite_registered': '青蘭学園の新米アルドラ', 'reunion': '青蘭学園の熟練アルドラ', 'favorite_complete': '青蘭学園の一流アルドラ',
-    'all_green': '青蘭学園の叛逆者', 'kaguya': '青蘭学園のかぐや姫',
+    'all_green': '青蘭学園の叛逆者', 'kaguya': '青蘭学園の超大吉',
     'complete_vierge': '青蘭学園のレジェンド', 'complete_relink': '青蘭学園の英雄',
 }
 def current_title_name(key, fallback):
@@ -64,43 +64,38 @@ def title_condition(key):
     return conditions.get(key, '取得条件を確認できません。')
 
 
-def pending_titles(earned, state, affection_count, character=None):
-    """Display actual counters; binary milestones are represented as conditions."""
+def pending_titles(earned, state, affection_count, character=None, collection_rates=None):
+    """Keep conditions and progress on separate lines for every pending title."""
     rows = []
 
-    def add(key, name, condition):
+    def add(key, name, current=0, target=1):
         if key not in earned:
-            rows.append((key, name, condition))
+            rows.append((key, name, title_condition(key) + f'\n進捗：{min(current, target)}/{target}'))
 
-    for key, metric, target, label in (
-        ('quiz10', 'quiz_first', 10, 'クイズをヒント1回目で正解する'),):
-        add(key, COMMON[key], f'{label}：{min(state.get(metric, 0), target)}/{target}回')
-    add('quiz_streak10', COMMON['quiz_streak10'], f'クイズをヒント1回目で正解する（10回連続）：{min(state.get("quiz_streak", 0), 10)}/10回')
-    for key, metric, target, label in (
-        ('fortune10', 'fortunes', 10, 'おみくじに挑戦する'),):
-        add(key, COMMON[key], f'{label}：{min(state.get(metric, 0), target)}/{target}回')
-    add('fortune_set', COMMON['fortune_set'], title_condition('fortune_set') + f'\n進捗：{len(set(state.get("fortunes_seen", [])) & FORTUNE_TYPES)}/6種類')
-    add('support', COMMON['support'], title_condition('support'))
-    add('variety', COMMON['variety'], title_condition('variety') + f'\n進捗：{len(set(state.get("gift_kinds", [])) & NORMAL_GIFTS)}/{len(NORMAL_GIFTS)}種類')
-    add('special_gift', COMMON['special_gift'], title_condition('special_gift'))
+    add('quiz10', COMMON['quiz10'], state.get('quiz_first', 0), 10)
+    add('quiz_streak10', COMMON['quiz_streak10'], state.get('quiz_streak', 0), 10)
+    add('fortune10', COMMON['fortune10'], state.get('fortunes', 0), 10)
+    add('fortune_set', COMMON['fortune_set'], len(set(state.get('fortunes_seen', [])) & FORTUNE_TYPES), 6)
+    add('support', COMMON['support'])
+    add('variety', COMMON['variety'], len(set(state.get('gift_kinds', [])) & NORMAL_GIFTS), len(NORMAL_GIFTS))
+    add('special_gift', COMMON['special_gift'])
     if character:
         gifts = state.get('preferred_gift_counts', {}).get(character_key(character), 0)
-        add(f'preferred_gifts10:{character}', f'{character}の良き理解者', title_condition(f'preferred_gifts10:{character}') + f'\n進捗：{min(gifts, 3)}/3個')
-    add('worlds', COMMON['worlds'], f'5つの世界を検索する：{len(set(state.get("worlds", [])) & set("青黒赤白緑"))}/5世界')
-    add('named10', COMMON['named10'], title_condition('named10') + f'\n進捗：{min(len({character_key(name) for name in state.get("profile_names", [])}), 10)}/10人')
-    add('idol_producer', COMMON['idol_producer'], title_condition('idol_producer'))
-    add('favorite_registered', COMMON['favorite_registered'], title_condition('favorite_registered'))
-    add('reunion', COMMON['reunion'], title_condition('reunion'))
-    add('favorite_complete', COMMON['favorite_complete'], title_condition('favorite_complete'))
-    add('all_green', COMMON['all_green'], title_condition('all_green'))
-    add('kaguya', COMMON['kaguya'], title_condition('kaguya') + f'\n進捗：{min(state.get("great_streak", 0), 3)}/3回')
-    add('complete_vierge', COMMON['complete_vierge'], title_condition('complete_vierge'))
-    add('complete_relink', COMMON['complete_relink'], title_condition('complete_relink'))
-    for target, key in ((5, 'bond10'),):
-        add(key, COMMON[key], f'異なる{target}人の好感度を100にする：{min(affection_count, target)}/{target}人')
+        add(f'preferred_gifts10:{character}', f'{character}の良き理解者', gifts, 3)
+    add('worlds', COMMON['worlds'], len(set(state.get('worlds', [])) & set('青黒赤白緑')), 5)
+    add('named10', COMMON['named10'], len({character_key(name) for name in state.get('profile_names', [])}), 10)
+    for key in ('idol_producer', 'favorite_registered', 'reunion', 'favorite_complete', 'all_green'):
+        add(key, COMMON[key])
+    add('kaguya', COMMON['kaguya'], state.get('great_streak', 0), 3)
+    for game in ('vierge', 'relink'):
+        key = f'complete_{game}'
+        if key not in earned:
+            rate = (collection_rates or {}).get(game, 0.0)
+            rows.append((key, COMMON[key], title_condition(key) + f'\n進捗：{rate:.1f}%'))
+    add('bond10', COMMON['bond10'], affection_count, 5)
     if character:
-        add(f'favorite_gift:{character}', f'{character}の右腕', title_condition(f'favorite_gift:{character}'))
-    return [(key, name, condition if condition.endswith('。') else condition + '。') for key, name, condition in rows]
+        add(f'favorite_gift:{character}', f'{character}の右腕')
+    return rows
 
 
 def ensure_titles(connection):
@@ -217,7 +212,7 @@ def record_event(connection, user_id, event_key, kind, **facts):
     connection.execute("DELETE FROM george_title_events WHERE user_id=%s AND created_at<CURRENT_TIMESTAMP-INTERVAL '7 days'", (user_id,))
 
 
-def refresh_collection_titles(connection, user_id):
+def collection_state(connection, user_id):
     from favorite_album import collection_targets
     targets = {'vierge': set(), 'relink': set()}
     for cards in collection_targets().values():
@@ -227,6 +222,18 @@ def refresh_collection_titles(connection, user_id):
     for game, card_id in connection.execute('SELECT game,card_id FROM george_gacha_cards WHERE user_id=%s', (user_id,)).fetchall():
         if game in owned:
             owned[game].add(card_id)
+    return targets, owned
+
+
+def collection_progress(connection, user_id):
+    targets, owned = collection_state(connection, user_id)
+    return {game: len(cards & owned[game]) / len(cards) * 100 if cards else 0.0
+            for game, cards in targets.items()}
+
+
+def refresh_collection_titles(connection, user_id):
+    from favorite_album import collection_targets
+    targets, owned = collection_state(connection, user_id)
     existing = {row[0] for row in connection.execute('SELECT title_key FROM george_titles WHERE user_id=%s', (user_id,)).fetchall()}
     for game in targets:
         key = f'complete_{game}'

@@ -18,7 +18,7 @@ class FeatureFactTests(unittest.TestCase):
     def test_factual_routing_does_not_intercept_casual_conversation(self):
         self.assertIsNone(title_fact_answer('青蘭学園の叛逆者ってかっこいいね'))
         self.assertIsNone(title_fact_answer('おみくじの遊び方を教えて'))
-        answer = title_fact_answer('青蘭学園のかぐや姫の取得条件は？')
+        answer = title_fact_answer('青蘭学園の超大吉の取得条件は？')
         self.assertIn('大吉を3回連続', answer)
         self.assertNotIn('UR', answer)
 

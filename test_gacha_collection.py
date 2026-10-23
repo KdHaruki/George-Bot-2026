@@ -8,7 +8,7 @@ import discord
 from discord import app_commands
 
 from gacha import Card, Gacha, RULES, vierge_character_card
-from gacha_collection import CollectionStore, collection_summary
+from gacha_collection import CollectionStore
 from gacha_commands import CardListView, favorite_details, gacha_comment, register_gacha_commands, result_embed
 from database import MemoryUnavailable
 
@@ -313,10 +313,6 @@ class StoreTests(unittest.TestCase):
     def test_collection_rate_counts_unique_current_cards_and_keeps_archived(self):
         engine = Gacha()
         card = engine.pools['vierge']['UR'][0]
-        rows = [('vierge', card, 3), ('vierge', Card('old', '昔のカード', '昔のカード', 'UR'), 2)]
-        unique, total, copies, archived = collection_summary(engine, rows, 'vierge')
-        self.assertEqual((unique, copies, archived), (1, 5, 1))
-        self.assertEqual(total, sum(len(pool) for pool in engine.pools['vierge'].values()))
         saved = [dict(card=asdict(card), quantity=1, new=True), dict(card=asdict(card), quantity=2, new=False)]
         embed = result_embed(engine, 'vierge', [card, card], saved)
         self.assertTrue(embed.description.removesuffix('\n\u200b').splitlines()[0].startswith('【UR】'))
@@ -512,7 +508,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(tree.get_command('未所持カード'))
         self.assertIn('プログレス', [p.name for p in tree.get_command('所持カード').parameters])
         self.assertTrue(tree.get_command('所持カード').parameters[0].required)
-        self.assertEqual(tree.get_command('収集率').parameters, [])
+        self.assertIsNone(tree.get_command('収集率'))
         self.assertNotIn('キャラ', [p.name for p in tree.get_command('所持カード').parameters])
         await client.close()
 
@@ -639,21 +635,13 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(call.kwargs['embed'].footer.text)
         await tree.get_command('所持カード').callback(interaction, 'ロザリー')
         self.assertEqual(len(interaction.followup.send.call_args.kwargs['embed'].description.removesuffix('\n\u200b').splitlines()), 4)
-        await tree.get_command('収集率').callback(interaction)
-        embed = interaction.followup.send.call_args.kwargs['embed']
-        self.assertFalse(embed.description)
-        self.assertIn('100.0%', embed.fields[0].value)
-        self.assertTrue(all(field.name.startswith('【') and field.name.endswith('】') for field in embed.fields))
-        self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
-        self.assertFalse(embed.footer.text)
-        self.assertIn('0.0%', embed.fields[1].value)
-        self.assertLess(len(embed), 6000)
+        self.assertIsNone(tree.get_command('収集率'))
         await client.close()
 
     async def test_unavailable_inventory_reports_without_exposing_db_details(self):
         store = SimpleNamespace(url='', owned=Mock(side_effect=MemoryUnavailable('保存先を利用できません')))
         client, tree, interaction = self.objects(store)
-        for name in ('所持カード', '収集率'):
+        for name in ('所持カード',):
             await tree.get_command(name).callback(interaction, *(['ロザリー'] if name == '所持カード' else []))
             self.assertTrue(interaction.followup.send.call_args.kwargs['ephemeral'])
         await client.close()

@@ -4,6 +4,7 @@ import logging
 import random
 
 import discord
+from discord_layout import GAP
 from progress import progressData
 from presents import ITEMS
 from database import MemoryUnavailable
@@ -59,8 +60,13 @@ class QuizView(discord.ui.View):
             self.add_item(button)
 
     def embed(self, status='このヒントのプログレスは誰だ？'):
+        hints = self.hints[:self.revealed]
+        if self.finished and self.revealed == len(self.hints):
+            order = {label: index for index, (_, label) in enumerate(HINT_FIELDS)}
+            hints = sorted(hints, key=lambda hint: order[hint[0]])
+            status += GAP
         embed = discord.Embed(title='アンジュクイズ', description=status, color=0xE2AD48)
-        for label, value in self.hints[:self.revealed]:
+        for label, value in hints:
             embed.add_field(name=f'【{label}】', value=discord.utils.escape_markdown(value), inline=False)
         return embed
 

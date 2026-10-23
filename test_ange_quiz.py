@@ -59,6 +59,9 @@ class QuizTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(view.finished)
         self.assertTrue(all(b.disabled for b in view.children))
         self.assertEqual(view.revealed, len(view.hints))
+        fields = [field.name for field in view.embed().fields]
+        self.assertEqual(fields[:2], ['【出身世界】', '【好きなもの】'])
+        self.assertTrue(view.embed().description.endswith('\n\u200b'))
 
     async def test_owner_only_and_timeout(self):
         view = QuizView(42)

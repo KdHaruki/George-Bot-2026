@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from presents import PresentStore
-from title_core import refresh_affection, record_event, grant, FORTUNE_TYPES
+from title_core import collection_progress, refresh_affection, record_event, grant, FORTUNE_TYPES
 from daily_affection import settle_daily
 from title_core import pending_titles, current_title_name, is_retired_title, refresh_collection_titles, refresh_registration_title, title_sort_key, refresh_preferred_titles
 from quiz_rounds import expire_round
@@ -16,7 +16,7 @@ class TitleStore(PresentStore):
             state = json.loads(row[0]) if row else {}
             people = conn.execute('SELECT character FROM george_affection WHERE user_id=%s AND points>=100', (user_id,)).fetchall()
             character = self.current_character(conn, user_id, required=False)
-            return pending_titles({row[0] for row in earned}, state, len(people), character)
+            return pending_titles({row[0] for row in earned}, state, len(people), character, collection_progress(conn, user_id))
 
     @contextmanager
     def connect(self):

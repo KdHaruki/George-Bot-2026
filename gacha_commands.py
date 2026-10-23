@@ -8,7 +8,7 @@ from discord import app_commands
 from discord_layout import space_headings
 
 from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
-from gacha_collection import CollectionStore, collection_summary
+from gacha_collection import CollectionStore
 from database import MemoryUnavailable
 from relink_presentations import star3_embeds, presentation_files
 from presents import PresentStore, affection_display
@@ -423,19 +423,3 @@ def register_gacha_commands(bot, store=None):
                         file.close()
         except (ValueError, MemoryUnavailable) as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
-
-    @bot.tree.command(name='収集率', description='現在のガチャ収録カードを何種類集めたか確認する')
-    async def completion(interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        try:
-            rows = await asyncio.to_thread(store.owned, interaction.user.id)
-        except MemoryUnavailable as exc:
-            await interaction.followup.send(str(exc), ephemeral=True)
-            return
-        embed = discord.Embed(title='カード収集率', color=0xE2AD48)
-        for game in RULES:
-            unique, total, _, _ = collection_summary(engine, rows, game)
-            text = f'{unique}/{total}種類（{unique / total * 100:.1f}%）'
-            embed.add_field(name=f'【{RULES[game].name}】', value=text, inline=False)
-        await interaction.followup.send(embed=space_headings(embed, space_first=False), ephemeral=True)
-        await notify_titles(interaction, getattr(bot, 'title_store', None))

@@ -14,6 +14,18 @@ from database import MemoryUnavailable
 
 
 class TitleRulesTests(unittest.TestCase):
+    def test_all_pending_titles_separate_condition_and_progress_without_period(self):
+        from title_core import pending_titles, title_condition
+        rows = pending_titles(set(), {'quiz_first': 7}, 0, 'ロザリー')
+        for key, name, description in rows:
+            lines = description.splitlines()
+            self.assertEqual(lines[0], title_condition(key))
+            self.assertEqual(len(lines), 2)
+            self.assertRegex(lines[1], r'^進捗：[0-9]+\.[0-9]%$' if key.startswith('complete_') else r'^進捗：[0-9]+/[0-9]+$')
+        data = {key: text for key, _, text in rows}
+        self.assertTrue(data['reunion'].endswith('進捗：0/1'))
+        self.assertTrue(data['quiz10'].endswith('進捗：7/10'))
+
     def test_kaguya_threshold_and_order(self):
         from title_core import pending_titles
         from title_notifications import title_icon
@@ -102,11 +114,11 @@ class TitleRulesTests(unittest.TestCase):
         data = {key: condition for key, _, condition in rows}
         self.assertNotIn('fortune10', data)
         self.assertNotIn('favorite_gift:ロザリー', data)
-        self.assertIn('7/10回', data['quiz10'])
-        self.assertIn('1/14種類', data['variety'])
-        self.assertIn('2/5世界', data['worlds'])
-        self.assertIn('3/5人', data['bond10'])
-        self.assertIn('クイズをヒント1回目で正解', data['quiz10'])
+        self.assertIn('7/10', data['quiz10'])
+        self.assertIn('1/14', data['variety'])
+        self.assertIn('2/5', data['worlds'])
+        self.assertIn('3/5', data['bond10'])
+        self.assertIn('クイズをヒント1回目で累計10回正解する。', data['quiz10'])
         self.assertNotIn('不正解・時間切れ', data['quiz_streak10'])
         keys = list(data)
         self.assertEqual(keys.index('quiz_streak10'), keys.index('quiz10') + 1)
@@ -148,7 +160,7 @@ class TitleRulesTests(unittest.TestCase):
         rows = pending_titles(set(), state, 0, '日向美海')
         keys = [key for key, _, _ in rows]
         self.assertEqual(keys[keys.index('variety') + 2], 'preferred_gifts10:日向美海')
-        self.assertIn('3/3個', dict((key, condition) for key, _, condition in rows)['preferred_gifts10:日向美海'])
+        self.assertIn('3/3', dict((key, condition) for key, _, condition in rows)['preferred_gifts10:日向美海'])
         self.assertEqual(title_icon('preferred_gifts10:日向美海'), '🎖️')
         self.assertIn('累計3個', title_condition('preferred_gifts10:日向美海'))
 
@@ -198,7 +210,7 @@ class TitleRulesTests(unittest.TestCase):
         rows = pending_titles(set(), state, 0)
         keys = [key for key, _, _ in rows]
         self.assertEqual(keys.index('fortune_set'), keys.index('fortune10') + 1)
-        self.assertIn('5/6種類', {key: condition for key, _, condition in rows}['fortune_set'])
+        self.assertIn('5/6', {key: condition for key, _, condition in rows}['fortune_set'])
         state, unlocked = event_result(state, 'fortune', {'fortune': '凶'})
         self.assertIn(('fortune_set', '占い師'), unlocked)
         self.assertEqual(title_icon('fortune_set'), '🎖️')
@@ -221,6 +233,20 @@ class TitleRulesTests(unittest.TestCase):
 
 
 class TitleStorageTests(unittest.TestCase):
+
+    def test_collection_title_progress_matches_unique_current_card_percentage(self):
+        targets = {'ロザリー': {('vierge', 'a'), ('vierge', 'b'), ('relink', 'a')}}
+        self.db.execute("INSERT INTO george_gacha_cards VALUES (42,'vierge','a','{}')")
+        self.db.execute("INSERT INTO george_gacha_cards VALUES (42,'vierge','archived','{}')")
+        self.db.execute("INSERT INTO george_gacha_cards VALUES (43,'relink','a','{}')")
+        self.db.commit()
+        with patch('favorite_album.collection_targets', return_value=targets):
+            rows = self.setUpTitles().pending(42, [])
+            data = {key: text for key, _, text in rows}
+            self.assertTrue(data['complete_vierge'].endswith('進捗：50.0%'))
+            self.assertTrue(data['complete_relink'].endswith('進捗：0.0%'))
+            other = {key: text for key, _, text in self.setUpTitles().pending(43, [])}
+            self.assertTrue(other['complete_relink'].endswith('進捗：100.0%'))
 
     def test_named_search_unique_threshold_replay_and_user_isolation(self):
         from progress_profiles import profile_for
@@ -279,10 +305,10 @@ class TitleStorageTests(unittest.TestCase):
         self.db.commit()
         rows = self.setUpTitles().pending(42, [('fortune10', '神頼み', None)])
         data = {key: condition for key, _, condition in rows}
-        self.assertIn('7/10回', data['quiz10'])
+        self.assertIn('7/10', data['quiz10'])
         self.assertNotIn('anniversary:ロザリー', data)
         self.assertNotIn('fortune10', data)
-        self.assertIn('0/10回', dict((key, condition) for key, _, condition in self.setUpTitles().pending(43, []))['quiz10'])
+        self.assertIn('0/10', dict((key, condition) for key, _, condition in self.setUpTitles().pending(43, []))['quiz10'])
 
     # Reuse the offline transaction adapter without duplicating all present tests.
     setUp = test_presents.StorageTests.setUp
@@ -644,7 +670,7 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         roles = SimpleNamespace(equip=AsyncMock())
         earned = [('fortune10', '神頼み', datetime(2026, 10, 19, 16, tzinfo=timezone.utc))]
         view = TitleView(42, earned, roles, SimpleNamespace(id=1), 'fortune10',
-                         [('quiz10', '青蘭学園の知恵袋', '初回正解7/10回')])
+                         [('quiz10', '青蘭学園の知恵袋', '初回正解7/10')])
         interaction = SimpleNamespace(response=SimpleNamespace(defer=AsyncMock()), edit_original_response=AsyncMock())
         self.assertIn('2026年10月20日', view.embed().description)
         self.assertIn('🎖️ **神頼み**\nおみくじに累計10回挑戦する。\n獲得日：2026年10月20日', view.embed().description)
@@ -652,7 +678,7 @@ class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
         await next(child for child in view.children if getattr(child, 'label', '') == '未獲得').callback(interaction)
         self.assertEqual(view.mode, 'pending')
         self.assertIsNone(view.selected)
-        self.assertIn('初回正解7/10回', view.embed().description)
+        self.assertIn('初回正解7/10', view.embed().description)
         self.assertNotIn('プログレス別の未獲得称号は', view.embed().description)
         self.assertFalse(any(isinstance(child, discord.ui.Select) for child in view.children))
         await view.apply(interaction, 'quiz10')
