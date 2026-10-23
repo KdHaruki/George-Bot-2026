@@ -100,7 +100,7 @@ class PresentView(discord.ui.View):
             await interaction.edit_original_response(embed=self.embed(status), view=self)
             preferred = key in preferred_items(self.character)
             comment = (f'{george_name(self.character)}にぴったりの贈り物だな！ 喜んでくれそうだぜ！' if preferred else
-                       f'{george_name(self.character)}のために選んだ贈り物だな。オマエの気持ちも伝わるといいな！')
+                       f'{george_name(self.character)}のために選んだ贈り物だな！ オマエの気持ちがこもってるぜ！')
             chat = getattr(getattr(interaction, 'client', None), 'george_chat', None)
             if chat is not None:
                 try:
