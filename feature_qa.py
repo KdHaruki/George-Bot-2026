@@ -9,7 +9,7 @@ from present_catalog import ITEMS
 from progress_profiles import character_key, profile_for, NAME_ALIASES
 from progress import progressData
 from gacha import RULES, BATCH_GUARANTEE, VIERGE_CHARACTERS
-from ambient_chat import COOLDOWN, RETRY_DELAY, PARTICIPATION_CHANCE, REACTION_CHANCE
+from ambient_chat import COOLDOWN, RETRY_DELAY, REACTION_CHANCE
 
 
 CLARIFY = 'その点は今ある仕様だけでは確認できねえな。どの機能の何を知りたいか、もう少し具体的に教えてくれ！ `/ヘルプ`でも使い方を確認できるぜ。'
@@ -55,7 +55,7 @@ def catalog():
         'collection': '`/所持カード` はプログレス名を指定して、その子のカードと枚数を確認するぜ。作品ごとの収集率は `/称号` の未獲得一覧で、ヴィエルジュはレジェンド、リリンクは英雄の進捗を％で確認する。`/収集率` コマンドは廃止したぜ。重複は種類数に加えない。所持データは全サーバー・DM共通だ。ガチャ結果には収集率を表示しないぞ。',
         'profile': '`/プログレス` に本人の名前、または青・黒・赤・白・緑の世界を指定して探すぜ。結果は本人限定だ。全ての世界を一度に出す検索はないぞ。',
         'titles': '`/称号` で獲得済み・未獲得を切り替えて条件と進捗を確認できるぜ。取得は全サーバー・DM共通、装着はサーバーごとに1つだ。本人が装着・解除でき、Botにロール管理権限と適切なロール順が必要。獲得通知は本人限定で、装着した称号ロールは他の人にも見える。取得条件は称号名を教えてくれ！',
-        'conversation': f'サーバーではメンションや俺への返信、DMではそのまま話しかけてくれ。自動参加の候補確率は{PARTICIPATION_CHANCE:.0%}、絵文字リアクションは{REACTION_CHANCE:.0%}だが、話題や会話状況で見送ることもある。自動投稿成功後は{COOLDOWN // 60}分、見送り・失敗は{RETRY_DELAY // 60}分後から再判定する。メンションや返信はこの待ち時間の対象外だ。',
+        'conversation': f'サーバーではメンションや俺への返信、DMではそのまま話しかけてくれ。各文章への絵文字リアクションは{REACTION_CHANCE:.0%}で、リアクション成功した文章だけを自動参加のきっかけにする。追加の参加抽選はないが、話題や会話状況で見送ることもある。自動投稿成功後は{COOLDOWN // 60}分、見送り・失敗は{RETRY_DELAY // 60}分後から再判定する。メンションや返信はこの待ち時間の対象外だ。',
         'visibility': 'サーバーの `/おみくじ` と `/ガチャ` はチャンネル全員に表示する。それ以外のスラッシュコマンドの結果と称号獲得通知は本人限定だ。メンション・俺への返信の回答と `@ジョージ ヘルプ` は通常メッセージとしてチャンネル全員に見える。装着した称号ロールも他の人に見えるぜ。',
         'removed': 'タイマー・予定のリマインダー・記憶登録・DM履歴コマンド・エクシーズバトル・装備・プレゼント交換・会話リセット・画像読み取りは今は使えないぜ。使えるコマンドは `/ヘルプ` で確認してくれ。',
         'help': '\n'.join(f'`{example}`：{description}' for example, description in SLASH_COMMANDS),

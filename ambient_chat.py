@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 COOLDOWN = 60 * 60
 RETRY_DELAY = 5 * 60
 REACTION_CHANCE = 0.20
-PARTICIPATION_CHANCE = REACTION_CHANCE
 SKIP = "__SKIP__"
 SERIOUS = ("相談", "真剣", "深刻", "つらい", "辛い", "死", "病", "事故", "災害", "訃報", "助けて", "喧嘩", "けんか", "仕事", "政治", "戦争")
 
@@ -16,6 +15,7 @@ class ChannelState:
     messages: deque = field(default_factory=lambda: deque(maxlen=8))
     next_attempt: float = 0
     busy: bool = False
+    revision: int = 0
 
 
 class AmbientChat:
@@ -37,11 +37,10 @@ class AmbientChat:
         self.states.move_to_end(channel_id)
         if directed or (not text.strip() and not attachments) or text.startswith(("/", "!", "?")):
             state.messages.clear()
+            state.revision += 1
             return None
         state.messages.append((now, author_id, text[:500] or "[添付あり・まだ内容は未確認]", tuple(attachments[:2])))
         if state.busy or now < state.next_attempt:
-            return None
-        if len(state.messages) < 3 or len({m[1] for m in state.messages}) < 2:
             return None
         if any(word in m[2] for m in state.messages for word in SERIOUS):
             return None
@@ -55,6 +54,7 @@ class AmbientChat:
         state = self.states.get(channel_id)
         if state:
             state.messages.clear()
+            state.revision += 1
 
     def note_auto_reply(self, channel_id, now=None):
         state = self.states.get(channel_id)

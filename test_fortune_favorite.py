@@ -14,7 +14,7 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(embed.fields[2].name, '【今日の贈り物】')
         self.assertIn('応援ボーナス', embed.fields[2].value)
         self.assertIn('本', embed.fields[2].value)
-        self.assertIn('ロザリー', embed.fields[1].value)
+        self.assertIn('ロザリー', embed.fields[0].value)
 
     async def test_public_fortune_result_has_separate_private_unlock_notification(self):
         store = SimpleNamespace(claim=Mock(return_value={'granted': True, 'item': 'food', 'fortune': '吉'}),
@@ -53,7 +53,7 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_default_speaker_is_george(self):
         generate, embed = await self.run_fortune(None)
-        self.assertEqual(embed.fields[0].name, '【ジョージの一言】')
+        self.assertEqual(embed.fields[1].name, '【ジョージの一言】')
         self.assertEqual(generate.call_args.kwargs, {})
         self.assertEqual(embed.fields[2].name, '【贈り物は受け取り済み】')
         self.assertIn('明日の0時（日本時間）', embed.fields[2].value)
@@ -61,8 +61,8 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
     async def test_generation_failure_uses_george_fallback(self):
         generate, embed = await self.run_fortune({'character': 'ロザリー'}, failure=True)
         fortune = generate.call_args.args[0]
-        self.assertEqual(embed.fields[0].name, '【ジョージの一言】')
-        self.assertIn(dict(FORTUNES)[fortune], embed.fields[0].value)
+        self.assertEqual(embed.fields[1].name, '【ジョージの一言】')
+        self.assertIn(dict(FORTUNES)[fortune], embed.fields[1].value)
 
     async def test_saved_reward_survives_ai_failure(self):
         generate, embed = await self.run_fortune(None, failure=True,
@@ -81,6 +81,6 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
     async def test_support_bonus_uses_saved_lucky_progress_in_display(self):
         _, embed = await self.run_fortune(None, reward={'granted': True, 'item': 'rare', 'fortune': '大吉',
             'lucky_progress': '日向美海', 'bonus_item': 'food'})
-        self.assertEqual(embed.fields[1].value.removesuffix('\n\u200b'), '日向美海')
+        self.assertEqual(embed.fields[0].value.removesuffix('\n\u200b'), '日向美海')
         self.assertIn('応援ボーナス', embed.fields[2].value)
         self.assertIn('紅茶', embed.fields[2].value)

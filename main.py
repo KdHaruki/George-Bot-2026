@@ -6,7 +6,7 @@ import logging
 import re
 import asyncio
 from threading import Thread
-from ambient_chat import AmbientChat, PARTICIPATION_CHANCE, REACTION_CHANCE
+from ambient_chat import AmbientChat, REACTION_CHANCE, SERIOUS
 from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, is_management_question, MANAGEMENT_REPLY
 import progress as progress_module
@@ -268,11 +268,11 @@ async def omikuji(interaction: discord.Interaction):
     except MemoryUnavailable:
         logging.warning('Fortune present save failed')
     try:
-        comment = await client.george_chat.fortune_details(fortune)
+        comment = await client.george_chat.fortune_details(fortune, lucky_progress)
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Fortune generation failed: %s", diagnostic)
-        comment = dict(FORTUNES)[fortune]
+        comment = dict(FORTUNES)[fortune] + f' 今日のラッキープログレスは{lucky_progress}だぜ！'
     embed = fortune_embed(fortune, comment, lucky_progress)
     gift_heading = '【今日の贈り物】'
     if reward is None:
@@ -303,11 +303,12 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # Keep the original random reactions independent of ambient participation.
+    reacted = False
     if random.random() < REACTION_CHANCE:
         emojis = ["😆", "😂", "😍", "😭", "🤔", "😎", "🥺", "👍", "🎉", "👀"]
         try:
             await message.add_reaction(random.choice(emojis))
+            reacted = True
         except discord.HTTPException:
             # Missing reaction permissions must not prevent conversation replies.
             logging.warning("Random reaction could not be added")
@@ -373,19 +374,23 @@ async def on_message(message):
     directed = bool(message.mentions or message.role_mentions or message.mention_everyone or message.reference)
     state = client.ambient.observe(message.channel.id, message.author.id, message.content, directed=directed,
                                    attachments=tuple(getattr(message, "attachments", ())))
-    if state is None or client.george_chat.client is None or random.random() >= PARTICIPATION_CHANCE:
+    if state is None or client.george_chat.client is None or not reacted:
         return
     client.ambient.reserve(state)
-    snapshot = list(state.messages)
+    revision = state.revision
     try:
         context = await load_ambient_history(message)
-        if not context or not client.ambient.still_current(message.channel.id, state) or list(state.messages) != snapshot:
+        if not context or not client.ambient.still_current(message.channel.id, state) or state.revision != revision:
+            logging.info('Ambient attempt skipped: history unavailable or directed conversation')
             return
         answer = await client.george_chat.ambient_reply(context)
-        # If users have moved on or the context was evicted, stay quiet.
-        if answer and client.ambient.still_current(message.channel.id, state) and list(state.messages) == snapshot:
+        # Ordinary new messages do not cancel a reply; directed conversations do.
+        if answer and client.ambient.still_current(message.channel.id, state) and state.revision == revision and not any(word in item[2] for item in state.messages for word in SERIOUS):
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
             client.ambient.note_auto_reply(message.channel.id)
+            logging.info('Ambient reply sent after successful reaction')
+        else:
+            logging.info('Ambient attempt skipped: generation declined or context invalidated')
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Ambient chat skipped: %s", diagnostic)

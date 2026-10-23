@@ -12,7 +12,7 @@ class AmbientTests(unittest.TestCase):
         self.assertIsNotNone(self.conversation(AmbientChat()))
         chat = AmbientChat()
         for i in range(4):
-            self.assertIsNone(chat.observe(1, 10, "こんにちは", now=i))
+            self.assertIsNotNone(chat.observe(1, 10, "こんにちは", now=i))
         self.assertIsNotNone(chat.observe(1, 20, "いい天気", now=4))
 
     def test_cooldown_and_evicted_pending(self):

@@ -7,7 +7,7 @@ from progress_profiles import character_key
 from progress import progressData
 from title_core import COMMON, title_condition, current_title_name
 from gacha import RULES
-from ambient_chat import COOLDOWN, REACTION_CHANCE, PARTICIPATION_CHANCE
+from ambient_chat import COOLDOWN, REACTION_CHANCE
 
 
 def bot_guide_context():
@@ -68,7 +68,7 @@ DMではそのまま、サーバーではメンションまたはジョージへ
 称号を新しく獲得した時は、条件を添えて操作結果とは別に本人限定で通知します。DMへの別送はありません。公開ガチャやおみくじがきっかけでも、称号獲得の通知は他の人には見えません。通知と装着は別で、自動装着はしません。
 未獲得条件内の0/10等は説明用の初期値であり、ユーザーの現在の進捗ではありません。
 プレゼント交換・タイマー・予定・記憶登録・DM履歴・バトル・装備・画像読み取り・会話リセットの機能はありません。
-''' + f'自主参加の候補確率は{PARTICIPATION_CHANCE:.0%}、絵文字リアクションは{REACTION_CHANCE:.0%}、自主参加の待ち時間は{COOLDOWN // 60}分。直接話しかけた場合や返信は待ち時間の対象外です。実際の自主投稿成功時だけ1時間待ち、見送りや失敗は5分後から再判定します。直接の返事では自主参加の待ち時間を延長しません。毎回必ず自主参加するわけではありません。\n' + json.dumps(facts, ensure_ascii=False)
+''' + f'絵文字リアクションは{REACTION_CHANCE:.0%}で、成功した文章を自主参加のきっかけにします。追加の参加抽選はありません。自主参加の待ち時間は{COOLDOWN // 60}分。直接話しかけた場合や返信は待ち時間の対象外です。実際の自主投稿成功時だけ1時間待ち、見送りや失敗は5分後から再判定します。直接の返事では自主参加の待ち時間を延長しません。毎回必ず自主参加するわけではありません。\n' + json.dumps(facts, ensure_ascii=False)
 
 
 

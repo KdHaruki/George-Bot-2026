@@ -41,7 +41,7 @@ async def load_ambient_history(trigger):
             if len(messages) == CONTEXT_LIMIT:
                 break
         messages.reverse()
-        if not found_trigger or len(messages) < 3 or len({item[1] for item in messages}) < 2:
+        if not found_trigger or not messages:
             return []
         if any(word in item[2] for item in messages for word in SERIOUS):
             return []

@@ -142,6 +142,14 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await self.chat.collection_comment(facts)
 
+    async def test_fortune_comment_uses_selected_progress_profile(self):
+        self.generate.return_value = SimpleNamespace(text='{"comment":"大吉だぜ！ ロザリーみたいにおしゃれを楽しんでみな！"}')
+        await self.chat.fortune_details('大吉', 'ロザリー')
+        args = self.generate.call_args.kwargs
+        self.assertIn('ロザリー', args['contents'])
+        self.assertIn('progressLike', args['contents'])
+        self.assertIn('運勢とラッキープログレスの両方', args['config'].system_instruction)
+
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！"}')

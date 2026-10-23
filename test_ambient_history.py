@@ -29,6 +29,10 @@ def trigger_with(rows, error=None):
 
 
 class HistoryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_single_reacted_message_and_one_speaker_are_valid_context(self):
+        for rows in ([message(100)], [message(100, author=1), message(99, author=1)]):
+            self.assertEqual(len(await load_ambient_history(trigger_with(rows))), len(rows))
+
     async def test_missing_history_permission_does_not_request_discord(self):
         trigger = trigger_with([message(100), message(99), message(98)])
         trigger.guild = SimpleNamespace(me=object())
@@ -55,12 +59,11 @@ class HistoryTests(unittest.IsolatedAsyncioTestCase):
     async def test_directed_or_command_is_a_boundary(self):
         for separator in [message(98, mentions=[1]), message(98, reference=object()), message(98, '/command')]:
             trigger = trigger_with([message(100), message(99), separator, message(97)])
-            self.assertEqual(await load_ambient_history(trigger), [])
+            self.assertEqual(len(await load_ambient_history(trigger)), 2)
 
     async def test_serious_old_context_and_missing_trigger_are_skipped(self):
         for rows in [[message(100), message(99), message(98, '真剣な相談がある')],
-                     [message(99), message(98), message(97)],
-                     [message(100, author=1), message(99, author=1), message(98, author=1)]]:
+                     [message(99), message(98), message(97)]]:
             self.assertEqual(await load_ambient_history(trigger_with(rows)), [])
 
     async def test_timeout_and_permission_failure_skip_without_fallback(self):

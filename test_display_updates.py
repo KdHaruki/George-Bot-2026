@@ -48,12 +48,12 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
         from fun_features import fortune_embed
         embed = fortune_embed('大吉', '今日はいい調子だぜ！')
         self.assertIn('大吉', embed.description)
-        self.assertEqual(embed.fields[0].value.removesuffix('\n\u200b'), '今日はいい調子だぜ！')
+        self.assertEqual(embed.fields[1].value.removesuffix('\n\u200b'), '今日はいい調子だぜ！')
         self.assertEqual(embed.description, '## 【大吉】')
         self.assertEqual(len(embed.fields),2)
         from fun_features import LUCKY_PROGRESS
-        self.assertEqual(embed.fields[1].name, '【ラッキープログレス】')
-        self.assertIn(embed.fields[1].value, LUCKY_PROGRESS)
+        self.assertEqual(embed.fields[0].name, '【ラッキープログレス】')
+        self.assertIn(embed.fields[0].value.removesuffix('\n\u200b'), LUCKY_PROGRESS)
 
     async def test_lucky_progress_includes_relink_exclusives_once(self):
         from fun_features import LUCKY_PROGRESS, fortune_embed
@@ -66,7 +66,7 @@ class DisplayTests(unittest.IsolatedAsyncioTestCase):
             with patch('fun_features.random.choice', return_value=name) as choose:
                 embed = fortune_embed('凶', 'ひと息つこうぜ！')
             choose.assert_called_once_with(LUCKY_PROGRESS)
-            self.assertEqual(embed.fields[1].value, name)
+            self.assertEqual(embed.fields[0].value.removesuffix('\n\u200b'), name)
 
     async def test_battle_and_equipment_commands_are_removed(self):
         from main import client
