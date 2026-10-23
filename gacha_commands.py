@@ -15,7 +15,7 @@ from presents import PresentStore, affection_display
 from present_view import open_presents
 from favorite_album import album_display
 from title_notifications import notify_titles
-from progress_profiles import character_key, normalize, profile_for
+from progress_profiles import character_key, normalize, profile_for, george_name
 
 
 GAME_CHOICES = [app_commands.Choice(name=rules.name, value=key) for key, rules in RULES.items()]
@@ -59,7 +59,7 @@ class CardListView(discord.ui.View):
 def favorite_details(card):
     record = profile_for(card.character)
     detail = record.get('progressDetail1', '') if record else ''
-    name = character_key(card.character)
+    name = george_name(card.character)
     introduction = f'{name}の紹介だぜ！\n{detail}' if detail else f'{name}の詳しい紹介は、まだ俺にも分からねえな。'
     return introduction
 
@@ -85,7 +85,7 @@ def draw_highlights(cards):
         return highlights
     name, count = counts.most_common(1)[0]
     if count >= 3:
-        highlights.append(f'{name}が{count}枚も来たぜ！ 今日は縁があるな！')
+        highlights.append(f'{george_name(name)}が{count}枚も来たぜ！ 今日は縁があるな！')
     if len(cards) >= 7 and len(counts) == len(cards):
         highlights.append('全員違う顔ぶれだぜ！ にぎやかな出会いになったな！')
     top = sum(card.rarity in ('UR', '★3') for card in cards)
@@ -118,15 +118,15 @@ def gacha_comment(game, cards, saved=None, favorite=None):
         picked = favorite[1]
         if any(card.id == picked.id for card in cards):
             return random.choice([
-                f'お気に入りの{picked.character}が来たぜ！',
-                f'{picked.character}、お気に入りにしてた子じゃねえか！ うれしい再会だな！',
-                f'おっ、お気に入りの{picked.character}を引けたな！',
+                f'お気に入りの{george_name(picked.character)}が来たぜ！',
+                f'{george_name(picked.character)}、お気に入りにしてた子じゃねえか！ うれしい再会だな！',
+                f'おっ、お気に入りの{george_name(picked.character)}を引けたな！',
             ])
         if any(card.character == picked.character for card in cards):
             return random.choice([
-                f'お気に入りの{picked.character}が来たぜ！ 別の一枚も集められてよかったな！',
-                f'{picked.character}を引けたな！ お気に入りの子のコレクションが広がるぜ！',
-                f'おっ、{picked.character}じゃねえか！ お気に入りの子の別カードもうれしいな！',
+                f'お気に入りの{george_name(picked.character)}が来たぜ！ 別の一枚も集められてよかったな！',
+                f'{george_name(picked.character)}を引けたな！ お気に入りの子のコレクションが広がるぜ！',
+                f'おっ、{george_name(picked.character)}じゃねえか！ お気に入りの子の別カードもうれしいな！',
             ])
     new_count = sum(entry['new'] for entry in saved) if saved is not None else 0
     highest = RULES[game].normal[0][0]

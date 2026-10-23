@@ -20,7 +20,8 @@ class DrawHighlightTests(unittest.TestCase):
             return SimpleNamespace(character=name, rarity=rarity, name=name)
         cards = [card('美海', 'UR'), card('日向美海', 'UR'), card('美海', 'UR')]
         text = ' '.join(draw_highlights(cards))
-        self.assertIn('日向美海が3枚', text)
+        from progress_profiles import george_name
+        self.assertIn(f'{george_name("日向美海")}が3枚', text)
         self.assertIn('最高レアが3枚', text)
         self.assertNotIn('全員違う', text)
         names = ['ロザリー', '日向美海', '御影葵', 'ソフィーナ', 'ユーフィリア', 'エルエル', '東条遥']

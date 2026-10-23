@@ -27,7 +27,7 @@ from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import register_title_commands
 from title_notifications import notify_titles
-from progress_profiles import profile_for
+from progress_profiles import profile_for, george_name
 from discord_layout import space_headings
 
 ########################################
@@ -272,7 +272,7 @@ async def omikuji(interaction: discord.Interaction):
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
         logging.warning("Fortune generation failed: %s", diagnostic)
-        comment = dict(FORTUNES)[fortune] + f' 今日のラッキープログレスは{lucky_progress}だぜ！'
+        comment = dict(FORTUNES)[fortune] + f' {george_name(lucky_progress)}のことも思い浮かべて、小さな楽しみを探してみな！'
     embed = fortune_embed(fortune, comment, lucky_progress)
     gift_heading = '【今日の贈り物】'
     if reward is None:

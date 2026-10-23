@@ -63,6 +63,9 @@ class FortuneFavoriteTests(unittest.IsolatedAsyncioTestCase):
         fortune = generate.call_args.args[0]
         self.assertEqual(embed.fields[1].name, '【ジョージの一言】')
         self.assertIn(dict(FORTUNES)[fortune], embed.fields[1].value)
+        self.assertNotIn('ラッキープログレス', embed.fields[1].value)
+        from progress_profiles import george_name
+        self.assertIn(george_name(generate.call_args.args[1]), embed.fields[1].value)
 
     async def test_saved_reward_survives_ai_failure(self):
         generate, embed = await self.run_fortune(None, failure=True,

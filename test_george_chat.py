@@ -150,6 +150,13 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('progressLike', args['contents'])
         self.assertIn('運勢とラッキープログレスの両方', args['config'].system_instruction)
 
+    async def test_fortune_rejects_reannouncement_or_missing_character(self):
+        import json
+        for comment in ('大吉だぜ！ 今日のラッキープログレスはロザリーだ！', '大吉だぜ！ 楽しもうな！'):
+            self.generate.return_value = SimpleNamespace(text=json.dumps({'comment': comment}, ensure_ascii=False))
+            with self.assertRaises(ValueError):
+                await self.chat.fortune_details('大吉', 'ロザリー')
+
     async def test_ai_fortune_is_validated_and_has_no_chat_history(self):
         await self.chat.reply((1, 1), "個人の会話")
         self.generate.return_value = SimpleNamespace(text='{"comment":"いい流れだぜ！"}')

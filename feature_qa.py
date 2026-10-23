@@ -6,7 +6,7 @@ from command_help import SLASH_COMMANDS
 from bot_guide import gift_fact_answer, title_fact_answer
 from title_core import COMMON, title_condition
 from present_catalog import ITEMS
-from progress_profiles import character_key, profile_for, NAME_ALIASES
+from progress_profiles import character_key, profile_for, NAME_ALIASES, george_name
 from progress import progressData
 from gacha import RULES, BATCH_GUARANTEE, VIERGE_CHARACTERS
 from ambient_chat import COOLDOWN, RETRY_DELAY, REACTION_CHANCE
@@ -146,7 +146,7 @@ def resolve(text, favorite=None, previous_topic=None, previous_person=None, repl
         from presents import affection_gain
         mentioned = [key for key, (_, label) in ITEMS.items() if label in text]
         if mentioned:
-            lines = [f'{person}への贈り物だな！']
+            lines = [f'{george_name(person)}への贈り物だな！']
             for item in mentioned:
                 lines.append(f'{ITEMS[item][1]}：好感度＋{affection_gain(person, item)}。')
             lines.append('現在の上限を超える分は増えないぜ。上限で喜ばれる通常品を贈る場合は＋0で次のパーフェクトリンクになるぞ。')

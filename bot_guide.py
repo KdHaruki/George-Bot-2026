@@ -3,7 +3,7 @@ import json
 
 from command_help import SLASH_COMMANDS, PUBLIC_COMMANDS
 from present_catalog import CATEGORIES, ITEMS, preferred_categories
-from progress_profiles import character_key
+from progress_profiles import character_key, george_name
 from progress import progressData
 from title_core import COMMON, title_condition, current_title_name
 from gacha import RULES
@@ -120,8 +120,8 @@ def gift_fact_answer(text, favorite=None, reply_to=''):
     person = people[0]
     categories = preferred_categories(person)
     if not categories:
-        return f'{person}に喜ばれる贈り物は確認できなかったぜ。名前を確認してくれ！'
-    lines = [f'{person}に喜ばれる贈り物はこれだぜ！']
+        return f'{george_name(person)}に喜ばれる贈り物は確認できなかったぜ。名前を確認してくれ！'
+    lines = [f'{george_name(person)}に喜ばれる贈り物はこれだぜ！']
     for key in categories:
         label, items = CATEGORIES[key]
         lines.append(f'【{label}】' + '・'.join(ITEMS[item][1] for item in items))
