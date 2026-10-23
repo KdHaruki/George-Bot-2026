@@ -1,3 +1,4 @@
+from gacha_activity import DrawActivity
 """Discord entry points for the local, free gacha simulator."""
 import discord
 import asyncio
@@ -89,20 +90,22 @@ def draw_highlights(cards):
     if len(cards) >= 7 and len(counts) == len(cards):
         highlights.append('全員違う顔ぶれだぜ！ にぎやかな出会いになったな！')
     top = sum(card.rarity in ('UR', '★3') for card in cards)
-    if top >= 3:
+    if top >= 2:
         highlights.append(f'最高レアが{top}枚！ こいつは見事な引きだぜ！')
     return highlights
 
 
-def collection_facts(game, cards, saved=None, favorite=None):
-    picked = favorite[1] if favorite and favorite[0] == game else None
+def collection_facts(game, cards, saved=None, favorite=None, rapid_count=0):
+    picked = favorite[1] if favorite else None
     relation = 'none'
     if picked:
-        if any(card.id == picked.id for card in cards):
+        if favorite[0] == game and any(card.id == picked.id for card in cards):
             relation = 'exact_card'
-        elif any(card.character == picked.character for card in cards):
+        elif any(character_key(card.character) == character_key(picked.character) for card in cards):
             relation = 'same_character_other_card'
-    return dict(action='draw', game=RULES[game].name,
+    return dict(action='draw', game=RULES[game].name, rapid_count=rapid_count,
+                rapid_draws=rapid_count >= 3, free_simulator=True,
+                highest_count=sum(card.rarity == RULES[game].normal[0][0] for card in cards),
                 cards=[dict(name=card.name, character=card.character, rarity=card.rarity) for card in cards],
                 highlights=draw_highlights(cards), saved=saved is not None, new_count=sum(bool(entry['new']) for entry in saved) if saved is not None else None,
                 highest=RULES[game].normal[0][0], favorite_relation=relation,
@@ -110,24 +113,28 @@ def collection_facts(game, cards, saved=None, favorite=None):
                 profiles=[favorite_details(card) for card in {card.character: card for card in cards}.values()][:4])
 
 
-def gacha_comment(game, cards, saved=None, favorite=None):
+def gacha_comment(game, cards, saved=None, favorite=None, rapid_count=0):
+    facts = collection_facts(game, cards, saved, favorite, rapid_count)
+    special = []
+    if facts['favorite_relation'] != 'none':
+        name = george_name(facts['favorite_character'])
+        special.append(f'お気に入りの{name}が来たぜ！' if facts['favorite_relation'] == 'exact_card' else
+                       f'お気に入りの{name}だ！ 別の一枚もうれしいな！')
+    if facts['highest_count'] >= 2:
+        special.append(random.choice([
+            f"{facts['highest']}が{facts['highest_count']}枚！ 見事な引きだぜ！",
+            f"おっ、{facts['highest']}が{facts['highest_count']}枚も来たな！",
+        ]))
+    if facts['rapid_draws']:
+        special.append(random.choice([
+            '立て続けに回してるな！ 無料で財布は無事でも、ひと息入れようぜ！',
+            '連続ガチャに夢中だな！ 財布の心配はねえが、目も休めてくれよ！',
+        ]))
+    if special:
+        return ' '.join(special)[:140]
     highlights = draw_highlights(cards)
     if highlights:
         return ' '.join(highlights)[:140]
-    if favorite and favorite[0] == game:
-        picked = favorite[1]
-        if any(card.id == picked.id for card in cards):
-            return random.choice([
-                f'お気に入りの{george_name(picked.character)}が来たぜ！',
-                f'{george_name(picked.character)}、お気に入りにしてた子じゃねえか！ うれしい再会だな！',
-                f'おっ、お気に入りの{george_name(picked.character)}を引けたな！',
-            ])
-        if any(card.character == picked.character for card in cards):
-            return random.choice([
-                f'お気に入りの{george_name(picked.character)}が来たぜ！ 別の一枚も集められてよかったな！',
-                f'{george_name(picked.character)}を引けたな！ お気に入りの子のコレクションが広がるぜ！',
-                f'おっ、{george_name(picked.character)}じゃねえか！ お気に入りの子の別カードもうれしいな！',
-            ])
     new_count = sum(entry['new'] for entry in saved) if saved is not None else 0
     highest = RULES[game].normal[0][0]
     rare_count = sum(card.rarity == highest for card in cards)
@@ -200,6 +207,7 @@ def register_gacha_commands(bot, store=None):
     bot.collection_store = store
     presents = getattr(bot, 'present_store', None) or PresentStore(store.url)
     comment_slots = asyncio.Semaphore(2)
+    draw_activity = DrawActivity()
 
     async def ai_comment(facts, fallback):
         chat = getattr(bot, 'george_chat', None)
@@ -208,7 +216,15 @@ def register_gacha_commands(bot, store=None):
         try:
             async def generate():
                 async with comment_slots:
-                    return await chat.collection_comment(facts)
+                    answer = await chat.collection_comment(facts)
+                    if facts.get('action') == 'draw':
+                        if facts.get('favorite_relation') != 'none' and george_name(facts['favorite_character']) not in answer:
+                            return fallback
+                        if facts.get('highest_count', 0) >= 2 and str(facts['highest_count']) not in answer:
+                            return fallback
+                        if facts.get('rapid_draws') and not any(word in answer for word in ('連続', '立て続け', '財布', 'ひと息', '一息')):
+                            return fallback
+                    return answer
             return await asyncio.wait_for(generate(), timeout=12)
         except Exception as exc:
             logging.warning('Collection comment fallback: type=%s', type(exc).__name__)
@@ -249,7 +265,8 @@ def register_gacha_commands(bot, store=None):
             except MemoryUnavailable:
                 logging.warning('Gacha batch counts lookup unavailable')
         embed = result_embed(engine, 作品, cards, saved, favorite, batch_counts)
-        comment = await ai_comment(collection_facts(作品, cards, saved, favorite), gacha_comment(作品, cards, saved, favorite))
+        rapid_count = draw_activity.record(interaction.user.id, interaction.id)
+        comment = await ai_comment(collection_facts(作品, cards, saved, favorite, rapid_count), gacha_comment(作品, cards, saved, favorite, rapid_count))
         embed.set_field_at(0, name='【ジョージの一言】', value=discord.utils.escape_markdown(comment), inline=False)
         await interaction.followup.send(embed=space_headings(embed),
                                         allowed_mentions=discord.AllowedMentions.none())

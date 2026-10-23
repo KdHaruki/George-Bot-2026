@@ -6,7 +6,7 @@ import discord
 from presents import ITEMS, affection_display, affection_limit, link_label
 from database import MemoryUnavailable
 from title_notifications import notify_titles
-from present_catalog import CATEGORIES, ITEM_CATEGORY, preferred_categories, preferred_items
+from present_catalog import CATEGORIES, preferred_categories, preferred_items
 from progress_profiles import profile_for, george_name
 
 
@@ -28,8 +28,7 @@ class PresentView(discord.ui.View):
         self.clear_items()
         for index, key in enumerate(self.keys[self.page * 6:self.page * 6 + 6]):
             emoji, label = ITEMS[key]
-            category = CATEGORIES[ITEM_CATEGORY[key]][0] if key in ITEM_CATEGORY else 'レア'
-            button = discord.ui.Button(label=f'{category}：{label} ×{self.items[key]}', emoji=emoji,
+            button = discord.ui.Button(label=f'{label} ×{self.items[key]}', emoji=emoji,
                                        row=index // 2, disabled=self.items[key] <= 0)
 
             async def callback(interaction, key=key):

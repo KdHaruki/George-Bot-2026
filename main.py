@@ -1,3 +1,5 @@
+from ambient_logging import logger as ambient_logger
+from message_history import MessageHistory
 import discord
 from discord import app_commands
 import random
@@ -49,6 +51,7 @@ class MyClient(discord.Client):
         self.cleaned_guilds = set()
         self.health = HealthCheck()
         self.command_history = CommandHistory()
+        self.message_history = MessageHistory()
         self.present_store = TitleStore()
         self.title_store = self.present_store
         self.title_roles = TitleRoles(self.title_store)
@@ -75,6 +78,7 @@ class MyClient(discord.Client):
         try:
             await self.seasonal.close()
             await self.command_history.close()
+            await self.message_history.close()
             await self.george_chat.close()
         finally:
             await super().close()
@@ -309,6 +313,7 @@ async def on_message(message):
         try:
             await message.add_reaction(random.choice(emojis))
             reacted = True
+            ambient_logger.info('reaction_added channel=%s message=%s', message.channel.id, getattr(message, 'id', None))
         except discord.HTTPException:
             # Missing reaction permissions must not prevent conversation replies.
             logging.warning("Random reaction could not be added")
@@ -316,6 +321,12 @@ async def on_message(message):
     target = await george_reply_target(message, client.user.id)
     # Replies to George work even when Discord's reply mention is disabled.
     if client.user in message.mentions or target is not None or isinstance(message.channel, discord.DMChannel):
+        history = getattr(client, 'message_history', None)
+        if history is not None:
+            kind = 'dm' if message.guild is None else 'reply' if target is not None else 'mention'
+            history.observe(message, kind)
+        if reacted:
+            ambient_logger.info('skip reason=direct_conversation channel=%s message=%s', message.channel.id, getattr(message, 'id', None))
         help_text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
         if is_management_question(help_text):
             await message.channel.send(MANAGEMENT_REPLY, allowed_mentions=discord.AllowedMentions.none())
@@ -370,30 +381,48 @@ async def on_message(message):
         return
 
     if message.guild is None:
+        if reacted:
+            ambient_logger.info('skip reason=no_guild channel=%s', message.channel.id)
         return
     directed = bool(message.mentions or message.role_mentions or message.mention_everyone or message.reference)
     state = client.ambient.observe(message.channel.id, message.author.id, message.content, directed=directed,
                                    attachments=tuple(getattr(message, "attachments", ())))
-    if state is None or client.george_chat.client is None or not reacted:
+    if not reacted:
         return
+    if state is None:
+        observed = client.ambient.states.get(message.channel.id)
+        reason = observed.skip_reason if observed is not None else 'channel_capacity'
+        ambient_logger.info('skip reason=%s channel=%s message=%s', reason, message.channel.id, getattr(message, 'id', None))
+        return
+    if client.george_chat.client is None:
+        ambient_logger.info('skip reason=ai_unavailable channel=%s message=%s', message.channel.id, getattr(message, 'id', None))
+        return
+    ambient_logger.info('attempt_started channel=%s message=%s', message.channel.id, getattr(message, 'id', None))
     client.ambient.reserve(state)
     revision = state.revision
     try:
         context = await load_ambient_history(message)
-        if not context or not client.ambient.still_current(message.channel.id, state) or state.revision != revision:
-            logging.info('Ambient attempt skipped: history unavailable or directed conversation')
+        if not context:
+            ambient_logger.info('skip reason=history_unavailable channel=%s', message.channel.id)
+            return
+        if not client.ambient.still_current(message.channel.id, state) or state.revision != revision:
+            ambient_logger.info('skip reason=context_invalidated channel=%s', message.channel.id)
             return
         answer = await client.george_chat.ambient_reply(context)
         # Ordinary new messages do not cancel a reply; directed conversations do.
-        if answer and client.ambient.still_current(message.channel.id, state) and state.revision == revision and not any(word in item[2] for item in state.messages for word in SERIOUS):
+        if not answer:
+            ambient_logger.info('skip reason=generation_declined channel=%s', message.channel.id)
+        elif not client.ambient.still_current(message.channel.id, state) or state.revision != revision:
+            ambient_logger.info('skip reason=context_invalidated channel=%s', message.channel.id)
+        elif any(word in item[2] for item in state.messages for word in SERIOUS):
+            ambient_logger.info('skip reason=serious_context channel=%s', message.channel.id)
+        else:
             await message.channel.send(answer, allowed_mentions=discord.AllowedMentions.none())
             client.ambient.note_auto_reply(message.channel.id)
-            logging.info('Ambient reply sent after successful reaction')
-        else:
-            logging.info('Ambient attempt skipped: generation declined or context invalidated')
+            ambient_logger.info('reply_sent channel=%s message=%s', message.channel.id, getattr(message, 'id', None))
     except Exception as exc:
         diagnostic, _ = describe_chat_error(exc)
-        logging.warning("Ambient chat skipped: %s", diagnostic)
+        ambient_logger.warning('skip reason=exception channel=%s diagnostic=%s', message.channel.id, diagnostic)
     finally:
         state.busy = False
 

@@ -16,6 +16,7 @@ class ChannelState:
     next_attempt: float = 0
     busy: bool = False
     revision: int = 0
+    skip_reason: str | None = None
 
 
 class AmbientChat:
@@ -34,15 +35,19 @@ class AmbientChat:
                     return None
             self.states[channel_id] = ChannelState()
         state = self.states[channel_id]
+        state.skip_reason = None
         self.states.move_to_end(channel_id)
         if directed or (not text.strip() and not attachments) or text.startswith(("/", "!", "?")):
             state.messages.clear()
             state.revision += 1
+            state.skip_reason = 'directed_message' if directed else 'empty_or_command'
             return None
         state.messages.append((now, author_id, text[:500] or "[添付あり・まだ内容は未確認]", tuple(attachments[:2])))
         if state.busy or now < state.next_attempt:
+            state.skip_reason = 'generation_busy' if state.busy else 'cooldown'
             return None
         if any(word in m[2] for m in state.messages for word in SERIOUS):
+            state.skip_reason = 'serious_context'
             return None
         return state
 

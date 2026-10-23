@@ -8,6 +8,7 @@ import discord
 from discord import app_commands
 
 from gacha import Card, Gacha, RULES, vierge_character_card
+from progress_profiles import george_name
 from gacha_collection import CollectionStore
 from gacha_commands import CardListView, favorite_details, gacha_comment, register_gacha_commands, result_embed
 from database import MemoryUnavailable
@@ -369,7 +370,7 @@ class ResultCommentTests(unittest.TestCase):
             other = gacha_comment('vierge', [variant], favorite=('vierge', favorite, 2))
             self.assertIn('別の一枚', other)
             unrelated = gacha_comment('relink', [Card('fav', 'ロザリー', '別作品', '★1')], favorite=('vierge', favorite, 2))
-            self.assertNotIn('お気に入り', unrelated)
+            self.assertIn('お気に入り', unrelated)
 
     def test_comments_follow_saved_new_rare_and_duplicate_results(self):
         card = Card('one', 'ロザリー', 'ロザリー', 'SR')
@@ -450,7 +451,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         saved = [dict(card=asdict(card), quantity=1, new=True)]
         store = SimpleNamespace(url='test', owned=Mock(return_value=[]), save_draw=Mock(return_value=saved))
         client = discord.Client(intents=discord.Intents.default())
-        bot = SimpleNamespace(tree=app_commands.CommandTree(client), present_store=SimpleNamespace(affection_status=Mock(return_value=(0, False)), album=Mock(return_value=(None, None, None))), george_chat=SimpleNamespace(collection_comment=AsyncMock(return_value='お気に入りも増えて楽しいな！')))
+        bot = SimpleNamespace(tree=app_commands.CommandTree(client), present_store=SimpleNamespace(affection_status=Mock(return_value=(0, False)), album=Mock(return_value=(None, None, None))), george_chat=SimpleNamespace(collection_comment=AsyncMock(return_value=f'お気に入りの{george_name(card.character)}が来たぜ！')))
         store.favorite = Mock(return_value=('relink', card, 1))
         store.batch_counts = Mock(return_value={})
         register_gacha_commands(bot, store)
@@ -460,7 +461,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(facts['favorite_relation'], 'exact_card')
         self.assertEqual(facts['new_count'], 1)
         self.assertEqual(facts['cards'][0]['character'], card.character)
-        self.assertEqual(interaction.followup.send.call_args.kwargs['embed'].fields[0].value.removesuffix('\n\u200b'), 'お気に入りも増えて楽しいな！')
+        self.assertEqual(interaction.followup.send.call_args.kwargs['embed'].fields[0].value.removesuffix('\n\u200b'), f'お気に入りの{george_name(card.character)}が来たぜ！')
         bot.george_chat.collection_comment.side_effect = ValueError('invalid')
         await bot.tree.get_command('ガチャ').callback(interaction, 'relink')
         self.assertIn(card.character, interaction.followup.send.call_args.kwargs['embed'].fields[0].value)

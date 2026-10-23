@@ -55,6 +55,7 @@ class CommandHistoryStore(DatabaseStore):
 
 
 class CommandHistory:
+    label = 'Command history'
     def __init__(self, store=None):
         self.store = store if store is not None else CommandHistoryStore()
         self.slots = asyncio.Semaphore(2)
@@ -63,17 +64,21 @@ class CommandHistory:
     def observe(self, interaction):
         if interaction.type != discord.InteractionType.application_command or not self.store.url:
             return
-        if len(self.tasks) >= 32:
-            logging.warning('Command history skipped: queue full')
+        self.schedule(command_record(interaction))
+
+    def schedule(self, record):
+        if not self.store.url:
             return
-        record = command_record(interaction)
+        if len(self.tasks) >= 32:
+            logging.warning('%s skipped: queue full', self.label)
+            return
 
         async def save():
             try:
                 async with self.slots:
                     await asyncio.to_thread(self.store.save, record)
             except Exception as exc:
-                logging.warning('Command history save failed: type=%s', type(exc).__name__)
+                logging.warning('%s save failed: type=%s', self.label, type(exc).__name__)
 
         task = asyncio.create_task(save())
         self.tasks.add(task)

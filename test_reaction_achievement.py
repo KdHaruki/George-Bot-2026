@@ -62,3 +62,28 @@ class ReactionAchievementTests(unittest.IsolatedAsyncioTestCase):
             with patch.object(main, 'client', bot), patch('main.random.random', return_value=0), patch('main.load_ambient_history', AsyncMock(return_value=['context'])):
                 await main.on_message(message)
             self.assertEqual(message.channel.send.await_count, int(not directed))
+
+    async def test_reacted_pre_generation_skips_are_logged_without_message_body(self):
+        import main
+        from ambient_chat import AmbientChat
+        for reason in ('cooldown', 'generation_busy', 'serious_context', 'directed_message', 'ai_unavailable'):
+            ambient = AmbientChat()
+            state = ambient.observe(1, 42, '散歩したよ', now=1)
+            if reason == 'cooldown':
+                state.next_attempt = float('inf')
+            if reason == 'generation_busy':
+                state.busy = True
+            bot = SimpleNamespace(user=SimpleNamespace(id=99), ambient=ambient,
+                george_chat=SimpleNamespace(client=None if reason == 'ai_unavailable' else object(), ambient_reply=AsyncMock()))
+            text = '真剣な相談 private-body' if reason == 'serious_context' else '公園 private-body'
+            message = SimpleNamespace(id=555, author=SimpleNamespace(id=42, bot=False), content=text,
+                mentions=[], reference=None, role_mentions=[object()] if reason == 'directed_message' else [],
+                mention_everyone=False, guild=object(), channel=SimpleNamespace(id=1, send=AsyncMock()),
+                attachments=[], add_reaction=AsyncMock())
+            with patch.object(main, 'client', bot), patch('main.random.random', return_value=0), self.assertLogs('george.ambient', level='INFO') as logs:
+                await main.on_message(message)
+            output = '\n'.join(logs.output)
+            self.assertIn('reaction_added', output)
+            self.assertIn(f'skip reason={reason}', output)
+            self.assertNotIn('private-body', output)
+            bot.george_chat.ambient_reply.assert_not_awaited()
