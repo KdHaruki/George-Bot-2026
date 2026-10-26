@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from operation_logging import event as log_event
 import discord
 
 from database import MemoryUnavailable
@@ -134,13 +135,15 @@ class TitleView(discord.ui.View):
             try:
                 name = await self.roles.equip(self.guild, self.user_id, key)
             except (ValueError, MemoryUnavailable) as exc:
+                log_event('称号ロール', '変更できず終了', error=exc, 操作ID=interaction.id)
                 await interaction.followup.send(str(exc), ephemeral=True)
                 return
             except discord.HTTPException:
-                logging.warning('Title role update failed')
+                log_event('称号ロール', '変更失敗', reason='Discordの権限・ロール数・上下関係などを確認', 操作ID=interaction.id)
                 await interaction.followup.send('称号のロール変更を確認できなかったぜ。ロール数・権限・上下関係を管理者に確認してもらってから再試行してくれ。', ephemeral=True)
                 return
             self.equipped = key
+            log_event('称号ロール', '装着完了' if key else '解除完了', 操作ID=interaction.id)
             self.build()
             await interaction.edit_original_response(embed=self.embed(f'「{name}」を装着したぜ！' if name else '称号を外したぜ！'), view=self)
 

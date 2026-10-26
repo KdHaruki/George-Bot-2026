@@ -119,7 +119,7 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(title_icon(key), '🎖️')
         rows = [('fortune10', '神頼み'), ('quiz_streak10', '青蘭学園の名探偵')]
         store = SimpleNamespace(claim_title_notifications=Mock(side_effect=[rows, []]), finish_title_notifications=Mock())
-        interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
+        interaction = SimpleNamespace(id=123, user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
         await notify_titles(interaction, store)
         text = interaction.followup.send.call_args.args[0]
         self.assertIn('🎖️ **神頼み**', text)
@@ -131,7 +131,7 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_batched_notification_is_always_ephemeral_and_no_mentions(self):
         rows = [('fortune10', '神頼み'), ('quiz10', '青蘭学園の知恵袋')]
         store = SimpleNamespace(claim_title_notifications=Mock(side_effect=[rows, []]), finish_title_notifications=Mock())
-        interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
+        interaction = SimpleNamespace(id=123, user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock()))
         await notify_titles(interaction, store)
         interaction.followup.send.assert_awaited_once()
         call = interaction.followup.send.call_args
@@ -146,7 +146,7 @@ class NotificationDeliveryTests(unittest.IsolatedAsyncioTestCase):
     async def test_failed_send_releases_for_later_private_retry(self):
         store = SimpleNamespace(claim_title_notifications=Mock(return_value=[('fortune10', '神頼み')]), finish_title_notifications=Mock())
         failure = discord.HTTPException(SimpleNamespace(status=500, reason='test'), 'test')
-        interaction = SimpleNamespace(user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock(side_effect=failure)))
+        interaction = SimpleNamespace(id=123, user=SimpleNamespace(id=42), followup=SimpleNamespace(send=AsyncMock(side_effect=failure)))
         await notify_titles(interaction, store)
         self.assertFalse(store.finish_title_notifications.call_args.args[-1])
         store.claim_title_notifications.assert_called_once()

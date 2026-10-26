@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from operation_logging import event as log_event
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 
@@ -143,7 +144,7 @@ class SeasonalScheduler:
                 self.last_check_ok = True
             except Exception as exc:
                 self.last_check_ok = False
-                logging.warning("Seasonal check failed: type=%s", type(exc).__name__)
+                log_event('季節通知', '定期確認に失敗', error=exc)
             self.last_check_at = datetime.now(timezone.utc)
             await self.wait_for_change(self.wait_seconds())
 
@@ -162,7 +163,7 @@ class SeasonalScheduler:
         await self.calendar.refresh(now)
         if not self.calendar.covers(day):
             self.retry_needed = True
-            logging.warning("Seasonal posts skipped: holiday year is unavailable")
+            log_event('季節通知', '見送り', reason='対象年の祝日データを取得できない')
             return
         for guild_id, channel_id, _ in settings:
             if guild_id in self.delivered:
@@ -172,6 +173,7 @@ class SeasonalScheduler:
                 continue
             try:
                 if not await asyncio.to_thread(self.store.claim, guild_id, channel_id, day):
+                    log_event('季節通知', '見送り', reason='当日分は送信済み・処理中・送信結果未確定のいずれか', サーバーID=guild_id, チャンネルID=channel_id)
                     self.retry_needed = True
                     continue
                 channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
@@ -179,12 +181,15 @@ class SeasonalScheduler:
                     raise ValueError("Seasonal channel mismatch")
                 try:
                     comment = await bot.george_chat.seasonal_comment(names)
-                except Exception:
+                except Exception as exc:
+                    log_event('AI・季節の挨拶', '定型文に切り替え', error=exc, サーバーID=guild_id)
                     comment = "みんな、今日は「" + event_header(names) + "」だぜ！ 無理せず、いい一日を過ごしてくれよな！"
                 # A slow generation must not post yesterday's greeting after midnight.
                 if self.clock().astimezone(JST).date() != day:
+                    log_event('季節通知', '見送り', reason='生成中に日付が変わった', サーバーID=guild_id)
                     continue
                 if not await asyncio.to_thread(self.store.begin_send, guild_id, channel_id, day):
+                    log_event('季節通知', '見送り', reason='設定変更または他の処理が送信を開始', サーバーID=guild_id)
                     continue
                 # Mark before sending: uncertain sends are not retried, to avoid duplicate greetings.
                 self.delivered.add(guild_id)
@@ -195,10 +200,11 @@ class SeasonalScheduler:
                     await asyncio.to_thread(self.store.finish, guild_id, day)
                     raise
                 await asyncio.to_thread(self.store.finish, guild_id, day, message.id)
+                log_event('季節通知', '投稿・DB保存完了', サーバーID=guild_id, チャンネルID=channel_id, メッセージID=message.id)
             except Exception as exc:
                 self.last_delivery_failed = True
                 self.retry_needed = True
-                logging.warning("Seasonal delivery failed: type=%s", type(exc).__name__)
+                log_event('季節通知', '投稿または結果保存に失敗', error=exc, サーバーID=guild_id, チャンネルID=channel_id)
 
     async def close(self):
         if self.task:

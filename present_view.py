@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from operation_logging import event as log_event
 
 import discord
 
@@ -80,14 +81,16 @@ class PresentView(discord.ui.View):
         await interaction.response.defer()
         async with self.lock:
             if self.expired or interaction.id in self.processed:
+                log_event('プレゼント', '消費せず見送り', reason='操作期限切れ、または処理済みの操作', 操作ID=interaction.id)
                 return
             try:
                 gain, points, perfect = await asyncio.to_thread(self.store.give, self.user_id, interaction.id, self.character, key)
             except (ValueError, MemoryUnavailable) as exc:
-                logging.warning('Present skipped: type=%s', type(exc).__name__)
+                log_event('プレゼント', '保存失敗・結果未確定', error=exc, 操作ID=interaction.id)
                 await interaction.followup.send(str(exc), ephemeral=True)
                 return
             self.processed.add(interaction.id)
+            log_event('プレゼント', '消費・好感度の保存完了', 操作ID=interaction.id, 好感度増加=gain, 好感度=points)
             self.items[key] = max(0, self.items[key] - 1)
             self.points = points
             advanced = int(perfect) > int(self.perfect)
@@ -102,6 +105,8 @@ class PresentView(discord.ui.View):
             comment = (f'{george_name(self.character)}にぴったりの贈り物だな！ 喜んでくれそうだぜ！' if preferred else
                        f'{george_name(self.character)}のために選んだ贈り物だな！ オマエの気持ちがこもってるぜ！')
             chat = getattr(getattr(interaction, 'client', None), 'george_chat', None)
+            if chat is None:
+                log_event('AI・贈り物のお礼', '定型文を使用', reason='AIが未設定', 操作ID=interaction.id)
             if chat is not None:
                 try:
                     comment = await asyncio.wait_for(chat.collection_comment(dict(
@@ -109,7 +114,7 @@ class PresentView(discord.ui.View):
                         preferred=preferred, gain=gain, perfect_link_advanced=advanced,
                         profile=profile_for(self.character))), timeout=11)
                 except Exception as exc:
-                    logging.warning('Gift comment fallback: type=%s', type(exc).__name__)
+                    log_event('AI・贈り物のお礼', '定型文に切り替え', error=exc, 操作ID=interaction.id)
             embed = self.embed(status)
             embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment), inline=False)
             await interaction.edit_original_response(embed=embed, view=self)

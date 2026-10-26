@@ -5,6 +5,7 @@ import json
 import logging
 import discord
 from database import DatabaseStore, MemoryUnavailable
+from operation_logging import event as log_event
 
 
 def command_record(interaction):
@@ -50,12 +51,14 @@ class CommandHistoryStore(DatabaseStore):
         with self.connect() as connection:
             connection.execute('''INSERT INTO george_command_history VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
                 ON CONFLICT(interaction_id) DO NOTHING''', record)
-            connection.execute("DELETE FROM george_command_history WHERE created_at < now() - interval '30 days'")
+            deleted = connection.execute("DELETE FROM george_command_history WHERE created_at < now() - interval '30 days'").rowcount
+        return deleted
 
 
 
 class CommandHistory:
     label = 'Command history'
+    feature = 'コマンド履歴DB'
     def __init__(self, store=None):
         self.store = store if store is not None else CommandHistoryStore()
         self.slots = asyncio.Semaphore(2)
@@ -70,15 +73,18 @@ class CommandHistory:
         if not self.store.url:
             return
         if len(self.tasks) >= 32:
-            logging.warning('%s skipped: queue full', self.label)
+            log_event(self.feature, '保存見送り', reason='保存待ちが上限32件に到達', 記録ID=record[0])
             return
 
         async def save():
             try:
                 async with self.slots:
-                    await asyncio.to_thread(self.store.save, record)
+                    deleted = await asyncio.to_thread(self.store.save, record)
+                log_event(self.feature, '保存完了', 記録ID=record[0])
+                if isinstance(deleted, int) and deleted > 0:
+                    log_event(self.feature, '30日を過ぎた履歴を削除', 削除件数=deleted)
             except Exception as exc:
-                logging.warning('%s save failed: type=%s', self.label, type(exc).__name__)
+                log_event(self.feature, '保存失敗', error=exc, 記録ID=record[0])
 
         task = asyncio.create_task(save())
         self.tasks.add(task)

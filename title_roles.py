@@ -1,6 +1,7 @@
 """Manage only zero-permission title roles created by this bot."""
 import asyncio
 import logging
+from operation_logging import event as log_event
 import discord
 
 from database import MemoryUnavailable
@@ -78,7 +79,7 @@ class TitleRoles:
                         await role.delete(reason='廃止された称号を削除')
                     await asyncio.to_thread(self.store.retire_title, guild.id, key, role_id)
                 except (MemoryUnavailable, ValueError, discord.HTTPException) as exc:
-                    logging.warning('Retired title cleanup failed: guild=%s type=%s', guild.id, type(exc).__name__)
+                    log_event('旧称号ロールの整理', '失敗', error=exc, サーバーID=guild.id)
 
     async def equip(self, guild, user_id, key=None):
         async with self.lock(guild.id):
@@ -101,7 +102,7 @@ class TitleRoles:
                     try:
                         await target.delete(reason='称号ロールの保存失敗を取り消し')
                     except discord.HTTPException:
-                        logging.warning('Title role cleanup failed')
+                        log_event('称号ロール', '保存失敗後のロール削除にも失敗', サーバーID=guild.id)
                     raise
                 if bound != target.id:
                     await target.delete(reason='同時作成された称号ロールを整理')
@@ -142,6 +143,6 @@ class TitleRoles:
                         self.safe_role(guild, role, top)
                         await member.add_roles(role, reason='称号変更前に戻す', atomic=True)
                 except (discord.HTTPException, ValueError):
-                    logging.warning('Title role rollback failed')
+                    log_event('称号ロール', '変更失敗後に元の状態へ戻せない', サーバーID=guild.id)
                 raise
             return name

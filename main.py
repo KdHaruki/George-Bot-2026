@@ -1,4 +1,5 @@
 from ambient_logging import logger as ambient_logger
+from operation_logging import event as log_event, command_finished
 from message_history import MessageHistory
 import discord
 from discord import app_commands
@@ -112,7 +113,7 @@ async def help_embed(bot, in_guild):
         try:
             introduction = await asyncio.wait_for(chat.help_comment(), timeout=12)
         except Exception as exc:
-            logging.warning('Help introduction fallback: type=%s', type(exc).__name__)
+            log_event('AI・ヘルプの挨拶', '定型文に切り替え', error=exc)
     return command_help(in_guild, introduction or None)
 
 ########################################
@@ -144,8 +145,26 @@ async def cleanup_retired_title(guild):
 @client.event
 async def on_interaction(interaction):
     client.command_history.observe(interaction)
-    # Never log interaction tokens or message contents.
-    print(f"Interaction received: type={interaction.type.name}", flush=True)
+    if interaction.type == discord.InteractionType.application_command:
+        log_event('コマンド', '受付', 操作ID=interaction.id)
+
+
+@client.event
+async def on_app_command_completion(interaction, command):
+    command_finished(interaction, command)
+
+
+@client.tree.error
+async def on_command_error(interaction, error):
+    command = interaction.command
+    if command is not None:
+        command_finished(interaction, command, error)
+    else:
+        log_event('コマンド', '失敗', error=error, 操作ID=interaction.id)
+    if not interaction.response.is_done():
+        await interaction.response.send_message('処理を完了できなかったぜ。少し待ってからもう一度試してくれ。', ephemeral=True)
+    else:
+        await interaction.followup.send('処理を完了できなかったぜ。少し待ってからもう一度試してくれ。', ephemeral=True)
 
 ########################################
 # progress オートコンプリート
@@ -270,12 +289,11 @@ async def omikuji(interaction: discord.Interaction):
         fortune = reward.get('fortune', fortune)
         lucky_progress = reward.get('lucky_progress') or lucky_progress
     except MemoryUnavailable:
-        logging.warning('Fortune present save failed')
+        log_event('おみくじの贈り物', 'DB保存・受け取りを確認できない', 操作ID=interaction.id)
     try:
         comment = await client.george_chat.fortune_details(fortune, lucky_progress)
     except Exception as exc:
-        diagnostic, _ = describe_chat_error(exc)
-        logging.warning("Fortune generation failed: %s", diagnostic)
+        log_event('AI・おみくじの一言', '定型文に切り替え', error=exc, 操作ID=interaction.id)
         comment = dict(FORTUNES)[fortune] + f' {george_name(lucky_progress)}のことも思い浮かべて、小さな楽しみを探してみな！'
     embed = fortune_embed(fortune, comment, lucky_progress)
     gift_heading = '【今日の贈り物】'
@@ -374,7 +392,7 @@ async def on_message(message):
             except Exception as exc:
                 # Do not log API keys, message contents, or provider error bodies.
                 diagnostic, answer = describe_chat_error(exc)
-                logging.warning("Gemini request failed: %s", diagnostic)
+                log_event('AI・会話', '返答生成に失敗', error=exc, メッセージID=message.id)
             for offset in range(0, len(answer), 1900):
                 await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none())
         client.ambient.note_reply(message.channel.id)

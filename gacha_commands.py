@@ -4,6 +4,7 @@ import discord
 import asyncio
 import math
 import logging
+from operation_logging import event as log_event
 import random
 from discord import app_commands
 from discord_layout import space_headings
@@ -212,6 +213,7 @@ def register_gacha_commands(bot, store=None):
     async def ai_comment(facts, fallback):
         chat = getattr(bot, 'george_chat', None)
         if chat is None:
+            log_event('AI・ガチャなどの一言', '定型文に切り替え', reason='AIが未設定')
             return fallback
         try:
             async def generate():
@@ -219,15 +221,18 @@ def register_gacha_commands(bot, store=None):
                     answer = await chat.collection_comment(facts)
                     if facts.get('action') == 'draw':
                         if facts.get('favorite_relation') != 'none' and george_name(facts['favorite_character']) not in answer:
+                            log_event('AI・ガチャの一言', '定型文に切り替え', reason='お気に入りへの言及がない')
                             return fallback
                         if facts.get('highest_count', 0) >= 2 and str(facts['highest_count']) not in answer:
+                            log_event('AI・ガチャの一言', '定型文に切り替え', reason='最高レアの枚数への言及がない')
                             return fallback
                         if facts.get('rapid_draws') and not any(word in answer for word in ('連続', '立て続け', '財布', 'ひと息', '一息')):
+                            log_event('AI・ガチャの一言', '定型文に切り替え', reason='連続ガチャへの言及がない')
                             return fallback
                     return answer
             return await asyncio.wait_for(generate(), timeout=12)
         except Exception as exc:
-            logging.warning('Collection comment fallback: type=%s', type(exc).__name__)
+            log_event('AI・ガチャなどの一言', '定型文に切り替え', error=exc)
             return fallback
 
     @bot.tree.command(name='ガチャ', description='2作品のカードガチャを無料で試す')
@@ -253,8 +258,10 @@ def register_gacha_commands(bot, store=None):
                 saved = await asyncio.to_thread(store.save_draw, interaction.user.id, 作品, interaction.id, cards)
                 cards = [Card(**entry['card']) for entry in saved]
             except (MemoryUnavailable, ValueError):
+                log_event('ガチャ', '結果のDB保存を確認できない', 操作ID=interaction.id)
                 await interaction.followup.send('ガチャ結果の保存を確認できなかったぜ。`/所持カード`で確認してから、時間をおいて試してくれ。', ephemeral=True)
                 return
+            log_event('ガチャ', '結果のDB保存完了', 操作ID=interaction.id, 枚数=len(cards))
             try:
                 favorite = await asyncio.to_thread(store.favorite, interaction.user.id)
             except MemoryUnavailable:
@@ -293,6 +300,7 @@ def register_gacha_commands(bot, store=None):
     @draw.error
     async def on_draw_error(interaction: discord.Interaction, error):
         if isinstance(error, app_commands.CommandOnCooldown):
+            log_event('ガチャ', '受付見送り', reason='連続実行の待ち時間中', 操作ID=interaction.id)
             await interaction.response.send_message('ちょっと休憩だぜ！ 少し待ってから引いてくれ。', ephemeral=True)
         else:
             raise error

@@ -48,10 +48,10 @@ class MessageHistoryTests(unittest.IsolatedAsyncioTestCase):
     async def test_failure_is_background_and_does_not_log_content(self):
         store = SimpleNamespace(url='test', save=Mock(side_effect=RuntimeError('secret message body')))
         history = MessageHistory(store)
-        with self.assertLogs(level='WARNING') as logs:
+        with self.assertLogs('george.operations', level='WARNING') as logs:
             history.observe(self.message(), 'mention')
             await history.close()
-        self.assertIn('Message history save failed', str(logs.output))
+        self.assertIn('【受信メッセージDB】保存失敗', str(logs.output))
         self.assertNotIn('secret message body', str(logs.output))
 
     async def test_help_mention_is_recorded_before_reply(self):

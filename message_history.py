@@ -25,11 +25,13 @@ class MessageHistoryStore(DatabaseStore):
                 (message_id,created_at,user_id,user_name,guild_id,channel_id,kind,content,reply_to_message_id)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT(message_id) DO NOTHING''', record)
-            connection.execute("DELETE FROM george_message_history WHERE created_at < now() - interval '30 days'")
+            deleted = connection.execute("DELETE FROM george_message_history WHERE created_at < now() - interval '30 days'").rowcount
+        return deleted
 
 
 class MessageHistory(CommandHistory):
     label = 'Message history'
+    feature = '受信メッセージDB'
 
     def __init__(self, store=None):
         super().__init__(store if store is not None else MessageHistoryStore())
