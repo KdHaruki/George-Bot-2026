@@ -209,6 +209,22 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.generate.return_value = SimpleNamespace(text="散歩日和だな！")
         self.assertEqual(await self.chat.ambient_reply(messages), "散歩日和だな！")
 
+    async def test_ambient_skip_logs_reason_without_content(self):
+        messages = [(123, 100, '秘密の会話本文')]
+        cases = [('__SKIP__:serious', 'model_serious'),
+                 ('__SKIP__:秘密の返答', 'model_unspecified'),
+                 ('', 'empty_response'), ('長' * 151, 'too_long'),
+                 ('一行\n二行', 'multiline'), ('どうだった？', 'question')]
+        for answer, reason in cases:
+            with self.subTest(reason=reason):
+                self.generate.return_value = SimpleNamespace(text=answer)
+                with self.assertLogs('george.ambient', level='INFO') as logs:
+                    self.assertIsNone(await self.chat.ambient_reply(messages))
+                output = '\n'.join(logs.output)
+                self.assertIn('reason=' + reason, output)
+                self.assertIn('message=123', output)
+                self.assertNotIn('秘密', output)
+
     async def test_failure_does_not_commit_history(self):
         await self.chat.reply((1, 1), "最初")
         self.generate.side_effect = RuntimeError("provider failed")
