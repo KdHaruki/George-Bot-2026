@@ -4,6 +4,7 @@ from message_history import MessageHistory
 import discord
 from discord import app_commands
 import random
+import time
 import os
 import logging
 import re
@@ -319,6 +320,77 @@ async def omikuji(interaction: discord.Interaction):
     await notify_titles(interaction, client.present_store)
 
 
+async def reply_to_addressed_message(message, target, reacted, feature):
+    outcome = '返信完了'
+    history = getattr(client, 'message_history', None)
+    if history is not None:
+        kind = 'dm' if message.guild is None else 'reply' if target is not None else 'mention'
+        history.observe(message, kind)
+    if reacted:
+        ambient_logger.info('skip reason=direct_conversation channel=%s message=%s', message.channel.id, getattr(message, 'id', None))
+    help_text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
+    if is_management_question(help_text):
+        await message.channel.send(MANAGEMENT_REPLY, allowed_mentions=discord.AllowedMentions.none())
+        client.ambient.note_reply(message.channel.id)
+        return '管理情報への回答を見送り・案内返信完了'
+    if help_text.lower() in ('ヘルプ', 'help'):
+        await message.channel.send(embed=await help_embed(client, message.guild is not None),
+                                   allowed_mentions=discord.AllowedMentions.none())
+        client.ambient.note_reply(message.channel.id)
+        return 'ヘルプ表示完了'
+    parts = message.content.split()
+    if len(parts) >= 3 and parts[1].lower() in ["pro", "progress", "プロ", "プログレス"]:
+        keyword = parts[2]
+        world_map = {
+            "青":0,"青の":0,"青世界":0,"青の世界":0,
+            "黒":1,"黒の":1,"黒世界":1,"黒の世界":1,
+            "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
+            "白":3,"白の":3,"白世界":3,"白の世界":3,
+            "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
+        }
+
+        if keyword in world_map:
+            result = progress_module.progressSearchAll(world_map[keyword])
+        else:
+            result = progress_module.progressSearch(keyword)
+        await message.channel.send(result)
+        outcome = 'プログレス検索の返信完了'
+    else:
+        text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
+        key = (message.channel.id, message.author.id)
+        try:
+            if not text:
+                outcome = '入力案内の返信完了'
+                answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /プログレス だぜ。"
+            else:
+                async with message.channel.typing():
+                    favorite = await conversation_favorite(client, message.author.id)
+                    options = {'favorite': favorite} if favorite else {}
+                    answer = await client.george_chat.reply(key, text,
+                                                           reply_to=target.content if target is not None else '', **options)
+        except MemoryUnavailable as exc:
+            outcome = '案内返信完了'
+            log_event(feature, '通常の返答を見送り', reason='DB利用不可', メッセージID=getattr(message, 'id', None))
+            answer = str(exc)
+        except ChatUnavailable:
+            outcome = '案内返信完了'
+            log_event(feature, '通常の返答を見送り', reason='AI利用不可', メッセージID=getattr(message, 'id', None))
+            answer = "会話機能はまだ準備中だぜ。管理者にGEMINI_API_KEYの設定をお願いしてくれ！"
+        except ChatBusy:
+            outcome = '案内返信完了'
+            log_event(feature, '通常の返答を見送り', reason='返答を生成中', メッセージID=getattr(message, 'id', None))
+            answer = "今、返事を考えてるぜ！ 少し待ってから話しかけてくれ。"
+        except Exception as exc:
+            # Do not log API keys, message contents, or provider error bodies.
+            outcome = 'エラー案内の返信完了'
+            _, answer = describe_chat_error(exc)
+            log_event('AI・会話', '返答生成に失敗', error=exc, メッセージID=message.id)
+        for offset in range(0, len(answer), 1900):
+            await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none())
+    client.ambient.note_reply(message.channel.id)
+    return outcome
+
+
 @client.event
 async def on_message(message):
 
@@ -339,63 +411,18 @@ async def on_message(message):
     target = await george_reply_target(message, client.user.id)
     # Replies to George work even when Discord's reply mention is disabled.
     if client.user in message.mentions or target is not None or isinstance(message.channel, discord.DMChannel):
-        history = getattr(client, 'message_history', None)
-        if history is not None:
-            kind = 'dm' if message.guild is None else 'reply' if target is not None else 'mention'
-            history.observe(message, kind)
-        if reacted:
-            ambient_logger.info('skip reason=direct_conversation channel=%s message=%s', message.channel.id, getattr(message, 'id', None))
-        help_text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
-        if is_management_question(help_text):
-            await message.channel.send(MANAGEMENT_REPLY, allowed_mentions=discord.AllowedMentions.none())
-            client.ambient.note_reply(message.channel.id)
-            return
-        if help_text.lower() in ('ヘルプ', 'help'):
-            await message.channel.send(embed=await help_embed(client, message.guild is not None),
-                                       allowed_mentions=discord.AllowedMentions.none())
-            client.ambient.note_reply(message.channel.id)
-            return
-        parts = message.content.split()
-        if len(parts) >= 3 and parts[1].lower() in ["pro", "progress", "プロ", "プログレス"]:
-            keyword = parts[2]
-            world_map = {
-                "青":0,"青の":0,"青世界":0,"青の世界":0,
-                "黒":1,"黒の":1,"黒世界":1,"黒の世界":1,
-                "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
-                "白":3,"白の":3,"白世界":3,"白の世界":3,
-                "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
-            }
-
-            if keyword in world_map:
-                result = progress_module.progressSearchAll(world_map[keyword])
-            else:
-                result = progress_module.progressSearch(keyword)
-            await message.channel.send(result)
+        kind = 'DM' if message.guild is None else 'ジョージへの返信' if target is not None else 'メンション'
+        feature = '会話・' + kind
+        started = time.monotonic()
+        ids = dict(メッセージID=getattr(message, 'id', None), チャンネルID=message.channel.id)
+        log_event(feature, '受付', **ids)
+        try:
+            outcome = await reply_to_addressed_message(message, target, reacted, feature)
+        except Exception as exc:
+            log_event(feature, '処理失敗・返信未完了', error=exc,
+                      秒=round(time.monotonic() - started, 2), **ids)
         else:
-            text = re.sub(rf"<@!?{client.user.id}>", "", message.content).strip()
-            key = (message.channel.id, message.author.id)
-            try:
-                if not text:
-                    answer = "何を話そうか？ メンションに続けて話しかけてくれ！ 検索は /プログレス だぜ。"
-                else:
-                    async with message.channel.typing():
-                        favorite = await conversation_favorite(client, message.author.id)
-                        options = {'favorite': favorite} if favorite else {}
-                        answer = await client.george_chat.reply(key, text,
-                                                               reply_to=target.content if target is not None else '', **options)
-            except MemoryUnavailable as exc:
-                answer = str(exc)
-            except ChatUnavailable:
-                answer = "会話機能はまだ準備中だぜ。管理者にGEMINI_API_KEYの設定をお願いしてくれ！"
-            except ChatBusy:
-                answer = "今、返事を考えてるぜ！ 少し待ってから話しかけてくれ。"
-            except Exception as exc:
-                # Do not log API keys, message contents, or provider error bodies.
-                diagnostic, answer = describe_chat_error(exc)
-                log_event('AI・会話', '返答生成に失敗', error=exc, メッセージID=message.id)
-            for offset in range(0, len(answer), 1900):
-                await message.channel.send(answer[offset:offset + 1900], allowed_mentions=discord.AllowedMentions.none())
-        client.ambient.note_reply(message.channel.id)
+            log_event(feature, outcome, 秒=round(time.monotonic() - started, 2), **ids)
         return
 
     if message.guild is None:
