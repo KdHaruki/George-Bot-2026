@@ -453,7 +453,8 @@ async def on_message(message):
         if not client.ambient.still_current(message.channel.id, state) or state.revision != revision:
             ambient_logger.info('skip reason=context_invalidated channel=%s', message.channel.id)
             return
-        answer = await client.george_chat.ambient_reply(context)
+        answer = await client.george_chat.ambient_reply(
+            context, message_id=message.id, channel_id=message.channel.id)
         # Ordinary new messages do not cancel a reply; directed conversations do.
         if not answer:
             ambient_logger.info('skip reason=generation_declined channel=%s', message.channel.id)

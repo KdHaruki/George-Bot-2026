@@ -24,6 +24,8 @@ class ReactionAchievementTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(ambient.states[1].next_attempt, 100 + (COOLDOWN if answer else RETRY_DELAY))
             self.assertFalse(ambient.states[1].busy)
             self.assertEqual(message.channel.send.await_count, int(bool(answer)))
+            bot.george_chat.ambient_reply.assert_awaited_once_with(
+                ['context'], message_id=123, channel_id=1)
 
     async def test_only_successful_reaction_triggers_without_second_lottery(self):
         import main
@@ -48,7 +50,7 @@ class ReactionAchievementTests(unittest.IsolatedAsyncioTestCase):
         from ambient_chat import AmbientChat
         for directed in (False, True):
             ambient = AmbientChat()
-            async def generate(context):
+            async def generate(context, *, message_id=None, channel_id=None):
                 if directed:
                     ambient.note_reply(1)
                 else:

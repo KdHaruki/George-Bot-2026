@@ -357,12 +357,13 @@ class GeorgeChat:
             raise ValueError("Invalid seasonal greeting")
         return answer
 
-    async def ambient_reply(self, messages):
+    async def ambient_reply(self, messages, *, message_id=None, channel_id=None):
         from ambient_logging import logger as ambient_logger
 
         def decline(reason):
-            ambient_logger.info('generation_skipped reason=%s message=%s', reason,
-                                messages[-1][0] if messages else None)
+            # Context tuples start with a timestamp, not a Discord message ID.
+            ambient_logger.info('generation_skipped reason=%s channel=%s message=%s',
+                                reason, channel_id, message_id)
             return None
 
         if any(mentions_admin_details(message[2]) for message in messages):
