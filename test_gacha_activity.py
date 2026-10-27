@@ -28,6 +28,7 @@ class DrawActivityTests(unittest.TestCase):
         text = gacha_comment('vierge', cards, favorite=favorite, rapid_count=3)
         self.assertIn(george_name('ロザリー'), text)
         self.assertIn('URが2枚', text)
-        self.assertIn('財布', text)
+        self.assertIn('球筋に出てるぜ', text)
         self.assertLessEqual(len(text), 140)
         self.assertFalse(collection_facts('vierge', cards, rapid_count=2)['rapid_draws'])
+        self.assertNotIn('球筋に出てるぜ', gacha_comment('vierge', cards, rapid_count=2))

@@ -304,7 +304,7 @@ class GeorgeChat:
         elif facts.get('action') == 'draw' and facts.get('highlights'):
             instruction += '\nhighlightsにある結果の特徴を少なくとも一つ取り上げます。確率や何回に一度かは推測せず、珍しさを断定しません。お気に入りとの再会も該当すれば自然に触れます。'
         if facts.get('action') == 'draw':
-            instruction += '\nこのガチャは無料シミュレーターです。課金・残高・支出が発生したとは言いません。favorite_relationがnone以外なら、お気に入り本人を呼び名指定どおりに呼び、引けた喜びに必ず触れます。highest_countが2以上なら、その数字を半角数字で必ず示して喜びます。rapid_drawsがtrueなら短時間の連続ガチャに必ず触れ、財布の軽口やひと息を勧める言い回しを添えます。全て該当すれば140文字以内にまとめます。rapid_drawsがfalseなら連続で回したと決めつけません。毎回言い回しを変え、さらに回すよう煽りません。'
+            instruction += '\nこのガチャは無料シミュレーターです。課金・残高・支出が発生したとは言いません。favorite_relationがnone以外なら、お気に入り本人を呼び名指定どおりに呼び、引けた喜びに必ず触れます。highest_countが2以上なら、その数字を半角数字で必ず示して喜びます。rapid_drawsがtrueなら、連続して引く様子から目当ての子への期待や楽しげな気分を軽く見立て、「球筋に出てるぜ」を一度だけ自然に続けます。このガチャ専用の指示では通常の目印ルールより優先して決め台詞を直接書き、__BALL_LINE__は使いません。例：「そんなにお目当ての子を引きたいのかい？ 球筋に出てるぜ」「今日は良いことでもあったのか？ 球筋に出てるぜ」。例の丸写しに固定せず、今回の結果にも合わせます。気分や出来事は事実として断定せず、見立ての軽口にします。財布の話や休憩の勧めを毎回添える必要はありません。全て該当すれば140文字以内にまとめます。rapid_drawsがfalseなら連続で回したと決めつけません。毎回言い回しを変え、さらに回すよう煽りません。'
         instruction += george_naming_context(json.dumps(facts, ensure_ascii=False))
         response = await asyncio.wait_for(self.client.aio.models.generate_content(
             model=self.model, contents=json.dumps(facts, ensure_ascii=False),

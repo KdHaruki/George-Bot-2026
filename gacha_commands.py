@@ -128,8 +128,8 @@ def gacha_comment(game, cards, saved=None, favorite=None, rapid_count=0):
         ]))
     if facts['rapid_draws']:
         special.append(random.choice([
-            '立て続けに回してるな！ 無料で財布は無事でも、ひと息入れようぜ！',
-            '連続ガチャに夢中だな！ 財布の心配はねえが、目も休めてくれよ！',
+            'そんなにお目当ての子を引きたいのかい？ 球筋に出てるぜ！',
+            '今日は良いことでもあったのか？ 球筋に出てるぜ！',
         ]))
     if special:
         return ' '.join(special)[:140]
@@ -226,8 +226,8 @@ def register_gacha_commands(bot, store=None):
                         if facts.get('highest_count', 0) >= 2 and str(facts['highest_count']) not in answer:
                             log_event('AI・ガチャの一言', '定型文に切り替え', reason='最高レアの枚数への言及がない')
                             return fallback
-                        if facts.get('rapid_draws') and not any(word in answer for word in ('連続', '立て続け', '財布', 'ひと息', '一息')):
-                            log_event('AI・ガチャの一言', '定型文に切り替え', reason='連続ガチャへの言及がない')
+                        if facts.get('rapid_draws') and '球筋に出てるぜ' not in answer:
+                            log_event('AI・ガチャの一言', '定型文に切り替え', reason='連続ガチャの決め台詞がない')
                             return fallback
                     return answer
             return await asyncio.wait_for(generate(), timeout=12)
