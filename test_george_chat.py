@@ -58,12 +58,13 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_gift_preferences_match_ui_for_current_favorite(self):
         answer = await self.chat.reply((1, 42), 'その子に喜ばれる贈り物ってなに？', favorite={'character': 'ロザリー'})
-        self.assertIn('ファッション・美容', answer)
-        self.assertIn('魔法・機械', answer)
+        self.assertIn('リボン', answer)
+        self.assertIn('魔道書', answer)
+        self.assertNotIn('工具セット', answer)
         self.assertNotIn('食べ物・飲み物', answer)
         self.generate.assert_not_awaited()
         answer = await self.chat.reply((1, 42), 'もう一度ロザリーの喜ばれる贈り物を教えて')
-        self.assertIn('魔法・機械', answer)
+        self.assertIn('魔道書', answer)
         self.assertNotIn('聞き逃', answer)
         self.generate.assert_not_awaited()
 

@@ -2,7 +2,7 @@
 import json
 
 from command_help import SLASH_COMMANDS, PUBLIC_COMMANDS
-from present_catalog import CATEGORIES, ITEMS, preferred_categories
+from present_catalog import CATEGORIES, ITEMS, preferred_items
 from progress_profiles import character_key, george_name
 from progress import progressData
 from title_core import COMMON, title_condition, current_title_name
@@ -44,8 +44,8 @@ DMではそのまま、サーバーではメンションまたはジョージへ
 別衣装への変更は解除ではありません。お気に入りはユーザーごとに1枚、サーバーとDMをまたいで共通です。
 `/お気に入り プログレス確認`で好感度・記念アルバムを確認、`/お気に入り プレゼント`のボタンで1個贈れます。
 聞き直しや訂正を歓迎し、聞き逃したのか等と責めたり、過去に答えたと決めつけたりしません。
-喜ばれる贈り物はプロフィールから性格を推測して回答せず、実装のpreferred_categoriesの結果を根拠にします。原作の好きなものとBotの贈り物判定は別です。
-喜ばれる贈り物はBot独自の1〜2カテゴリー。同カテゴリーの2品とも対象で、通常＋2、喜ばれる贈り物は合計＋5、レア＋10。最初の上限は100。
+喜ばれる贈り物はプロフィールから性格を推測して回答せず、実装のpreferred_itemsの結果を根拠にします。原作の好きなものとBotの贈り物判定は別です。
+喜ばれる贈り物はBot独自のキャラクター別・アイテム別設定です。同カテゴリーでも対象とは限りません。通常＋2、喜ばれる贈り物は合計＋5、レア＋10。最初の上限は100。
 好感度が現在の上限に達した状態で喜ばれる贈り物（通常品）を1個贈ると、パーフェクトリンクの段階が1つ上がり上限が100増えます。100でⅠ・上限200、200でⅡ・上限300、300でⅢ・上限400という形で継続。到達しただけでは段階は上がらず、レアでも上がりません。節目の1個は消費して好感度＋0、次の贈答から再び増えます。パーフェクトリンク後も贈れます。既存の達成済みはⅠとして引き継ぎます。
 お気に入り設定中は日本時間で日付が変わるごとに＋1。操作時に経過日数分を段階の上限まで反映し、日次加算だけでパーフェクトリンクの段階は上げません。最初のパーフェクトリンクは100の状態で喜ばれる贈り物を贈ると達成し、2段階目以降は従来どおり喜ばれる通常品が必要です。衣装変更では継続、別人への変更・解除では加算対象を区切ります。
 好感度・パーフェクトリンク・記念日は本人単位で保持され、変更や解除でも失われません。
@@ -118,12 +118,10 @@ def gift_fact_answer(text, favorite=None, reply_to=''):
     if len(people) != 1:
         return '誰への贈り物か、プログレスの名前を教えてくれ！ `/お気に入り プレゼント`でも今のお気に入りに喜ばれる贈り物を確認できるぜ。'
     person = people[0]
-    categories = preferred_categories(person)
-    if not categories:
+    items = preferred_items(person)
+    if not items:
         return f'{george_name(person)}に喜ばれる贈り物は確認できなかったぜ。名前を確認してくれ！'
     lines = [f'{george_name(person)}に喜ばれる贈り物はこれだぜ！']
-    for key in categories:
-        label, items = CATEGORIES[key]
-        lines.append(f'【{label}】' + '・'.join(ITEMS[item][1] for item in items))
+    lines.append('・'.join(ITEMS[item][1] for item in items))
     lines.append('このBotのプレゼントで喜ばれる品物だぜ。原作の好きなものとは区別してくれな！')
     return '\n'.join(lines)

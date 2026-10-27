@@ -27,22 +27,31 @@ class PresentRulesTests(unittest.TestCase):
         self.assertEqual(affection_gain('ロザリー', 'magic'), 5)
         self.assertEqual(affection_gain('不明な人物', 'game'), 2)
 
-    def test_seven_categories_cover_all_characters_and_both_items_are_preferred(self):
-        from present_catalog import CATEGORIES, preferred_categories, preferred_items
+    def test_item_preferences_cover_all_characters_without_category_expansion(self):
+        from present_catalog import CATEGORIES, preferred_items, NORMAL_ITEMS
+        from present_preferences import PREFERENCES
         from progress import progressData
         self.assertEqual(len(CATEGORIES), 7)
         self.assertTrue(all(len(items) == 2 for _, items in CATEGORIES.values()))
         self.assertEqual(len(ITEMS), 15)
         for person in progressData:
             name = person['progressName']
-            categories = preferred_categories(name)
-            self.assertIn(len(categories), (1, 2), name)
-            self.assertEqual(set(preferred_items(name)), {item for category in categories for item in CATEGORIES[category][1]})
+            items = preferred_items(name)
+            self.assertTrue(items, name)
+            self.assertEqual(len(items), len(set(items)), name)
+            self.assertTrue(set(items) <= set(NORMAL_ITEMS), name)
             for item in preferred_items(name):
                 self.assertEqual(affection_gain(name, item), 5, (name, item))
             self.assertEqual(affection_gain(name, 'rare'), 10)
         self.assertEqual(preferred_items('美海'), preferred_items('日向美海'))
         self.assertEqual(preferred_items('不明な人物'), ())
+        self.assertEqual(set(PREFERENCES), {person['progressName'] for person in progressData})
+        self.assertEqual(affection_gain('ロザリー', 'tools'), 2)
+        self.assertEqual(affection_gain('ロザリー', 'mirror'), 5)
+        self.assertEqual(affection_gain('マリル', 'tools'), 5)
+        self.assertEqual(affection_gain('マリル', 'magic'), 2)
+        self.assertEqual(affection_gain('神薙千鳥', 'music'), 5)
+        self.assertEqual(affection_gain('神薙千鳥', 'game'), 2)
 
     def test_quiz_rare_chances_by_attempts(self):
         for attempts, rate in [(1, 10), (2, 5), (3, 4), (4, 3)]:
@@ -258,10 +267,12 @@ class StorageTests(unittest.TestCase):
         self.db.execute("INSERT INTO george_affection VALUES (42,'ロザリー',99)")
         self.db.execute("INSERT INTO george_present_items VALUES (42,'rare',1)")
         self.db.execute("INSERT INTO george_present_items VALUES (42,'food',1)")
+        self.db.execute("INSERT INTO george_present_items VALUES (42,'tools',1)")
         self.db.commit()
         self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (1, 100, 0))
         self.assertEqual(self.store.give(42, 201, 'ロザリー', 'rare'), (0, 100, 0))
         self.assertEqual(self.store.give(42, 202, 'ロザリー', 'food'), (0, 100, 0))
+        self.assertEqual(self.store.give(42, 250, 'ロザリー', 'tools'), (0, 100, 0))
         self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
         self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
         self.assertEqual(self.store.inventory(42), {'magic': 3})

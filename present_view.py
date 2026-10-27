@@ -7,7 +7,7 @@ import discord
 from presents import ITEMS, affection_display, affection_limit, link_label
 from database import MemoryUnavailable
 from title_notifications import notify_titles
-from present_catalog import CATEGORIES, preferred_categories, preferred_items
+from present_catalog import preferred_labels, preferred_items
 from progress_profiles import profile_for, george_name
 
 
@@ -58,7 +58,7 @@ class PresentView(discord.ui.View):
         show_instruction = status is None
         if status is None:
             status = ''
-        likes = '、'.join(CATEGORIES[key][0] for key in preferred_categories(self.character)) or '設定なし'
+        likes = preferred_labels(self.character)
         embed = discord.Embed(title=f'{self.character}にプレゼント', color=0xE2AD48,
             description=(f'{status}\n\n' if status else '') + f'好感度：{affection_display(self.points, self.perfect)}\n\n喜ばれる贈り物：{likes}')
         limit = affection_limit(self.perfect)

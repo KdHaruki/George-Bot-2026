@@ -18,7 +18,7 @@ class FeatureQATests(unittest.TestCase):
 
     def test_followup_subject_and_item_values(self):
         answer, topic, person = resolve('ロザリーには何あげたら喜ぶ？')
-        self.assertIn('魔法・機械', answer)
+        self.assertIn('魔道書', answer)
         answer, topic, person = resolve('美海は？', previous_topic=topic, previous_person=person)
         self.assertEqual(person, '日向美海')
         answer, _, _ = resolve('紅茶でも＋5？', previous_topic='gifts', previous_person='ロザリー')
@@ -70,7 +70,7 @@ class FeatureRoutingTests(unittest.IsolatedAsyncioTestCase):
         chat, generate = self.make_chat('unused')
         chat.client = None
         answer = await chat.reply((1, 42), 'ロザリーに喜ばれる贈り物は？')
-        self.assertIn('魔法・機械', answer)
+        self.assertIn('魔道書', answer)
         answer = await chat.reply((1, 43), 'その子に喜ばれる贈り物は何？')
         self.assertIn('名前を教えて', answer)
         self.assertNotIn('ロザリー', answer)
