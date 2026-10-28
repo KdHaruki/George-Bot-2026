@@ -366,6 +366,9 @@ async def reply_to_addressed_message(message, target, reacted, feature):
                 async with message.channel.typing():
                     favorite = await conversation_favorite(client, message.author.id)
                     options = {'favorite': favorite} if favorite else {}
+                    display_name = getattr(message.author, 'display_name', None) or getattr(message.author, 'name', None)
+                    if display_name:
+                        options['user_name'] = display_name
                     answer = await client.george_chat.reply(key, text,
                                                            reply_to=target.content if target is not None else '', **options)
         except MemoryUnavailable as exc:

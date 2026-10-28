@@ -36,6 +36,16 @@ class ReplyTests(unittest.IsolatedAsyncioTestCase):
         fake.george_chat.reply.assert_awaited_once_with((1, 5), message.content, reply_to="今日は楽しかったぜ！")
         message.channel.send.assert_awaited_once()
 
+    async def test_discord_display_name_is_forwarded_to_conversation(self):
+        message = self.message()
+        message.author.display_name = '春樹'
+        fake = SimpleNamespace(user=SimpleNamespace(id=99),
+                               george_chat=SimpleNamespace(reply=AsyncMock(return_value='散歩してきたぜ！')),
+                               ambient=SimpleNamespace(note_reply=Mock()))
+        with patch.object(main, 'client', fake), patch('main.random.random', return_value=1):
+            await main.on_message(message)
+        self.assertEqual(fake.george_chat.reply.call_args.kwargs['user_name'], '春樹')
+
     async def test_image_only_reply_is_not_read_or_forwarded(self):
         message = self.message()
         message.content = ""

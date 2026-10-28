@@ -56,6 +56,23 @@ class GeorgeChatTests(unittest.IsolatedAsyncioTestCase):
         self.generate = AsyncMock(return_value=SimpleNamespace(text="こんにちはだぜ！"))
         self.chat.client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=self.generate)))
 
+    async def test_account_display_name_is_used_without_gender_inference(self):
+        self.generate.return_value = SimpleNamespace(text='__USER_NAME__、楽しそうだな！')
+        answer = await self.chat.reply((1, 42), '今日は散歩したよ', user_name='春樹')
+        self.assertEqual(answer, '春樹、楽しそうだな！')
+        instruction = self.generate.call_args.kwargs['config'].system_instruction
+        self.assertIn('"display_name": "春樹"', instruction)
+        self.assertIn('性別や性格は推測しません', instruction)
+        self.generate.return_value = SimpleNamespace(text='よう、かわいこちゃん！ 楽しそうだな！')
+        answer = await self.chat.reply((1, 43), '今日は散歩したよ', user_name='ロザリー')
+        self.assertEqual(answer, 'ロザリー！ 楽しそうだな！')
+        self.assertNotIn('__USER_NAME__', answer)
+
+    async def test_account_address_does_not_replace_progress_description(self):
+        self.generate.return_value = SimpleNamespace(text='ロザリーは手品が好きなかわいこちゃんだぜ！')
+        answer = await self.chat.reply((1, 42), '今日は散歩したよ', user_name='春樹')
+        self.assertIn('かわいこちゃんだぜ', answer)
+
     async def test_gift_preferences_match_ui_for_current_favorite(self):
         answer = await self.chat.reply((1, 42), 'その子に喜ばれる贈り物ってなに？', favorite={'character': 'ロザリー'})
         self.assertIn('リボン', answer)
