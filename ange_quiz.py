@@ -9,6 +9,7 @@ from progress import progressData
 from presents import ITEMS
 from database import MemoryUnavailable
 from title_notifications import notify_titles
+from result_sharing import ShareView
 
 
 HINT_FIELDS = [('progressWorld', '出身世界'), ('progressLike', '好きなもの'),
@@ -96,7 +97,7 @@ class QuizView(discord.ui.View):
                 for item in self.children:
                     item.disabled = True
                 button.style = discord.ButtonStyle.success
-                status = f'正解！ {name}だぜ！（{self.attempts}回目）'
+                status = f'正解！ {name}だぜ！（ヒント{self.attempts}回目）'
                 self.stop()
                 if self.reward_store is not None:
                     try:
@@ -116,7 +117,15 @@ class QuizView(discord.ui.View):
                 status = '惜しい！ ヒントを追加したぜ。もう一度選んでくれ！'
             if streak_failed:
                 status += '\n連続正解の記録を保存できなかったぜ。次の挑戦時に確認してくれ。'
-            await interaction.edit_original_response(embed=self.embed(status), view=self)
+            result = self.embed(status)
+            shown_view = self
+            if self.finished:
+                snapshot = result.copy()
+                shown_view = ShareView(self.user_id, lambda: ([snapshot.copy()], []),
+                                       enabled=getattr(interaction, 'guild', None) is not None,
+                                       channel_id=getattr(getattr(interaction, 'channel', None), 'id', None))
+                shown_view.message = self.message
+            await interaction.edit_original_response(embed=result, view=shown_view)
             if self.finished:
                 await notify_titles(interaction, self.reward_store)
 

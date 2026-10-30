@@ -8,6 +8,7 @@ from favorite_album import JST
 from title_notifications import notify_titles, title_icon
 from title_core import title_condition
 from datetime import datetime
+from result_sharing import ShareButton, ShareState
 
 
 class TitleView(discord.ui.View):
@@ -21,6 +22,7 @@ class TitleView(discord.ui.View):
         self.page, self.selected = 0, None
         self.lock = asyncio.Lock()
         self.expired, self.message = False, None
+        self.share_states = {}
         self.build()
 
     def build(self):
@@ -58,6 +60,16 @@ class TitleView(discord.ui.View):
         self.add_item(equip)
         self.add_item(remove)
         self.add_navigation()
+        if self.selected:
+            selected = next((row for row in self.titles if row[0] == self.selected), None)
+            if selected:
+                key, name, acquired = selected
+                day = acquired.astimezone(JST).strftime('%Y年%m月%d日') if isinstance(acquired, datetime) else '未記録'
+                snapshot = discord.Embed(title=f'{title_icon(key)} {name}',
+                    description=f'{title_condition(key)}\n獲得日：{day}', color=0xE2AD48)
+                state = self.share_states.setdefault(key, ShareState())
+                self.add_item(ShareButton(self.user_id, lambda: ([snapshot.copy()], []),
+                    label='この称号をみんなに公開', enabled=self.guild is not None, state=state, row=4))
 
     def add_navigation(self):
         for label, mode in [('獲得済み', 'earned'), ('未獲得', 'pending')]:

@@ -399,7 +399,7 @@ class ResultCommentTests(unittest.TestCase):
 
 class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
     async def test_short_and_empty_lists_omit_view_instead_of_passing_none(self):
-        card = Gacha().pools['vierge']['UR'][0]
+        card = next(card for card in Gacha().pools['vierge']['UR'] if card.character == 'ロザリー')
         store = SimpleNamespace(url='test', owned=Mock(return_value=[]))
         client, tree, interaction = self.objects(store)
         async def validate_send(**kwargs):
@@ -409,7 +409,12 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         for rows in ([], [('vierge', card, 1)]):
             store.owned.return_value = rows
             await tree.get_command('所持カード').callback(interaction, 'ロザリー')
-            self.assertNotIn('view', interaction.followup.send.call_args.kwargs)
+            options = interaction.followup.send.call_args.kwargs
+            if rows:
+                self.assertIsInstance(options['view'], discord.ui.View)
+                options['view'].stop()
+            else:
+                self.assertNotIn('view', options)
         store.owned.return_value = [('vierge', value, 1) for value in [card for card in Gacha().pools['vierge']['UR'] if 'ア' in card.character][:11]]
         await tree.get_command('所持カード').callback(interaction, 'ア')
         view = interaction.followup.send.call_args.kwargs['view']
@@ -522,7 +527,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         client = discord.Client(intents=discord.Intents.default())
         bot = SimpleNamespace(tree=app_commands.CommandTree(client), present_store=SimpleNamespace(affection_status=Mock(return_value=(0, False)), album=Mock(return_value=(None, None, None))))
         register_gacha_commands(bot, store)
-        interaction = SimpleNamespace(id=100, user=SimpleNamespace(id=10),
+        interaction = SimpleNamespace(id=100, user=SimpleNamespace(id=10), guild=None,
                                       response=SimpleNamespace(defer=AsyncMock(), send_message=AsyncMock()),
                                       followup=SimpleNamespace(send=AsyncMock()))
         return client, bot.tree, interaction

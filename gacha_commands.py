@@ -6,8 +6,10 @@ import math
 import logging
 from operation_logging import event as log_event
 import random
+import re
 from discord import app_commands
 from discord_layout import space_headings
+from result_sharing import ShareButton, ShareView
 
 from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
 from gacha_collection import CollectionStore
@@ -27,17 +29,22 @@ INVENTORY_RARITY = {'UR': 'ＵＲ', 'SR': 'ＳＲ', 'HR': 'ＨＲ', 'R': 'Ｒ',
 
 
 class CardListView(discord.ui.View):
-    def __init__(self, owner_id, lines, title):
+    def __init__(self, owner_id, lines, title, *, can_share=False):
         super().__init__(timeout=180)
         self.owner_id, self.lines, self.title = owner_id, lines, title
         self.page = 0
         self.pages = math.ceil(len(lines) / 10)
+        self.message = None
         self.previous = discord.ui.Button(label='前へ', disabled=True)
         self.next = discord.ui.Button(label='次へ', disabled=self.pages <= 1)
         self.previous.callback = self.go_previous
         self.next.callback = self.go_next
         self.add_item(self.previous)
         self.add_item(self.next)
+        pages = [discord.Embed(title=title, description='\n'.join(lines[offset:offset + 10]), color=0xE2AD48)
+                 for offset in range(0, len(lines), 10)]
+        self.add_item(ShareButton(owner_id, lambda: ([page.copy() for page in pages], []),
+                                  label='所持カードを全ページ公開', enabled=can_share))
 
     def embed(self):
         return discord.Embed(title=self.title, description='\n'.join(self.lines[self.page * 10:(self.page + 1) * 10]), color=0xE2AD48)
@@ -56,6 +63,15 @@ class CardListView(discord.ui.View):
 
     async def go_next(self, interaction):
         await self.move(interaction, 1)
+
+    async def on_timeout(self):
+        for button in self.children:
+            button.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
 
 
 def favorite_details(card):
@@ -105,6 +121,7 @@ def collection_facts(game, cards, saved=None, favorite=None, rapid_count=0):
         elif any(character_key(card.character) == character_key(picked.character) for card in cards):
             relation = 'same_character_other_card'
     return dict(action='draw', game=RULES[game].name, rapid_count=rapid_count,
+                batch_card_count=len(cards),
                 rapid_draws=rapid_count >= 3, free_simulator=True,
                 highest_count=sum(card.rarity == RULES[game].normal[0][0] for card in cards),
                 cards=[dict(name=card.name, character=card.character, rarity=card.rarity) for card in cards],
@@ -128,8 +145,8 @@ def gacha_comment(game, cards, saved=None, favorite=None, rapid_count=0):
         ]))
     if facts['rapid_draws']:
         special.append(random.choice([
-            'そんなにお目当ての子を引きたいのかい？ 球筋に出てるぜ！',
-            '今日は良いことでもあったのか？ 球筋に出てるぜ！',
+            f"立て続けに{rapid_count}回も！ お目当ての子に早く会いたいんだな？ 球筋に出てるぜ！",
+            f"もう{rapid_count}回目だな！ 今日は良いことでもあったのか？ 球筋に出てるぜ！",
         ]))
     if special:
         return ' '.join(special)[:140]
@@ -148,6 +165,20 @@ def gacha_comment(game, cards, saved=None, favorite=None, rapid_count=0):
     if saved is not None:
         return random.choice(['今回は持っている顔ぶれだったな。集めた枚数はしっかり増えたぜ！', 'おなじみの顔ぶれが来たぜ！'])
     return random.choice(['今回はこんな顔ぶれだぜ！ 気になる子はいたか？', '結果が出たぜ！ どのかわいこちゃんもじっくり見てみな！'])
+
+
+def rapid_comment_counts_match(facts, answer):
+    """Reject a rapid-run count mistaken for the number of cards drawn."""
+    if not facts.get('rapid_draws'):
+        return True
+    if not re.search(rf"(?<!\d){facts['rapid_count']}回", answer):
+        return False
+    # Card quantities may refer to the batch, a rarity, a character or new cards.
+    cards = facts['cards']
+    valid = {facts['batch_card_count'], facts['highest_count'], facts.get('new_count')}
+    for field in ('rarity', 'character'):
+        valid.update(sum(card[field] == value for card in cards) for value in {card[field] for card in cards})
+    return all(int(number) in valid for number in re.findall(r'(\d+)枚', answer))
 
 
 def result_embed(engine, game, cards, saved=None, favorite=None, batch_counts=None, on_day=None):
@@ -228,6 +259,9 @@ def register_gacha_commands(bot, store=None):
                             return fallback
                         if facts.get('rapid_draws') and '球筋に出てるぜ' not in answer:
                             log_event('AI・ガチャの一言', '定型文に切り替え', reason='連続ガチャの決め台詞がない')
+                            return fallback
+                        if not rapid_comment_counts_match(facts, answer):
+                            log_event('AI・ガチャの一言', '定型文に切り替え', reason='ガチャの回数とカード枚数が正しく区別されていない')
                             return fallback
                     return answer
             return await asyncio.wait_for(generate(), timeout=12)
@@ -337,10 +371,16 @@ def register_gacha_commands(bot, store=None):
         lines = [f"`【{INVENTORY_RARITY[card.rarity]}】` {discord.utils.escape_markdown(card.label)}" + f' — **{count}枚**'
                  for game, card, count in rows]
         empty = '該当するカードはまだないぜ！ `/ガチャ`で集めてみてくれ。'
-        view = CardListView(interaction.user.id, lines, '所持カード') if len(lines) > 10 else None
+        view = CardListView(interaction.user.id, lines, '所持カード', can_share=getattr(interaction, 'guild', None) is not None) if len(lines) > 10 else None
         embed = view.embed() if view else discord.Embed(title='所持カード', description='\n'.join(lines) or empty, color=0xE2AD48)
+        if view is None and lines:
+            snapshot = embed.copy()
+            view = ShareView(interaction.user.id, lambda: ([snapshot.copy()], []), enabled=getattr(interaction, 'guild', None) is not None)
         options = {'view': view} if view is not None else {}
-        await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none(), **options)
+        message = await interaction.followup.send(embed=space_headings(embed), ephemeral=True, wait=True,
+            allowed_mentions=discord.AllowedMentions.none(), **options)
+        if view is not None:
+            view.message = message
 
     async def progress_autocomplete(interaction: discord.Interaction, current: str):
         try:
@@ -430,7 +470,21 @@ def register_gacha_commands(bot, store=None):
                 embed.add_field(name='【アルバム】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
             # Show existing local art only; never fetch the Wiki during a command.
             art = card if game == 'relink' and card.rarity == '★3' else None
-            await interaction.followup.send(embed=space_headings(embed), ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+            snapshot = space_headings(embed).copy()
+            def public_favorite():
+                files = presentation_files([art]) if art is not None else []
+                try:
+                    images = star3_embeds([art])[:1] if files else []
+                except Exception:
+                    for file in files:
+                        file.close()
+                    raise
+                for image in images:
+                    image.title = favorite_card_label(art)
+                return [snapshot.copy(), *images], files
+            share = ShareView(interaction.user.id, public_favorite, enabled=getattr(interaction, 'guild', None) is not None)
+            share.message = await interaction.followup.send(embed=snapshot, view=share, wait=True,
+                ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
             await notify_titles(interaction, getattr(bot, 'title_store', None))
             if art is not None:
                 files = presentation_files([art])
