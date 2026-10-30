@@ -10,6 +10,7 @@ import re
 from discord import app_commands
 from discord_layout import space_headings
 from result_sharing import ShareButton, ShareView
+from relink_presentations import local_image
 
 from gacha import BATCH_GUARANTEE, Card, Gacha, RULES
 from gacha_collection import CollectionStore
@@ -95,6 +96,20 @@ def favorite_matches(rows, query):
     return exact or [row for row in rows if query and query in normalize(character_key(row[1].character))]
 
 
+def favorite_art(engine, character):
+    cards = [card for card in engine.pools['relink']['★3']
+             if character_key(card.character) == character_key(character) and local_image(card.id)]
+    # Prefer a uniform where available, otherwise retain the catalogue's stable order.
+    return next((card for card in cards if '制服' in card.label), cards[0] if cards else None)
+
+
+def owned_card_lines(rows):
+    rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 0, '★2': 1, '★1': 2}
+    rows = sorted(rows, key=lambda row: (rank.get(row[1].rarity, 9), row[0], row[1].character, row[1].label, row[1].id))
+    return [f"`【{INVENTORY_RARITY[card.rarity]}】` {discord.utils.escape_markdown(card.label)} — **{count}枚**"
+            for _, card, count in rows]
+
+
 def draw_highlights(cards):
     from collections import Counter
     counts = Counter(character_key(card.character) for card in cards)
@@ -136,8 +151,7 @@ def gacha_comment(game, cards, saved=None, favorite=None, rapid_count=0):
     special = []
     if facts['favorite_relation'] != 'none':
         name = george_name(facts['favorite_character'])
-        special.append(f'お気に入りの{name}が来たぜ！' if facts['favorite_relation'] == 'exact_card' else
-                       f'お気に入りの{name}だ！ 別の一枚もうれしいな！')
+        special.append(f'お気に入りの{name}が来たぜ！')
     if facts['highest_count'] >= 2:
         special.append(random.choice([
             f"{facts['highest']}が{facts['highest_count']}枚！ 見事な引きだぜ！",
@@ -392,33 +406,14 @@ def register_gacha_commands(bot, store=None):
                         if query in normalize(character_key(card.character)) or query in normalize(card.character)})
         return [app_commands.Choice(name=name[:100], value=name) for name in names[:25]]
 
-    async def favorite_card_autocomplete(interaction: discord.Interaction, current: str):
-        progress = getattr(getattr(interaction, 'namespace', None), 'プログレス', None)
-        if not progress:
-            return []
-        try:
-            rows = await asyncio.wait_for(asyncio.to_thread(store.owned, interaction.user.id), timeout=2)
-        except (MemoryUnavailable, asyncio.TimeoutError):
-            return []
-        rows = favorite_matches(rows, progress)
-        if len({character_key(card.character) for _, card, _ in rows}) != 1:
-            return []
-        rank = {'UR': 0, 'SR': 1, 'HR': 2, 'R': 3, '★3': 4, '★2': 5, '★1': 6}
-        query = normalize(current)
-        rows.sort(key=lambda row: (rank.get(row[1].rarity, 9), row[1].label, row[1].id))
-        return [app_commands.Choice(name=favorite_card_label(card)[:100], value=f'{game}:{card.id}')
-                for game, card, _ in rows if query in normalize(favorite_card_label(card))][:25]
-
     favorite_group = app_commands.Group(name='お気に入り', description='プログレスの登録・確認・プレゼント')
     bot.tree.add_command(favorite_group)
 
-    @favorite_group.command(name='プログレス登録', description='プログレスとカードを選んで登録（同じカードの再指定で解除）')
-    @app_commands.describe(プログレス='所持しているプログレス名。2作品共通の名前で検索',
-                          カード='レアリティ・衣装を候補から選択。同じカードを再指定すると解除')
-    @app_commands.autocomplete(プログレス=progress_autocomplete, カード=favorite_card_autocomplete)
-    async def favorite_command(interaction: discord.Interaction, プログレス: app_commands.Range[str, 1, 100],
-                               カード: app_commands.Range[str, 1, 100]):
-        await show_favorite(interaction, プログレス, カード)
+    @favorite_group.command(name='プログレス登録', description='プログレス名だけで登録（同じプログレスの再指定で解除）')
+    @app_commands.describe(プログレス='所持しているプログレス名。同じプログレスの再指定で解除')
+    @app_commands.autocomplete(プログレス=progress_autocomplete)
+    async def favorite_command(interaction: discord.Interaction, プログレス: app_commands.Range[str, 1, 100]):
+        await show_favorite(interaction, プログレス)
 
     @favorite_group.command(name='プログレス確認', description='お気に入りのプロフィール・好感度・アルバムを確認')
     async def favorite_view(interaction: discord.Interaction):
@@ -428,7 +423,7 @@ def register_gacha_commands(bot, store=None):
     async def favorite_present(interaction: discord.Interaction):
         await open_presents(interaction, presents)
 
-    async def show_favorite(interaction, プログレス=None, カード=None):
+    async def show_favorite(interaction, プログレス=None):
         await interaction.response.defer(ephemeral=True)
         try:
             if プログレス is not None:
@@ -439,11 +434,10 @@ def register_gacha_commands(bot, store=None):
                     raise ValueError('そのプログレスはまだ持っていないぜ。所持している名前を指定してくれ！')
                 if len(names) > 1:
                     raise ValueError('複数のプログレスが見つかったぜ。候補から名前を選び直してくれ！')
-                picked = next((row for row in matches if f'{row[0]}:{row[1].id}' == カード), None)
-                if picked is None:
-                    raise ValueError('その子の所持カードを「カード」の候補から選んでくれ！')
+                # Persist an owned anchor for compatibility with existing affection/title data.
+                picked = sorted(matches, key=lambda row: (row[0], row[1].id))[0]
                 game, card, _ = picked
-                selected = await asyncio.to_thread(store.set_favorite, interaction.user.id, game, card.id, toggle=True)
+                selected = await asyncio.to_thread(store.set_favorite, interaction.user.id, game, card.id, toggle='character')
                 if selected is None:
                     await interaction.followup.send('お気に入りを解除したぜ。所持カードや枚数はそのままだぞ！', ephemeral=True)
                     await notify_titles(interaction, getattr(bot, 'title_store', None))
@@ -454,8 +448,10 @@ def register_gacha_commands(bot, store=None):
                 await interaction.followup.send('お気に入りはまだないぜ。`/お気に入り プログレス登録`でプログレスを選んでくれ！', ephemeral=True)
                 return
             game, card, count = selected
+            rows = await asyncio.to_thread(store.owned, interaction.user.id)
+            character_rows = [row for row in rows if character_key(row[1].character) == character_key(card.character)]
             embed = discord.Embed(title='⭐ お気に入り' + ('を登録したぜ！' if プログレス else ''),
-                                  description=f'**{discord.utils.escape_markdown(favorite_card_label(card))}**\n{RULES[game].name}｜所持{count}枚', color=0xE2AD48)
+                                  description=f'**{discord.utils.escape_markdown(character_key(card.character))}**', color=0xE2AD48)
             introduction = favorite_details(card)
             embed.add_field(name='【ジョージのプログレス紹介】', value=discord.utils.escape_markdown(introduction)[:1024], inline=False)
             try:
@@ -468,8 +464,18 @@ def register_gacha_commands(bot, store=None):
                 embed.add_field(name='【アルバム】', value=album_display(dates), inline=False)
             except MemoryUnavailable:
                 embed.add_field(name='【アルバム】', value='保存先を確認できなかったぜ。あとでもう一度試してくれ。', inline=False)
-            # Show existing local art only; never fetch the Wiki during a command.
-            art = card if game == 'relink' and card.rarity == '★3' else None
+            lines = owned_card_lines(character_rows)
+            chunks, chunk = [], ''
+            for line in lines:
+                if chunk and len(chunk) + len(line) + 1 > 1000:
+                    chunks.append(chunk)
+                    chunk = ''
+                chunk += ('\n' if chunk else '') + line
+            chunks.append(chunk or '所持カードはまだないぜ。')
+            for index, text in enumerate(chunks):
+                embed.add_field(name='【所持カード】' if index == 0 else '【所持カード（続き）】', value=text, inline=False)
+            # The character's saved Relink artwork is independent of owned rarity/outfit.
+            art = favorite_art(engine, card.character)
             snapshot = space_headings(embed).copy()
             def public_favorite():
                 files = presentation_files([art]) if art is not None else []

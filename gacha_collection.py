@@ -188,7 +188,12 @@ class CollectionStore(DatabaseStore):
             settle_daily(connection, user_id)
             if toggle:
                 current = connection.execute('SELECT game,card_id FROM george_gacha_favorites WHERE user_id=%s', (user_id,)).fetchone()
-                if current == (game, card_id):
+                same = current == (game, card_id)
+                if toggle == 'character' and current and not same:
+                    previous = connection.execute('SELECT card,quantity FROM george_gacha_cards WHERE user_id=%s AND game=%s AND card_id=%s',
+                                                  (user_id, *current)).fetchone()
+                    same = bool(previous and character_key(previous[0]['character']) == character_key(row[0]['character']))
+                if same:
                     start_daily(connection, user_id, None)
                     connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,))
                     return None

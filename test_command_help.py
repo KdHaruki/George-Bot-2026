@@ -74,7 +74,7 @@ class HelpTests(unittest.TestCase):
             text = embed.fields[1].value.removesuffix('\n\u200b') + '\n\n' + embed.fields[2].value
             examples = ['/ガチャ アンジュ・ヴィエルジュ',
                         '/ガチャ アンジュ・リリンク', '/おみくじ', '/ガチャ確率', '/クイズ', '/所持カード ロザリー', '/プログレス ロザリー',
-                        '/お気に入り プログレス登録 ロザリー カード', '/お気に入り プログレス確認', '/お気に入り プレゼント',
+                    '/お気に入り プログレス登録 ロザリー', '/お気に入り プログレス確認', '/お気に入り プレゼント',
                         '/称号', '/ヘルプ']
             self.assertEqual([block.split('`')[1] for block in text.split('\n\n')], examples)
             self.assertNotIn('★', str(embed.to_dict()))

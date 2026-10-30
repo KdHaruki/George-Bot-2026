@@ -53,7 +53,8 @@ class StoreTests(unittest.TestCase):
                     yield connection
                 store = CollectionStore('test')
                 profiles = [{'progressWorld': '緑'}] * green_count + [None] * (len(cards) - green_count)
-                with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record, patch('gacha_collection.profile_for', side_effect=profiles):
+                guaranteed = next(card for card in engine.pools[game][RULES[game].normal[0][0]] if card.character != '小鳥遊希美')
+                with patch.object(store, 'connect', connect), patch('gacha_collection.record_event') as record, patch('gacha_collection.profile_for', side_effect=profiles), patch('gacha_collection.Gacha.choose_card', return_value=guaranteed):
                     store.save_draw(42, game, 900, cards)
                     if green_count >= 7:
                         record.assert_called_once_with(connection, 42, 'all-green:900', 'all_green', game=game, count=len(cards), green_count=green_count)
@@ -155,6 +156,8 @@ class StoreTests(unittest.TestCase):
             self.assertIsNone(current[0])
             current[0] = ('relink', card.id)
             self.assertIsNotNone(store.set_favorite(10, 'vierge', card.id, toggle=True))
+            current[0] = ('relink', card.id)
+            self.assertIsNone(store.set_favorite(10, 'vierge', card.id, toggle='character'))
         self.assertFalse(any('DELETE FROM george_gacha_cards' in call.args[0] for call in connection.execute.call_args_list))
 
     def test_vierge_migration_merges_variants_and_moves_favorite_once(self):
@@ -368,7 +371,8 @@ class ResultCommentTests(unittest.TestCase):
             exact = gacha_comment('vierge', [favorite], favorite=('vierge', favorite, 2))
             self.assertIn('お気に入りのロザリー', exact)
             other = gacha_comment('vierge', [variant], favorite=('vierge', favorite, 2))
-            self.assertIn('別の一枚', other)
+            self.assertIn('お気に入り', other)
+            self.assertNotIn('別の一枚', other)
             unrelated = gacha_comment('relink', [Card('fav', 'ロザリー', '別作品', '★1')], favorite=('vierge', favorite, 2))
             self.assertIn('お気に入り', unrelated)
 
@@ -483,10 +487,10 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any('からの一言' in field.name for field in details.fields))
         self.assertNotIn('（原作台詞）', str(details.to_dict()))
         self.assertNotIn('（AI生成）', str(details.to_dict()))
-        self.assertFalse(any('files' in call.kwargs for call in interaction.followup.send.call_args_list))
+        # Artwork is now selected by character rather than the registered anchor card.
         await client.close()
 
-    async def test_favorite_selects_exact_card_and_repeating_card_removes(self):
+    async def test_favorite_selects_character_only_and_repeating_character_removes(self):
         engine = Gacha()
         low = next(card for card in engine.pools['vierge']['R'] if card.character == 'ロザリー')
         high = next(card for card in engine.pools['relink']['★3'] if card.character == 'ロザリー')
@@ -499,18 +503,18 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         store = SimpleNamespace(url='test', owned=Mock(return_value=rows), favorite=Mock(side_effect=lambda uid: state[0]), set_favorite=Mock(side_effect=set_favorite))
         client, tree, interaction = self.objects(store)
         command = tree.get_command('お気に入り').get_command('プログレス登録')
-        self.assertEqual([p.name for p in command.parameters], ['プログレス', 'カード'])
+        self.assertEqual([p.name for p in command.parameters], ['プログレス'])
         autocomplete = command._params['プログレス'].autocomplete
         choices = await autocomplete(interaction, 'ロザ')
         self.assertEqual([choice.value for choice in choices], ['ロザリー'])
-        await command.callback(interaction, 'ロザリー', f'relink:{high.id}')
-        self.assertEqual(state[0], ('relink', high, 2))
+        await command.callback(interaction, 'ロザリー')
+        self.assertIsNotNone(state[0])
         await tree.get_command('お気に入り').get_command('プログレス確認').callback(interaction)
-        self.assertEqual(state[0], ('relink', high, 2))
-        await command.callback(interaction, 'ロザリー', f'relink:{high.id}')
+        self.assertIsNotNone(state[0])
+        await command.callback(interaction, 'ロザリー')
         self.assertIsNone(state[0])
         self.assertIn('解除', interaction.followup.send.call_args.args[0])
-        await command.callback(interaction, '未所持の名前', f'relink:{high.id}')
+        await command.callback(interaction, '未所持の名前')
         self.assertIn('まだ持っていない', interaction.followup.send.call_args.args[0])
         self.assertIsNone(tree.get_command('未所持カード'))
         self.assertIn('プログレス', [p.name for p in tree.get_command('所持カード').parameters])
@@ -532,52 +536,35 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
                                       followup=SimpleNamespace(send=AsyncMock()))
         return client, bot.tree, interaction
 
-    async def test_favorite_unifies_names_and_selects_each_costume_image(self):
+    async def test_favorite_uses_character_art_and_lists_both_games(self):
+        from gacha_commands import favorite_art
         engine = Gacha()
         vierge = next(c for c in engine.pools['vierge']['UR'] if c.character == '日向美海')
-        swim = next(c for c in engine.pools['relink']['★3'] if c.character == '美海' and 'レジャータイム' in c.name)
-        uniform = next(c for c in engine.pools['relink']['★3'] if c.character == '美海' and '制服' in c.name)
-        other = next(c for c in engine.pools['relink']['★3'] if c.character == 'ロザリー')
-        rows = [('vierge', vierge, 1), ('relink', swim, 1), ('relink', uniform, 1), ('relink', other, 1)]
-        state = [None]
-
-        def save(uid, game, card_id, toggle=False):
-            chosen = next(r for r in rows if r[0] == game and r[1].id == card_id)
-            state[0] = None if chosen == state[0] else chosen
-            return state[0]
-
+        # A retained low-rarity card with the old short name still belongs to the same person.
+        relink = Card('legacy-miumi', '美海', '美海', '★1')
+        rows = [('vierge', vierge, 2), ('relink', relink, 3)]
         store = SimpleNamespace(url='test', owned=Mock(return_value=rows),
-            favorite=Mock(side_effect=lambda uid: state[0]), set_favorite=Mock(side_effect=save))
+            favorite=Mock(return_value=('vierge', vierge, 2)), set_favorite=Mock(return_value=('vierge', vierge, 2)))
         client, tree, interaction = self.objects(store)
         self.addAsyncCleanup(client.close)
         command = tree.get_command('お気に入り').get_command('プログレス登録')
+        self.assertEqual([p.name for p in command.parameters], ['プログレス'])
         names = await command._params['プログレス'].autocomplete(interaction, '美海')
         self.assertEqual([c.value for c in names], ['日向美海'])
-        interaction.namespace = SimpleNamespace(プログレス='日向美海')
-        cards = await command._params['カード'].autocomplete(interaction, '')
-        self.assertEqual({c.value for c in cards}, {f'{game}:{card.id}' for game, card, _ in rows[:3]})
-        self.assertTrue(all('日向美海' in c.name for c in cards))
-        filtered = await command._params['カード'].autocomplete(interaction, '制服')
-        self.assertEqual([c.value for c in filtered], [f'relink:{uniform.id}'])
-        self.assertTrue(all(p.required for p in command.parameters))
-        for picked, outfit in [(uniform, '制服'), (swim, 'レジャータイム')]:
-            interaction.followup.send.reset_mock()
-            await command.callback(interaction, '日向美海', f'relink:{picked.id}')
-            self.assertEqual(state[0][1], picked)
-            sent = interaction.followup.send.call_args.kwargs
-            self.assertEqual(sent['files'][0].filename.split('.')[0], picked.id)
-            self.assertIn(outfit, sent['embeds'][0].title)
-        # A different character or another user's unowned card cannot be submitted.
-        await command.callback(interaction, '日向美海', f'relink:{other.id}')
-        self.assertEqual(state[0][1], swim)
-        self.assertIn('候補から', interaction.followup.send.call_args.args[0])
-        await command.callback(interaction, '日向美海', 'relink:unowned')
-        self.assertEqual(state[0][1], swim)
-        # Selecting a Vierge card must not silently substitute a swimsuit image.
-        interaction.followup.send.reset_mock()
-        await command.callback(interaction, '美海', f'vierge:{vierge.id}')
-        self.assertEqual(state[0][1], vierge)
-        self.assertFalse(any('files' in c.kwargs for c in interaction.followup.send.call_args_list))
+        await command.callback(interaction, '美海')
+        self.assertEqual(store.set_favorite.call_args.kwargs['toggle'], 'character')
+        details = next(c.kwargs['embed'] for c in interaction.followup.send.call_args_list if 'embed' in c.kwargs)
+        self.assertEqual(details.description.removesuffix('\n\u200b'), '**日向美海**')
+        inventory = '\n'.join(f.value for f in details.fields if '所持カード' in f.name)
+        self.assertIn('2枚', inventory)
+        self.assertIn('3枚', inventory)
+        self.assertIn('★１', inventory)
+        art = favorite_art(engine, '美海')
+        self.assertIsNotNone(art)
+        self.assertIn('制服', art.label)
+        sent = interaction.followup.send.call_args.kwargs
+        self.assertEqual(sent['files'][0].filename.split('.')[0], art.id)
+        self.assertEqual(len(rows), 2)  # No ★3 ownership is required for character artwork.
 
     def test_favorite_matches_all_relink_aliases_to_canonical_names(self):
         from gacha_commands import favorite_matches

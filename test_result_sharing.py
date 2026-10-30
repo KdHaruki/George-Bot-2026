@@ -92,11 +92,11 @@ class SharingTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('ヒント1回目', public.description)
         shared.stop()
 
-    async def test_title_shares_only_selected_earned_title_and_remembers_publication(self):
+    async def test_title_shares_equipped_title_even_if_another_title_is_selected(self):
         from title_commands import TitleView
         view = TitleView(42, [('fortune10', '神頼み', None), ('quiz10', '青蘭学園の知恵袋', None)],
-                         None, SimpleNamespace(id=8))
-        view.selected = 'fortune10'
+                         None, SimpleNamespace(id=8), equipped='fortune10')
+        view.selected = 'quiz10'
         view.build()
         button = next(child for child in view.children if isinstance(child, ShareButton))
         interaction = self.interaction()
@@ -112,12 +112,25 @@ class SharingTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(isinstance(child, ShareButton) for child in view.children))
         view.stop()
 
+    async def test_title_share_tracks_equipping_and_removing(self):
+        from title_commands import TitleView
+        roles = SimpleNamespace(equip=AsyncMock(return_value='神頼み'))
+        view = TitleView(42, [('fortune10', '神頼み', None)], roles, SimpleNamespace(id=8))
+        self.assertFalse(any(isinstance(child, ShareButton) for child in view.children))
+        interaction = self.interaction()
+        await view.apply(interaction, 'fortune10')
+        self.assertTrue(any(isinstance(child, ShareButton) for child in view.children))
+        await view.apply(interaction, None)
+        self.assertFalse(any(isinstance(child, ShareButton) for child in view.children))
+        view.stop()
+
     async def test_favorite_publishes_stats_album_and_reuploaded_art_without_new_lookup(self):
         from discord import app_commands
         from gacha import Gacha
         from gacha_commands import register_gacha_commands
         card = next(card for card in Gacha().pools['relink']['★3'] if card.character == 'ロザリー')
-        store = SimpleNamespace(url='test', favorite=Mock(return_value=('relink', card, 2)))
+        store = SimpleNamespace(url='test', favorite=Mock(return_value=('relink', card, 2)),
+                                owned=Mock(return_value=[('relink', card, 2)]))
         client = discord.Client(intents=discord.Intents.default())
         presents = SimpleNamespace(affection_status=Mock(return_value=(51, 0)),
                                   album=Mock(return_value=(None,) * 6))
