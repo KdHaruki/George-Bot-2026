@@ -31,7 +31,7 @@ from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import register_title_commands
 from title_notifications import notify_titles
-from progress_profiles import profile_for, george_name
+from progress_profiles import profile_for, george_name, normalize
 from discord_layout import space_headings
 
 ########################################
@@ -173,7 +173,7 @@ async def on_command_error(interaction, error):
 
 async def progress_autocomplete(interaction: discord.Interaction, current: str):
 
-    current = current.lower()
+    current = normalize(current)
 
     starts = []
     contains = []
@@ -181,7 +181,7 @@ async def progress_autocomplete(interaction: discord.Interaction, current: str):
     for p in progress_module.progressData:
 
         name = p["progressName"]
-        name_lower = name.lower()
+        name_lower = normalize(name)
 
         if current == "":
             starts.append(name)
@@ -190,6 +190,8 @@ async def progress_autocomplete(interaction: discord.Interaction, current: str):
             starts.append(name)
 
         elif current in name_lower:
+            contains.append(name)
+        elif any(current in normalize(p.get(f'progressNickname{i}', '')) for i in range(1, 4)):
             contains.append(name)
 
     worlds = [color + 'の世界' for color in '青黒赤白緑']
@@ -207,7 +209,7 @@ async def progress_autocomplete(interaction: discord.Interaction, current: str):
     name="プログレス",
     description="プログレス検索"
 )
-@app_commands.describe(name="名前または世界")
+@app_commands.describe(name="名前の一部・読み・ニックネーム、または世界")
 @app_commands.autocomplete(name=progress_autocomplete)
 
 async def progress(interaction: discord.Interaction, name: str):
@@ -247,7 +249,7 @@ async def progress(interaction: discord.Interaction, name: str):
             logging.warning('World search title update failed')
             await interaction.followup.send('検索結果は表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
         await notify_titles(interaction, client.title_store)
-    elif result.startswith('【名前】') and profile_for(name) is not None:
+    elif result.startswith('【名前】') and len(progress_module.name_search_matches(name)) == 1:
         character = result.splitlines()[0].removeprefix('【名前】').strip()
         try:
             await asyncio.to_thread(client.title_store.named_profile_search, interaction.user.id, interaction.id, character)

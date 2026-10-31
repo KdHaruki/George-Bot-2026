@@ -236,51 +236,30 @@ progressData = [
 # 検索
 #################################################
 
+def name_search_matches(text):
+    # Imported here to avoid a circular import while progressData is initialized.
+    from progress_profiles import normalize
+    query = normalize(text)
+    if not query:
+        return []
+    exact = [p for p in progressData if query == normalize(p['progressName'])]
+    nickname = [p for p in progressData if any(query == normalize(p.get(f'progressNickname{i}', '')) for i in range(1, 4))]
+    partial = [p for p in progressData if query in normalize(p['progressName'])]
+    nickname_partial = [p for p in progressData if any(query in normalize(p.get(f'progressNickname{i}', '')) for i in range(1, 4))]
+    return exact or nickname or partial or nickname_partial
+
+
 def progressSearch(text):
-
-    result = ""
-
-    exact = []
-    nickname = []
-    name_partial = []
-    other = []
-
-    for p in progressData:
-
-        # 名前完全一致
-        if text == p["progressName"]:
-            exact.append(p)
-
-        # ニックネーム完全一致
-        elif text == p["progressNickname1"] or text == p["progressNickname2"] or text == p["progressNickname3"]:
-            nickname.append(p)
-
-        # 名前部分一致
-        elif text in p["progressName"]:
-            name_partial.append(p)
-
-        # その他検索
-        elif (
-            text in p["progressWorld"] or
-            text in p["progressLike"] or
-            text in p["progressDisLike"] or
-            text in p["progressInscription"] or
-            text in p["progressDetail1"] or
-            text in p["progressDetail2"] or
-            text in p["progressDetail3"] or
-            text in p["progressEx"]
-        ):
-            other.append(p)
-
-    # 優先順位
-    if exact:
-        found = exact
-    elif nickname:
-        found = nickname
-    elif name_partial:
-        found = name_partial
-    else:
-        found = other
+    text = text.strip()
+    if not text:
+        return response(3)
+    found = name_search_matches(text)
+    if not found:
+        # Keep existing keyword searches, but prefer name matches over profile text.
+        found = [p for p in progressData if any(text in p.get(key, '') for key in
+                 ('progressWorld', 'progressLike', 'progressDisLike', 'progressInscription',
+                  'progressDetail1', 'progressDetail2', 'progressDetail3', 'progressEx'))]
+    result = ''
 
     if len(found) == 0:
         return response(3)

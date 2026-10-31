@@ -3,6 +3,33 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 class DisplayTests(unittest.IsolatedAsyncioTestCase):
+    async def test_partial_given_name_search_matches_candidates_and_title_record(self):
+        import main
+        from progress import progressSearch, name_search_matches
+        interaction = SimpleNamespace(id=101, user=SimpleNamespace(id=42),
+            response=SimpleNamespace(send_message=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        for query in ('苺', ' 苺 ', 'いちご', '　あまい　いちご　'):
+            self.assertEqual([p['progressName'] for p in name_search_matches(query)], ['天井苺'])
+            self.assertTrue(progressSearch(query).startswith('【名前】天井苺\n'))
+            choices = await main.progress_autocomplete(interaction, query)
+            self.assertIn('天井苺', [choice.value for choice in choices])
+            with patch.object(main.client.title_store, 'named_profile_search', Mock()) as named, patch('main.notify_titles', AsyncMock()):
+                await main.progress.callback(interaction, query)
+            named.assert_called_once_with(42, 101, '天井苺')
+            self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
+        self.assertEqual(name_search_matches(''), [])
+        self.assertNotIn('【名前】', progressSearch(''))
+
+    async def test_ambiguous_partial_name_never_records_a_random_person(self):
+        import main
+        from progress import name_search_matches
+        self.assertGreater(len(name_search_matches('マリ')), 1)
+        interaction = SimpleNamespace(id=101, user=SimpleNamespace(id=42),
+            response=SimpleNamespace(send_message=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        with patch.object(main.client.title_store, 'named_profile_search', Mock()) as named:
+            await main.progress.callback(interaction, 'マリ')
+        named.assert_not_called()
+
     async def test_only_successful_named_search_records_person(self):
         import main
         interaction = SimpleNamespace(id=101, user=SimpleNamespace(id=42),
