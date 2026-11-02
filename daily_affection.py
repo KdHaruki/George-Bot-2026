@@ -13,12 +13,14 @@ def link_level(connection, user_id, character):
     params = (user_id, character_key(character))
     row = connection.execute('SELECT level FROM george_perfect_link_levels WHERE user_id=%s AND character=%s', params).fetchone()
     if row:
-        return row[0]
+        # 以前の複数段階の記録も「達成済み」1回として引き継ぐ。
+        return int(row[0] > 0)
     return int(connection.execute('SELECT 1 FROM george_perfect_links WHERE user_id=%s AND character=%s', params).fetchone() is not None)
 
 
-def affection_limit(level):
-    return (int(level) + 1) * MAX_AFFECTION
+def affection_limit(level=0):
+    """リンクの達成状況にかかわらず、好感度の上限は100に固定する。"""
+    return MAX_AFFECTION
 
 
 def today(connection):

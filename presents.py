@@ -17,6 +17,13 @@ RARE_RATES = {'大吉': 10, '吉': 5, '中吉': 4, '小吉': 3, '末吉': 2, '�
 QUIZ_FORTUNES = {1: '大吉', 2: '吉', 3: '中吉', 4: '小吉'}
 
 
+class GiftConfirmationRequired(ValueError):
+    """好感度100での贈答を、アイテム消費前に本人へ確認する。"""
+    def __init__(self, perfect):
+        super().__init__('これ以上は好感度が上がらないが、本当にあげるのか？')
+        self.perfect = bool(perfect)
+
+
 def affection_display(points, perfect=False):
     limit = affection_limit(perfect)
     points = max(0, min(limit, points))
@@ -27,9 +34,7 @@ def affection_display(points, perfect=False):
 
 
 def link_label(level):
-    numerals = ('Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ', 'Ⅵ', 'Ⅶ', 'Ⅷ', 'Ⅸ', 'Ⅹ')
-    suffix = numerals[int(level) - 1] if 1 <= int(level) <= len(numerals) else f'Lv.{level}'
-    return f'パーフェクトリンク{suffix}'
+    return 'パーフェクトリンク'
 
 
 def affection_gain(character, item):
@@ -159,7 +164,7 @@ class PresentStore(QuizRounds, CollectionStore):
         with self.connect() as connection:
             return dict(connection.execute('SELECT item,quantity FROM george_present_items WHERE user_id=%s AND quantity>0', (user_id,)).fetchall())
 
-    def give(self, user_id, interaction_id, expected_character, item):
+    def give(self, user_id, interaction_id, expected_character, item, *, confirmed=False):
         """消費・好感度・アルバム・称号をまとめて保存し、二重クリックは保存済み結果を返す。"""
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
@@ -179,13 +184,12 @@ class PresentStore(QuizRounds, CollectionStore):
             gain = affection_gain(character, item)
             row = connection.execute('SELECT points FROM george_affection WHERE user_id=%s AND character=%s', (user_id, character)).fetchone()
             current = min(limit, row[0]) if row else 0
-            # 日次加算や別画面の操作で上限に達した場合も、消費前に再確認する。
-            if not can_give_present(character, item, current, level):
-                raise ValueError(f'好感度が上限の{limit}に達しているぜ。喜ばれる贈り物だけ贈れるぞ！')
-            # 上限に「到達済み」で喜ばれる通常品を贈った時だけ次段階へ進む。
-            # この1個は消費するが＋0。虹色の花束は好感度＋10でも段階を進めない。
-            advanced = current == limit and item in preferred_items(character)
-            perfect = level + 1 if advanced else level
+            # 日次加算や別画面の操作で100になった場合も、消費直前に確認を要求する。
+            # 通常品・喜ばれる品・虹色の花束のすべてが対象。
+            if current == limit and not confirmed:
+                raise GiftConfirmationRequired(level)
+            advanced = current == limit and not level and item in preferred_items(character)
+            perfect = bool(level or advanced)
             gain = min(gain, limit - current)
             result = connection.execute('''UPDATE george_present_items SET quantity=quantity-1
                 WHERE user_id=%s AND item=%s AND quantity>0''', (user_id, item))
@@ -197,20 +201,12 @@ class PresentStore(QuizRounds, CollectionStore):
             if advanced:
                 connection.execute('''INSERT INTO george_perfect_links(user_id,character) VALUES (%s,%s)
                     ON CONFLICT(user_id,character) DO NOTHING''', (user_id, character))
-                connection.execute('''INSERT INTO george_perfect_link_levels(user_id,character,level)
-                    VALUES (%s,%s,%s) ON CONFLICT(user_id,character) DO UPDATE SET
-                    level=EXCLUDED.level,achieved_at=CURRENT_TIMESTAMP''', (user_id, character, perfect))
             record_gift(connection, user_id, character, current < MAX_AFFECTION <= points)
             record_event(connection, user_id, f'gift:{interaction_id}', 'gift', character=character, item=item,
-                         preferred=item in preferred_items(character), first_perfect_link=advanced and level == 0)
+                         preferred=item in preferred_items(character), first_perfect_link=advanced)
             if points >= MAX_AFFECTION:
                 refresh_affection(connection, user_id)
             connection.execute('INSERT INTO george_present_receipts(interaction_id,user_id,character,item,gain,points) VALUES (%s,%s,%s,%s,%s,%s)',
                                (interaction_id, user_id, character, item, gain, points))
             connection.execute("DELETE FROM george_present_receipts WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
             return gain, points, perfect
-
-
-def can_give_present(character, item, points, level=0):
-    """好感度の上限では、次のリンク段階に進める贈り物だけを許可する。"""
-    return points < affection_limit(level) or item in preferred_items(character)

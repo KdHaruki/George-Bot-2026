@@ -78,7 +78,7 @@ class ConfirmationViewTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_beginner_instructions_and_timeouts_are_visible(self):
         presents = PresentView(42, None, 'ロザリー', {'magic': 1}, 100)
-        self.assertIn('好感度が上限のため、喜ばれる贈り物を送ってパーフェクトリンクを達成しよう', presents.embed().description)
+        self.assertIn('好感度は上限の100', presents.embed().description)
         self.assertIn('3分', presents.embed().footer.text)
         quiz = QuizView(42)
         self.assertIn('/クイズ', quiz.embed().footer.text)

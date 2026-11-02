@@ -1,7 +1,6 @@
-"""デプロイ時の接続準備と終了待ちを管理し、処理中のコマンドが途切れる時間を減らす。"""
+"""デプロイ時に実行中のコマンドの終了を待ち、新規操作には更新中の案内を返す。"""
 
 import asyncio
-from threading import Event
 
 import discord
 from discord import app_commands
@@ -9,26 +8,13 @@ from discord import app_commands
 
 class DeploymentState:
     def __init__(self):
-        # HTTPは別スレッドで動くため、接続状態だけはスレッド間で共有する。
-        self.ready = Event()
         self.draining = False
         self.tasks = set()
-
-    def is_ready(self):
-        return self.ready.is_set()
-
-    def connected(self):
-        if not self.draining:
-            self.ready.set()
-
-    def disconnected(self):
-        self.ready.clear()
 
     def begin_shutdown(self):
         if self.draining:
             return False
         self.draining = True
-        self.ready.clear()
         return True
 
     def track_command(self):

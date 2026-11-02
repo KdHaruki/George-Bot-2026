@@ -76,7 +76,7 @@ class PresentRulesTests(unittest.TestCase):
     def test_gauge_colors_move_from_green_to_red_by_percentage(self):
         for points, icon in ((0, '🟢'), (24, '🟢'), (25, '🟡'), (49, '🟡'), (50, '🟠'), (74, '🟠'), (75, '🔴'), (100, '🔴')):
             self.assertIn(icon, affection_display(points))
-        self.assertIn('🟠', affection_display(100, 1))
+        self.assertIn('🔴', affection_display(100, 1))
         self.assertIn('🔴', affection_display(200, 1))
 
     def test_exact_rare_boundaries_for_every_fortune(self):
@@ -259,7 +259,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (1, 100, False))
         self.day = date(2026, 10, 20)
         self.claim(101)
-        self.assertEqual(self.store.give(42, 201, 'ロザリー', 'magic'), (0, 100, True))
+        self.assertEqual(self.store.give(42, 201, 'ロザリー', 'magic', confirmed=True), (0, 100, True))
         self.assertEqual(self.store.snapshot(42)[1], {})
         self.assertEqual(self.store.points(42, 'ロザリー'), 100)
 
@@ -274,20 +274,20 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (1, 100, 0))
         before = self.store.inventory(42)
         for operation, item in ((201, 'rare'), (202, 'food'), (250, 'tools')):
-            with self.subTest(item=item), self.assertRaisesRegex(ValueError, '喜ばれる贈り物だけ'):
+            with self.subTest(item=item), self.assertRaisesRegex(ValueError, '本当にあげるのか'):
                 self.store.give(42, operation, 'ロザリー', item)
             self.assertEqual(self.store.inventory(42), before)
             self.assertIsNone(self.db.execute('SELECT interaction_id FROM george_present_receipts WHERE interaction_id=?', (operation,)).fetchone())
             self.assertIsNone(self.store.album(42, 'ロザリー')[3])
-        self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
+        self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic', confirmed=True), (0, 100, 1))
         self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
         self.assertEqual(self.store.inventory(42), {'magic': 3, 'rare': 1, 'food': 1, 'tools': 1})
-        self.assertEqual(self.store.give(42, 204, 'ロザリー', 'magic'), (5, 105, 1))
+        self.assertEqual(self.store.give(42, 204, 'ロザリー', 'magic', confirmed=True), (0, 100, 1))
         self.assertIsNotNone(self.store.album(42, 'ロザリー')[3])
         self.set_favorite('美海')
         self.assertFalse(self.store.snapshot(42)[3])
         self.set_favorite('ロザリー')
-        self.assertEqual(PresentStore('unused').affection_status(42, 'ロザリー'), (105, 1))
+        self.assertEqual(PresentStore('unused').affection_status(42, 'ロザリー'), (100, 1))
 
     def test_perfect_link_rollback_and_parallel_gifts_advance_once_then_continue(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -297,21 +297,21 @@ class StorageTests(unittest.TestCase):
         self.db.commit()
         self.fail_on = 'INSERT INTO george_perfect_links'
         with self.assertRaises(MemoryUnavailable):
-            self.store.give(42, 200, 'ロザリー', 'magic')
+            self.store.give(42, 200, 'ロザリー', 'magic', confirmed=True)
         self.fail_on = None
         self.assertEqual(self.store.affection_status(42, 'ロザリー'), (100, False))
         self.assertEqual(self.store.inventory(42), {'magic': 3})
 
         def give(number):
             try:
-                return self.store.give(42, number, 'ロザリー', 'magic')
+                return self.store.give(42, number, 'ロザリー', 'magic', confirmed=True)
             except ValueError:
                 return None
 
         with ThreadPoolExecutor(2) as pool:
             results = list(pool.map(give, (201, 202)))
-        self.assertEqual(results.count((0, 100, True)), 1)
-        self.assertEqual(results.count((5, 105, 1)), 1)
+        self.assertEqual(results.count((0, 100, True)), 2)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM george_perfect_links').fetchone()[0], 1)
         self.assertEqual(self.store.inventory(42), {'magic': 1})
         self.assertEqual(self.store.affection_status(43, 'ロザリー'), (0, False))
 
@@ -343,7 +343,7 @@ class StorageTests(unittest.TestCase):
         self.db.commit()
         self.day = date(2026, 10, 20)
         self.claim(101)
-        self.store.give(42, 201, 'ロザリー', 'magic')
+        self.store.give(42, 201, 'ロザリー', 'magic', confirmed=True)
         completed = self.store.album(42, 'ロザリー')
         self.assertEqual(completed[:2], dates[:2])
         self.assertIsNotNone(completed[2])
@@ -473,16 +473,19 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         view.stop()
 
     async def test_perfect_link_keeps_gifts_enabled_and_only_announces_advancement(self):
-        store = SimpleNamespace(give=Mock(side_effect=[(0, 100, 1), (2, 102, 1)]))
+        store = SimpleNamespace(give=Mock(side_effect=[(0, 100, 1), (0, 100, 1)]))
         view = PresentView(42, store, 'ロザリー', {'magic': 2, 'food': 1}, 100)
         await view.give(self.interaction(), 'magic')
+        store.give.assert_not_called()
+        await view.confirmation.confirm.callback(self.interaction(202))
         self.assertTrue(view.perfect)
         self.assertTrue(all(not button.disabled for button in view.children))
         self.assertIn('パーフェクトリンク', view.embed().description)
         await view.give(self.interaction(201), 'food')
+        await view.confirmation.confirm.callback(self.interaction(203))
         self.assertEqual(store.give.call_count, 2)
         self.assertEqual(view.items, {'magic': 1, 'food': 0})
-        self.assertIn('102/200', view.embed().description)
+        self.assertIn('100/100', view.embed().description)
         view.stop()
 
     async def test_reopened_perfect_link_view_allows_further_gifts(self):
@@ -493,7 +496,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         options = interaction.followup.send.call_args.kwargs
         self.assertTrue(options['ephemeral'])
         self.assertTrue(all(not button.disabled for button in options['view'].children))
-        self.assertIn('100/200', options['embed'].description)
+        self.assertIn('100/100', options['embed'].description)
         self.assertIn('パーフェクトリンク', options['embed'].description)
         options['view'].stop()
 

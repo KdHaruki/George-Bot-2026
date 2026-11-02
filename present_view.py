@@ -1,11 +1,12 @@
 """所持する贈り物をボタンで表示し、選んだ贈り物をお気に入りへ渡す。"""
 
 import asyncio
+import time
 from operation_logging import event as log_event
 
 import discord
 
-from presents import ITEMS, affection_display, affection_limit, link_label, can_give_present
+from presents import ITEMS, affection_display, affection_limit, link_label, GiftConfirmationRequired
 from database import MemoryUnavailable
 from title_notifications import notify_titles
 from present_catalog import preferred_labels, preferred_items
@@ -24,15 +25,17 @@ class PresentView(discord.ui.View):
         self.processed = set()
         self.message = None
         self.expired = False
+        self.deadline = time.monotonic() + 180
+        self.confirmation = None
         self.build_buttons()
 
     def build_buttons(self):
+        self.timeout = max(0.01, self.deadline - time.monotonic())
         self.clear_items()
         for index, key in enumerate(self.keys[self.page * 6:self.page * 6 + 6]):
             emoji, label = ITEMS[key]
             button = discord.ui.Button(label=f'{label} ×{self.items[key]}', emoji=emoji,
-                                       row=index // 2, disabled=self.items[key] <= 0 or not can_give_present(
-                                           self.character, key, self.points, self.perfect))
+                                       row=index // 2, disabled=self.items[key] <= 0)
 
             async def callback(interaction, key=key):
                 await self.give(interaction, key)
@@ -65,9 +68,9 @@ class PresentView(discord.ui.View):
             description=(f'{status}\n\n' if status else '') + f'好感度：{affection_display(self.points, self.perfect)}\n\n喜ばれる贈り物：{likes}')
         limit = affection_limit(self.perfect)
         if self.points >= limit:
-            gift = '喜ばれる贈り物'
-            embed.description += '\n好感度が上限のため、喜ばれる贈り物を送ってパーフェクトリンクを達成しよう'
-            embed.description += f'\n{gift}を1個贈ると好感度＋0で、上限が{limit + 100}になるぜ。'
+            embed.description += '\n好感度は上限の100だぜ。贈る前に確認するぞ。贈り物は1個消費するが、好感度は上がらないぜ。'
+            if not self.perfect:
+                embed.description += '\n喜ばれる贈り物を贈ると、パーフェクトリンクを達成できるぜ！'
         if not self.keys:
             embed.add_field(name='手持ちのプレゼントはないぜ！', value='/おみくじ や /クイズ で1日1個もらえるぞ。', inline=False)
         elif show_instruction:
@@ -79,21 +82,37 @@ class PresentView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message('自分の /お気に入り プレゼント から開いてくれ！', ephemeral=True)
             return False
+        if self.expired or time.monotonic() >= self.deadline:
+            self.expired = True
+            await interaction.response.send_message('時間切れだぜ。もう一度コマンドから開いてくれ！', ephemeral=True)
+            return False
         return True
 
-    async def give(self, interaction, key):
+    async def give(self, interaction, key, *, confirmation=None):
         await interaction.response.defer()
         async with self.lock:
-            if self.expired or interaction.id in self.processed:
+            if self.expired or time.monotonic() >= self.deadline or interaction.id in self.processed or (confirmation is not None and (
+                    confirmation.finished or confirmation is not self.confirmation)):
                 log_event('プレゼント', '消費せず見送り', reason='操作期限切れ、または処理済みの操作', 操作ID=interaction.id)
                 return
+            if self.points >= 100 and confirmation is None:
+                await self.ask_confirmation(interaction, key)
+                return
             try:
-                gain, points, perfect = await asyncio.to_thread(self.store.give, self.user_id, interaction.id, self.character, key)
+                options = {'confirmed': True} if confirmation is not None else {}
+                gain, points, perfect = await asyncio.to_thread(self.store.give, self.user_id, interaction.id, self.character, key, **options)
+            except GiftConfirmationRequired as exc:
+                self.points, self.perfect = 100, exc.perfect
+                await self.ask_confirmation(interaction, key)
+                return
             except (ValueError, MemoryUnavailable) as exc:
                 log_event('プレゼント', '保存失敗・結果未確定', error=exc, 操作ID=interaction.id)
                 await interaction.followup.send(str(exc), ephemeral=True)
                 return
             self.processed.add(interaction.id)
+            if confirmation is not None:
+                confirmation.finished = True
+                confirmation.stop()
             log_event('プレゼント', '消費・好感度の保存完了', 操作ID=interaction.id, 好感度増加=gain, 好感度=points)
             self.items[key] = max(0, self.items[key] - 1)
             self.points = points
@@ -121,8 +140,18 @@ class PresentView(discord.ui.View):
                     log_event('AI・贈り物のお礼', '定型文に切り替え', error=exc, 操作ID=interaction.id)
             embed = self.embed(status)
             embed.add_field(name='【ジョージの一言】', value=discord.utils.escape_markdown(comment), inline=False)
+            self.timeout = max(0.01, self.deadline - time.monotonic())
             await interaction.edit_original_response(embed=embed, view=self)
             await notify_titles(interaction, self.store)
+
+    async def ask_confirmation(self, interaction, key):
+        if self.confirmation is not None:
+            self.confirmation.finished = True
+            self.confirmation.stop()
+        prompt = GiftConfirmationView(self, key)
+        self.confirmation = prompt
+        prompt.message = self.message
+        await interaction.edit_original_response(embed=prompt.embed(), view=prompt)
 
     async def on_timeout(self):
         async with self.lock:
@@ -132,6 +161,57 @@ class PresentView(discord.ui.View):
             if self.message:
                 try:
                     await self.message.edit(embed=self.embed('時間切れだぜ。もう一度コマンドから開いてくれ！'), view=self)
+                except discord.HTTPException:
+                    pass
+
+
+class GiftConfirmationView(discord.ui.View):
+    def __init__(self, parent, key):
+        super().__init__(timeout=max(0.01, parent.deadline - time.monotonic()))
+        self.parent, self.key = parent, key
+        self.finished = False
+        self.message = None
+
+    def embed(self):
+        embed = discord.Embed(title='プレゼントの確認', color=0xE2AD48,
+            description=f'**{discord.utils.escape_markdown(self.parent.character)}**に'
+                        f'**{ITEMS[self.key][1]} ×1**を贈るぜ。\n\n'
+                        'これ以上は好感度が上がらないが、本当にあげるのか？\n'
+                        '「贈る」を押すと1個消費するぜ。')
+        if not self.parent.perfect and self.key in preferred_items(self.parent.character):
+            embed.description += '\n喜ばれる贈り物なので、パーフェクトリンクを達成できるぜ！'
+        embed.set_footer(text='キャンセル・期限切れでは消費しません。元のプレゼント画面の操作期限は延長されません。')
+        return embed
+
+    async def interaction_check(self, interaction):
+        return await self.parent.interaction_check(interaction)
+
+    @discord.ui.button(label='贈る', style=discord.ButtonStyle.primary)
+    async def confirm(self, interaction, button):
+        await self.parent.give(interaction, self.key, confirmation=self)
+
+    @discord.ui.button(label='キャンセル', style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction, button):
+        await interaction.response.defer()
+        async with self.parent.lock:
+            if self.finished or self.parent.expired or time.monotonic() >= self.parent.deadline or self is not self.parent.confirmation:
+                return
+            self.finished = True
+            self.stop()
+            self.parent.build_buttons()
+            await interaction.edit_original_response(embed=self.parent.embed('プレゼントは消費していないぜ。'), view=self.parent)
+
+    async def on_timeout(self):
+        async with self.parent.lock:
+            if self.finished or self is not self.parent.confirmation:
+                return
+            self.finished = True
+            self.parent.expired = True
+            for button in self.parent.children:
+                button.disabled = True
+            if self.message:
+                try:
+                    await self.message.edit(embed=self.parent.embed('時間切れだぜ。プレゼントは消費していないぞ。もう一度コマンドから開いてくれ！'), view=self.parent)
                 except discord.HTTPException:
                     pass
 

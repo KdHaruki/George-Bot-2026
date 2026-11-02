@@ -558,7 +558,7 @@ class TitleStorageTests(unittest.TestCase):
         self.db.execute("INSERT INTO george_affection VALUES (42,'ロザリー',100)")
         self.db.commit()
         self.assertNotIn('affection:ロザリー', self.keys())
-        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (0, 100, True))
+        self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic', confirmed=True), (0, 100, True))
         self.assertIn('favorite_gift:ロザリー', self.keys())
         self.assertNotIn('affection:ロザリー', self.keys())
         self.assertEqual(self.store.inventory(42), {})

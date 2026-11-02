@@ -150,21 +150,10 @@ async def help_embed(bot, in_guild):
 
 @client.event
 async def on_ready():
-    client.deployment.connected()
     print("ログインしました", flush=True)
     for guild in client.guilds:
         await client.clear_guild_commands(guild)
         await cleanup_retired_title(guild)
-
-
-@client.event
-async def on_disconnect():
-    client.deployment.disconnected()
-
-
-@client.event
-async def on_resumed():
-    client.deployment.connected()
 
 
 @client.event
@@ -522,6 +511,6 @@ if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_TOKEN")
     if not TOKEN:
         raise RuntimeError("DISCORD_TOKENを環境変数に設定してください")
-    keep_alive(client.deployment.is_ready)
+    keep_alive()
     start_gemini_diagnostics()
     client.run(TOKEN)

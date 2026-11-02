@@ -1,4 +1,4 @@
-"""Discordの接続準備判定と、デプロイ時のコマンド終了待ちを検証する。"""
+"""HTTPの稼働確認と、デプロイ時のコマンド終了待ちを検証する。"""
 
 import asyncio
 import unittest
@@ -11,23 +11,12 @@ from deployment import DeploymentState, DeploymentCommandTree
 from keep_alive import app
 
 
-class ReadinessTests(unittest.TestCase):
-    def test_http_stays_available_but_readiness_requires_discord(self):
-        state = DeploymentState()
-        with patch.dict(app.config, {'BOT_READINESS': state.is_ready}):
-            http = app.test_client()
-            self.assertEqual(http.get('/').status_code, 200)
-            self.assertEqual(http.get('/ready').status_code, 503)
-            state.connected()
-            self.assertEqual(http.get('/ready').status_code, 200)
-            state.disconnected()
-            self.assertEqual(http.get('/ready').status_code, 503)
-            state.connected()
-            self.assertEqual(http.get('/ready').status_code, 200)
-            state.begin_shutdown()
-            state.connected()  # 終了通知後の再接続で準備完了へ戻さない。
-            self.assertEqual(http.get('/ready').status_code, 503)
-            self.assertEqual(http.get('/').status_code, 200)
+class HealthEndpointTests(unittest.TestCase):
+    def test_root_remains_available_and_readiness_endpoint_is_removed(self):
+        http = app.test_client()
+        self.assertEqual(http.get('/').status_code, 200)
+        self.assertEqual(http.head('/').status_code, 200)
+        self.assertEqual(http.get('/ready').status_code, 404)
 
 
 class DeploymentTests(unittest.IsolatedAsyncioTestCase):
