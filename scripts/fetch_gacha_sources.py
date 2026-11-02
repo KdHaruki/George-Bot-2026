@@ -1,4 +1,5 @@
-"""Download public rarity tables for offline review (never run by the bot)."""
+"""ガチャのカード一覧を確認するため、公開されている資料を手動で取得する。"""
+
 import concurrent.futures
 from html.parser import HTMLParser
 import json

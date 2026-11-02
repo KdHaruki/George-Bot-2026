@@ -1,3 +1,5 @@
+"""クイズの出題・ヒント・回答・結果表示を検証する。"""
+
 import random
 import unittest
 from types import SimpleNamespace

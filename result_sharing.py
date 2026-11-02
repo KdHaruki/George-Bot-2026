@@ -1,4 +1,5 @@
-"""Owner-initiated public snapshots. No rewards, DB writes or public controls."""
+"""本人が選んだ結果を同じチャンネルへ公開し、重複送信を防ぐ。"""
+
 import asyncio
 from dataclasses import dataclass, field
 

@@ -1,4 +1,5 @@
-"""First occurrence milestones; dates are displayed in Japan time."""
+"""お気に入りの記念日を記録し、日本時間の日付でアルバムを表示する。"""
+
 from datetime import datetime, timedelta, timezone
 
 from progress_profiles import character_key

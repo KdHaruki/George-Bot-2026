@@ -1,3 +1,5 @@
+"""稼働確認と確認頻度の制限を検証する。"""
+
 import unittest
 from unittest.mock import AsyncMock, Mock
 from types import SimpleNamespace

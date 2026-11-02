@@ -1,3 +1,5 @@
+"""おみくじの応援ボーナスと受取制限を検証する。"""
+
 import json
 import unittest
 from concurrent.futures import ThreadPoolExecutor

@@ -1,10 +1,11 @@
+"""所持する贈り物をボタンで表示し、選んだ贈り物をお気に入りへ渡す。"""
+
 import asyncio
-import logging
 from operation_logging import event as log_event
 
 import discord
 
-from presents import ITEMS, affection_display, affection_limit, link_label
+from presents import ITEMS, affection_display, affection_limit, link_label, can_give_present
 from database import MemoryUnavailable
 from title_notifications import notify_titles
 from present_catalog import preferred_labels, preferred_items
@@ -30,7 +31,8 @@ class PresentView(discord.ui.View):
         for index, key in enumerate(self.keys[self.page * 6:self.page * 6 + 6]):
             emoji, label = ITEMS[key]
             button = discord.ui.Button(label=f'{label} ×{self.items[key]}', emoji=emoji,
-                                       row=index // 2, disabled=self.items[key] <= 0)
+                                       row=index // 2, disabled=self.items[key] <= 0 or not can_give_present(
+                                           self.character, key, self.points, self.perfect))
 
             async def callback(interaction, key=key):
                 await self.give(interaction, key)
@@ -64,11 +66,13 @@ class PresentView(discord.ui.View):
         limit = affection_limit(self.perfect)
         if self.points >= limit:
             gift = '喜ばれる贈り物'
-            embed.description += f'\n好感度{limit}では＋0。{gift}を1個贈ると次のパーフェクトリンクになり、上限が{limit + 100}になるぜ。'
+            embed.description += '\n好感度が上限のため、喜ばれる贈り物を送ってパーフェクトリンクを達成しよう'
+            embed.description += f'\n{gift}を1個贈ると好感度＋0で、上限が{limit + 100}になるぜ。'
         if not self.keys:
             embed.add_field(name='手持ちのプレゼントはないぜ！', value='/おみくじ や /クイズ で1日1個もらえるぞ。', inline=False)
         elif show_instruction:
             embed.description += '\n\nボタンを押すと1個贈るぜ！'
+        embed.set_footer(text='操作期限：画面を開いてから3分。期限後は /お気に入り プレゼント で開き直せるぜ。')
         return embed
 
     async def interaction_check(self, interaction):

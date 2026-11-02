@@ -1,9 +1,9 @@
-"""Item-specific Bot preferences, curated from local profiles. Not canonical gift claims.
+"""プログレスごとに喜ばれる贈り物を、アイテム単位で定義する。"""
 
-Keep item IDs stable: inventories and past achievements must not be rewritten.
-When likes provide no suitable item, the selection is a modest Bot interpretation.
-New characters need an explicit entry; never infer both items from a category.
-"""
+# アイテムIDは所持品や過去の実績に使うため変更しない。
+# 好みはBot内の設定であり、原作での贈り物の好みを断定しない。
+# 直接対応する品目がない場合は控えめに解釈し、新しい人物にも明示的に設定する。
+# カテゴリーの両方の品目を自動的に好みとみなさない。
 
 PREFERENCES = {
     '東条遥': ('towel', 'sweets'),

@@ -1,11 +1,10 @@
-"""Bounded slash-command audit records; no message or DM bodies."""
-import asyncio
+"""スラッシュコマンドの実行日時・利用者・引数をデータベースに記録する。"""
+
 from contextlib import contextmanager
 import json
-import logging
 import discord
 from database import DatabaseStore, MemoryUnavailable
-from operation_logging import event as log_event
+from history_writer import HistoryWriter
 
 
 def command_record(interaction):
@@ -33,9 +32,8 @@ class CommandHistoryStore(DatabaseStore):
         if not self.url:
             raise MemoryUnavailable('履歴の保存にはDATABASE_URLが必要だぜ。')
         try:
-            import psycopg
-            with psycopg.connect(self.url, connect_timeout=10) as connection:
-                connection.execute("SET LOCAL statement_timeout = '10s'")
+            # 接続・タイムアウトは他の保存処理と同じ DatabaseStore に統一する。
+            with super().connect() as connection:
                 connection.execute('''CREATE TABLE IF NOT EXISTS george_command_history (
                     interaction_id BIGINT PRIMARY KEY, created_at TIMESTAMPTZ NOT NULL,
                     user_id BIGINT NOT NULL, user_name TEXT NOT NULL,
@@ -56,40 +54,13 @@ class CommandHistoryStore(DatabaseStore):
 
 
 
-class CommandHistory:
-    label = 'Command history'
+class CommandHistory(HistoryWriter):
+    """履歴保存を非同期化し、DB障害や混雑で会話を止めない。"""
     feature = 'コマンド履歴DB'
     def __init__(self, store=None):
-        self.store = store if store is not None else CommandHistoryStore()
-        self.slots = asyncio.Semaphore(2)
-        self.tasks = set()
+        super().__init__(store if store is not None else CommandHistoryStore())
 
     def observe(self, interaction):
         if interaction.type != discord.InteractionType.application_command or not self.store.url:
             return
         self.schedule(command_record(interaction))
-
-    def schedule(self, record):
-        if not self.store.url:
-            return
-        if len(self.tasks) >= 32:
-            log_event(self.feature, '保存見送り', reason='保存待ちが上限32件に到達', 記録ID=record[0])
-            return
-
-        async def save():
-            try:
-                async with self.slots:
-                    deleted = await asyncio.to_thread(self.store.save, record)
-                log_event(self.feature, '保存完了', 記録ID=record[0])
-                if isinstance(deleted, int) and deleted > 0:
-                    log_event(self.feature, '30日を過ぎた履歴を削除', 削除件数=deleted)
-            except Exception as exc:
-                log_event(self.feature, '保存失敗', error=exc, 記録ID=record[0])
-
-        task = asyncio.create_task(save())
-        self.tasks.add(task)
-        task.add_done_callback(self.tasks.discard)
-
-    async def close(self):
-        if self.tasks:
-            await asyncio.gather(*list(self.tasks), return_exceptions=True)

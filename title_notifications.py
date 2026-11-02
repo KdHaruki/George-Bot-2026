@@ -1,6 +1,6 @@
-"""Private, interaction-only delivery of committed title unlocks."""
+"""獲得済みの称号と達成条件を本人だけに通知し、通知状態を記録する。"""
+
 import asyncio
-import logging
 from operation_logging import event as log_event
 import uuid
 

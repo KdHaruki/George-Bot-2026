@@ -1,5 +1,6 @@
+"""称号の取得条件・進捗・取得日を表示し、装着と解除を受け付ける。"""
+
 import asyncio
-import logging
 from operation_logging import event as log_event
 import discord
 
@@ -113,6 +114,10 @@ class TitleView(discord.ui.View):
         description = status or ''
         if self.guild is None:
             description += '\nDMでは一覧のみ。装着・解除はサーバーで使ってくれ！'
+        else:
+            description += '\n装着した称号は、このサーバーのプロフィールのロール欄に表示され、他の人にも見えるぜ！'
+            if self.mode == 'earned' and self.titles:
+                description += '\n称号を選択 →「装着」を押すと装着できるぜ。'
         equipped_icon = f'{title_icon(self.equipped)} ' if self.equipped and name != 'なし' else ''
         if self.mode == 'earned':
             description += f'\n\n【装着中】\n{equipped_icon}{discord.utils.escape_markdown(name)}\n\n'

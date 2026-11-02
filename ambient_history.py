@@ -1,4 +1,5 @@
-"""Fetch bounded, same-channel context only after the participation lottery."""
+"""会話参加の候補が決まった後、同じチャンネルの直近の会話を取得する。"""
+
 import asyncio
 import logging
 

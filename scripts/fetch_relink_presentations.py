@@ -1,7 +1,7 @@
-"""Manual Wiki import: one short opening quote and matching banner per ★3.
+"""リリンクの最高レアカードの原作台詞と画像の参照先を手動で収集する。"""
 
-Never invoked by the bot. Does not download image files.
-"""
+# Botからは呼び出さない。この処理では画像ファイルを取得しない。
+
 import concurrent.futures
 from html import unescape
 from html.parser import HTMLParser

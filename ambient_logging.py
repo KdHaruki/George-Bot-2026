@@ -1,4 +1,5 @@
-"""Visible ambient diagnostics without message text, credentials or DB writes."""
+"""ジョージの会話参加や見送り理由を、本文を含めずログに記録する。"""
+
 import logging
 import copy
 import re

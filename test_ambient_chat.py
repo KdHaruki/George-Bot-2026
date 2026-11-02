@@ -1,3 +1,5 @@
+"""ジョージの会話参加条件と待ち時間を検証する。"""
+
 import unittest
 from ambient_chat import AmbientChat, COOLDOWN, RETRY_DELAY
 

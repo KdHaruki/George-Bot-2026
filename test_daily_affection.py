@@ -1,3 +1,5 @@
+"""日付に基づく好感度の加算を検証する。"""
+
 from datetime import timedelta
 import unittest
 

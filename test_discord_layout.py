@@ -1,8 +1,10 @@
+"""埋め込み表示の見出しと間隔を検証する。"""
+
 import unittest
 import discord
 from discord_layout import space_headings, GAP
 from gacha import Gacha, RULES
-from gacha_commands import rates_embed, result_embed
+from gacha_display import rates_embed, result_embed
 
 class LayoutTests(unittest.TestCase):
     def test_spacers_are_idempotent_and_fit_discord_limits(self):

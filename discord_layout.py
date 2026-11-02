@@ -1,4 +1,5 @@
-"""Small spacing between embed sections without extra visible fields."""
+"""Discordの埋め込み表示で、見出しの間隔を整える。"""
+
 GAP = '\n\u200b'
 
 

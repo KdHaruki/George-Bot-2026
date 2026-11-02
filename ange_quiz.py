@@ -1,4 +1,5 @@
-"""Local profile quizzes with a daily reward for a correct answer."""
+"""プログレスの４択クイズを出題し、回答・ヒント・正解報酬を処理する。"""
+
 import asyncio
 import logging
 import random
@@ -69,6 +70,8 @@ class QuizView(discord.ui.View):
         embed = discord.Embed(title='アンジュクイズ', description=status, color=0xE2AD48)
         for label, value in hints:
             embed.add_field(name=f'【{label}】', value=discord.utils.escape_markdown(value), inline=False)
+        if not self.finished:
+            embed.set_footer(text='操作期限：画面を開いてから3分。期限後は /クイズ で開き直せるぜ。')
         return embed
 
     async def interaction_check(self, interaction):

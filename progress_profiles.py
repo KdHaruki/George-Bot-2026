@@ -1,4 +1,5 @@
-"""Resolve short character names to one shared profile identity."""
+"""プログレスの略称・読み・別名を照合し、同じ人物の情報と呼び方を取り出す。"""
+
 import unicodedata
 from functools import lru_cache
 from progress import progressData

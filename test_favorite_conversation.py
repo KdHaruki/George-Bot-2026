@@ -1,3 +1,5 @@
+"""お気に入り情報を使った会話を検証する。"""
+
 import os
 import unittest
 from types import SimpleNamespace
@@ -51,9 +53,9 @@ class FavoriteConversationTests(unittest.IsolatedAsyncioTestCase):
         embed = await help_embed(bot, True)
         self.assertIn('みんな、いい調子か？', embed.fields[0].value)
         self.assertNotIn('会話への参加・絵文字リアクションもするぜ！', embed.fields[0].value)
-        text = '\n'.join(field.value for field in embed.fields[1:3])
+        text = '\n'.join(field.value for field in embed.fields if field.name.startswith('【スラッシュコマンド一覧'))
         self.assertIn('`/おみくじ`\n今日の運勢', text)
-        self.assertIn('`/お気に入り プログレス登録 ロザリー`\nプログレス名で登録。同じプログレスの再指定で解除。', text)
+        self.assertIn('`/お気に入り プログレス登録 ロザリー`\nガチャで獲得したプログレスを名前で登録。同じプログレスの再指定で解除確認。', text)
         self.assertNotIn('（公開情報）', text)
         self.assertNotIn('（非公開情報）', text)
         self.assertNotIn('【公開情報】', text)

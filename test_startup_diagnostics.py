@@ -1,3 +1,5 @@
+"""起動時のGemini診断を検証する。"""
+
 import os
 import unittest
 from unittest.mock import patch, AsyncMock, Mock

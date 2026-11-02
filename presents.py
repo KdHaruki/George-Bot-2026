@@ -1,4 +1,5 @@
-"""Daily fortune rewards and transactional gifts. No AI or polling."""
+"""贈り物の受取・消費・好感度・パーフェクトリンクを保存する。"""
+
 from contextlib import contextmanager
 import random
 
@@ -159,6 +160,7 @@ class PresentStore(QuizRounds, CollectionStore):
             return dict(connection.execute('SELECT item,quantity FROM george_present_items WHERE user_id=%s AND quantity>0', (user_id,)).fetchall())
 
     def give(self, user_id, interaction_id, expected_character, item):
+        """消費・好感度・アルバム・称号をまとめて保存し、二重クリックは保存済み結果を返す。"""
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             settle_daily(connection, user_id)
@@ -177,6 +179,11 @@ class PresentStore(QuizRounds, CollectionStore):
             gain = affection_gain(character, item)
             row = connection.execute('SELECT points FROM george_affection WHERE user_id=%s AND character=%s', (user_id, character)).fetchone()
             current = min(limit, row[0]) if row else 0
+            # 日次加算や別画面の操作で上限に達した場合も、消費前に再確認する。
+            if not can_give_present(character, item, current, level):
+                raise ValueError(f'好感度が上限の{limit}に達しているぜ。喜ばれる贈り物だけ贈れるぞ！')
+            # 上限に「到達済み」で喜ばれる通常品を贈った時だけ次段階へ進む。
+            # この1個は消費するが＋0。虹色の花束は好感度＋10でも段階を進めない。
             advanced = current == limit and item in preferred_items(character)
             perfect = level + 1 if advanced else level
             gain = min(gain, limit - current)
@@ -202,3 +209,8 @@ class PresentStore(QuizRounds, CollectionStore):
                                (interaction_id, user_id, character, item, gain, points))
             connection.execute("DELETE FROM george_present_receipts WHERE user_id=%s AND created_at<NOW()-INTERVAL '7 days'", (user_id,))
             return gain, points, perfect
+
+
+def can_give_present(character, item, points, level=0):
+    """好感度の上限では、次のリンク段階に進める贈り物だけを許可する。"""
+    return points < affection_limit(level) or item in preferred_items(character)

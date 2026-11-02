@@ -1,3 +1,5 @@
+"""おみくじへのお気に入り情報の反映を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch

@@ -1,4 +1,7 @@
-"""One-off, sequential image archive. Never run during bot startup or draws."""
+"""リリンクのカード画像を順番に取得し、ローカルへ保存する手動保守用プログラム。"""
+
+# Bot起動時やガチャ実行時には呼び出さない。
+
 import json
 from pathlib import Path
 import time

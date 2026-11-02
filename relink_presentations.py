@@ -1,4 +1,5 @@
-"""Saved short original catchphrases and Wiki image URLs, keyed by card ID."""
+"""リリンクのカードに対応する保存済みの画像と原作台詞を表示する。"""
+
 from collections import Counter
 import json
 from pathlib import Path

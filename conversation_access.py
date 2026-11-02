@@ -1,4 +1,5 @@
-"""Admin command details never belong in a public conversational reply."""
+"""会話で管理者向け機能や非公開の管理情報を案内しないよう判定する。"""
+
 import re
 
 ADMIN_TOPICS = frozenset(('seasonal', 'health'))

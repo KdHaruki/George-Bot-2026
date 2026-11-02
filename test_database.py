@@ -1,3 +1,5 @@
+"""共通のデータベース接続とエラー処理を検証する。"""
+
 import sys
 import unittest
 from types import SimpleNamespace

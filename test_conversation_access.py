@@ -1,3 +1,5 @@
+"""会話での管理情報への回答制限を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch

@@ -1,3 +1,5 @@
+"""リリンクのカード画像と原作台詞の表示を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch

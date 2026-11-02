@@ -1,3 +1,5 @@
+"""会話参加に使うチャンネル履歴の取得範囲を検証する。"""
+
 import asyncio
 from datetime import datetime, timezone
 from types import SimpleNamespace

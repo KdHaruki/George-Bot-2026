@@ -1,4 +1,4 @@
-"""List generation models using the Bot's key; never print credentials."""
+"""認証情報を表示せず、Geminiのモデル一覧や生成の動作を診断する。"""
 
 import os
 import argparse

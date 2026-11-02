@@ -1,3 +1,5 @@
+"""称号の本人限定通知と再通知を検証する。"""
+
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace

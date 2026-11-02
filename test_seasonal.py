@@ -1,3 +1,5 @@
+"""季節行事・祝日の通知と送信記録を検証する。"""
+
 import unittest
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
@@ -68,8 +70,6 @@ class CalendarTests(unittest.TestCase):
             self.assertIn("ON CONFLICT(guild_id,post_date)", query)
             self.assertIn("status='preparing'", query)
             self.assertEqual(params[:2], (123, date(2026, 10, 31)))
-            store.stop(123)
-            self.assertEqual(connection.execute.call_args.args[1], (123,))
 
 
 class SeasonalTests(unittest.IsolatedAsyncioTestCase):

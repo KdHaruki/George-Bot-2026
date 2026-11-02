@@ -1,3 +1,5 @@
+"""日本語の運用ログと非公開情報の除外を検証する。"""
+
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace

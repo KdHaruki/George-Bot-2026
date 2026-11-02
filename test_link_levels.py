@@ -1,3 +1,5 @@
+"""パーフェクトリンクの段階と好感度上限を検証する。"""
+
 from datetime import timedelta
 import unittest
 
@@ -26,7 +28,9 @@ class LinkLevelTests(unittest.TestCase):
         self.db.execute("UPDATE george_affection SET points=199 WHERE user_id=42")
         self.db.commit()
         self.assertEqual(self.store.give(42, 102, 'ロザリー', 'magic'), (1, 200, 1))
-        self.assertEqual(self.store.give(42, 103, 'ロザリー', 'rare'), (0, 200, 1))
+        with self.assertRaisesRegex(ValueError, '喜ばれる贈り物だけ'):
+            self.store.give(42, 103, 'ロザリー', 'rare')
+        self.assertEqual(self.store.inventory(42)['rare'], 3)
         self.assertEqual(self.store.give(42, 104, 'ロザリー', 'magic'), (0, 200, 2))
         self.assertIn('パーフェクトリンクⅡ', affection_display(200, 2))
         self.assertIn('200/300', affection_display(200, 2))
@@ -68,3 +72,34 @@ class LinkLevelTests(unittest.TestCase):
         self.assertEqual(self.store.give(42, 100, 'ロザリー', 'magic'), (0, 105, 1))
         self.assertEqual(self.store.inventory(42)['magic'], 18)
         self.assertEqual(self.store.inventory(42)['rare'], 3)
+
+    def test_nonpreferred_gifts_work_again_after_link_and_recheck_daily_gain(self):
+        self.prepare(99)
+        self.db.execute("INSERT INTO george_present_items VALUES (42,'tools',2)")
+        self.db.commit()
+        self.day += timedelta(days=1)
+        # 前日に開いた画面が99でも、当日の加算で100になったら消費しない。
+        with self.assertRaisesRegex(ValueError, '喜ばれる贈り物だけ'):
+            self.store.give(42, 100, 'ロザリー', 'tools')
+        self.assertEqual(self.store.inventory(42)['tools'], 2)
+        self.assertEqual(self.store.give(42, 101, 'ロザリー', 'magic'), (0, 100, 1))
+        self.assertEqual(self.store.give(42, 102, 'ロザリー', 'tools'), (2, 102, 1))
+        self.assertEqual(self.store.give(42, 103, 'ロザリー', 'rare'), (10, 112, 1))
+
+
+class PresentButtonLimitTests(unittest.TestCase):
+    def test_only_preferred_buttons_enabled_at_each_cap_then_restore_after_link(self):
+        from present_view import PresentView
+        items = {'magic': 2, 'tools': 2, 'rare': 1}
+        for points, level in ((100, 0), (200, 1)):
+            with self.subTest(points=points):
+                view = PresentView(42, None, 'ロザリー', items, points, level)
+                disabled = {button.label.split(' ×')[0]: button.disabled for button in view.children}
+                from presents import ITEMS
+                self.assertFalse(disabled[ITEMS['magic'][1]])
+                self.assertTrue(disabled[ITEMS['tools'][1]])
+                self.assertTrue(disabled[ITEMS['rare'][1]])
+                self.assertIn('好感度が上限のため、喜ばれる贈り物を送ってパーフェクトリンクを達成しよう', view.embed().description)
+                view.perfect = level + 1
+                view.build_buttons()
+                self.assertTrue(all(not button.disabled for button in view.children))

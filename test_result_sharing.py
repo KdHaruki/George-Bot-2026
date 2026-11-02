@@ -1,3 +1,5 @@
+"""本人による結果の公開と重複送信の防止を検証する。"""
+
 import asyncio
 import io
 import random
@@ -59,7 +61,7 @@ class SharingTests(unittest.IsolatedAsyncioTestCase):
         view.stop()
 
     async def test_large_inventory_shares_all_pages_with_discord_limits(self):
-        from gacha_commands import CardListView
+        from collection_display import CardListView
         lines = [f'カード{i} — 2枚' for i in range(115)]
         view = CardListView(42, lines, '所持カード', can_share=True)
         button = next(child for child in view.children if isinstance(child, ShareButton))

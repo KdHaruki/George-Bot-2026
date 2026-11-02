@@ -1,3 +1,5 @@
+"""おみくじの結果とラッキープログレスを表示する。"""
+
 import random
 import discord
 from progress import progressData

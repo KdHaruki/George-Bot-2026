@@ -1,3 +1,5 @@
+"""ヘルプのコマンド一覧を表示し、本人限定のコマンドに表示先の案内を付ける。"""
+
 import discord
 
 SLASH_COMMANDS = [
@@ -8,7 +10,7 @@ SLASH_COMMANDS = [
     ('/クイズ', '4択クイズ。正解で1日1回アイテムをプレゼント！'),
     ('/所持カード ロザリー', 'プログレスの所持カードと枚数を確認。'),
     ('/プログレス ロザリー', '名前でプロフィールを検索。世界名でも探せるぜ。'),
-    ('/お気に入り プログレス登録 ロザリー', 'プログレス名で登録。同じプログレスの再指定で解除。'),
+    ('/お気に入り プログレス登録 ロザリー', 'ガチャで獲得したプログレスを名前で登録。同じプログレスの再指定で解除確認。'),
     ('/お気に入り プログレス確認', 'お気に入り・好感度・アルバムを確認。'),
     ('/お気に入り プレゼント', '所持アイテムを贈って好感度アップ。'),
     ('/称号', '獲得済み称号を確認。サーバーごとに1つ装着・解除。'),
@@ -38,6 +40,11 @@ def command_help(in_guild, introduction=None):
     embed = discord.Embed(color=0xE2AD48)
     intro = introduction or 'よう、みんな！ 楽しそうな雑談には俺もたまに混ざるし、俺が絵文字でリアクションすることもあるぜ！'
     embed.add_field(name='【ジョージの機能一覧】', value=discord.utils.escape_markdown(intro)[:400] + '\n\u200b', inline=False)
+    embed.add_field(name='【はじめての遊び方】', value=(
+        '① `/ガチャ` でプログレスを獲得\n'
+        '② `/お気に入り プログレス登録` でその子を登録\n'
+        '③ `/おみくじ` や `/クイズ` で贈り物を入手\n'
+        '④ `/お気に入り プレゼント` で贈って好感度アップ！\n\u200b'), inline=False)
     public = [entry for entry in SLASH_COMMANDS if entry[0].split()[0][1:] in PUBLIC_COMMANDS]
     private = [entry for entry in SLASH_COMMANDS if entry[0].split()[0][1:] not in PUBLIC_COMMANDS]
     embed.add_field(name='【スラッシュコマンド一覧】', value=format_commands(public) + '\n\u200b', inline=False)

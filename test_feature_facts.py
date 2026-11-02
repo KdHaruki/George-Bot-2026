@@ -1,3 +1,5 @@
+"""機能案内と実際の設定の整合性を検証する。"""
+
 import unittest
 from bot_guide import bot_guide_context, title_fact_answer
 from title_core import COMMON, title_condition

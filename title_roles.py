@@ -1,6 +1,6 @@
-"""Manage only zero-permission title roles created by this bot."""
+"""Botが作成した称号ロールを管理し、サーバーでの装着と解除を行う。"""
+
 import asyncio
-import logging
 from operation_logging import event as log_event
 import discord
 

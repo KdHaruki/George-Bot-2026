@@ -1,4 +1,5 @@
-"""Persist one active quiz per user so retries and abandoned quizzes cannot add wins."""
+"""利用者ごとのクイズの進行を保存し、再回答や出し直しによる重複加算を防ぐ。"""
+
 import time
 from title_core import record_event
 

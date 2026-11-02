@@ -1,4 +1,5 @@
-"""Bounded channel context and conservative participation gates."""
+"""チャンネルの会話状況を整理し、ジョージが会話に参加できるか判定する。"""
+
 import time
 from collections import OrderedDict, deque
 from dataclasses import dataclass, field

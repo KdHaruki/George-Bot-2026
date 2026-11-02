@@ -1,3 +1,5 @@
+"""手動の画像取得とファイル保存を検証する。"""
+
 import io
 import json
 from pathlib import Path

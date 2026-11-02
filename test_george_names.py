@@ -1,8 +1,11 @@
+"""ジョージによるプログレスの呼び方を検証する。"""
+
 import unittest
 from unittest.mock import patch
 from progress_profiles import profile_for, george_name, apply_george_names, george_naming_context
 from gacha import vierge_character_card
-from gacha_commands import gacha_comment, favorite_details
+from gacha_display import gacha_comment
+from collection_display import favorite_details
 
 
 class GeorgeNameTests(unittest.TestCase):

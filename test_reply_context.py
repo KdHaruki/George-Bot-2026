@@ -1,3 +1,5 @@
+"""ジョージへの返信の判定と返信先の取得を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, MagicMock, patch

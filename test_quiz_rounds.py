@@ -1,3 +1,5 @@
+"""クイズの進行保存と重複加算の防止を検証する。"""
+
 import json
 import unittest
 from unittest.mock import patch

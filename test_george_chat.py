@@ -1,3 +1,5 @@
+"""ジョージの返答生成と生成失敗時の処理を検証する。"""
+
 import asyncio
 import os
 import unittest

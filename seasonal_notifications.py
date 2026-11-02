@@ -1,6 +1,7 @@
+"""季節通知の設定と送信記録を保存し、対象日の通知を自動投稿する。"""
+
 import asyncio
 import json
-import logging
 from operation_logging import event as log_event
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
@@ -48,15 +49,6 @@ class SeasonalStore(DatabaseStore):
         except MemoryUnavailable:
             raise MemoryUnavailable("季節通知の保存先を利用できなかったぜ。管理者にDATABASE_URLを確認してもらってくれ。") from None
 
-    def configure(self, guild_id, channel_id):
-        with self.connect() as connection:
-            connection.execute("""INSERT INTO george_seasonal_settings VALUES (%s,%s,TRUE)
-                ON CONFLICT(guild_id) DO UPDATE SET channel_id=EXCLUDED.channel_id, enabled=TRUE""", (guild_id, channel_id))
-
-    def stop(self, guild_id):
-        with self.connect() as connection:
-            connection.execute("UPDATE george_seasonal_settings SET enabled=FALSE WHERE guild_id=%s", (guild_id,))
-
     def settings(self, guild_id=None):
         with self.connect() as connection:
             if guild_id is None:
@@ -64,6 +56,7 @@ class SeasonalStore(DatabaseStore):
             return connection.execute("SELECT guild_id,channel_id,enabled FROM george_seasonal_settings WHERE guild_id=%s", (guild_id,)).fetchone()
 
     def events(self, guild_id):
+        # 行事の登録・削除コマンドは廃止済み。保存済みの個別設定は引き続き読む。
         with self.connect() as connection:
             return connection.execute("SELECT name,month,day,enabled FROM george_seasonal_events WHERE guild_id=%s ORDER BY month,day,name", (guild_id,)).fetchall()
 

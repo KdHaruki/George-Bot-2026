@@ -1,4 +1,5 @@
-"""Readable operational events; never pass message bodies, options or exception text."""
+"""機能の受付・完了・失敗を、本文や認証情報を含めず日本語でログに記録する。"""
+
 import logging
 from datetime import datetime, timezone
 

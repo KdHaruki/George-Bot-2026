@@ -1,5 +1,7 @@
-"""Bot gift categories. Stable item IDs retain inventories and title progress."""
+"""贈り物の品目・カテゴリー・固定IDを定義する。"""
+
 from progress_profiles import profile_for
+from present_preferences import PREFERENCES
 
 
 CATEGORIES = {
@@ -23,8 +25,7 @@ ITEMS = {
 }
 NORMAL_ITEMS = tuple(key for key in ITEMS if key != 'rare')
 
-# Selection is explicit per character and per item; categories only organize the catalogue.
-from present_preferences import PREFERENCES
+# カテゴリーは品物の整理用。喜ばれる判定は本人別・アイテム別の明示設定だけを使う。
 
 
 def preferred_items(character):

@@ -1,3 +1,5 @@
+"""現在の仕様に基づく機能への回答を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch

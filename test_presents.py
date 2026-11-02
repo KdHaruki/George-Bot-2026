@@ -1,3 +1,5 @@
+"""贈り物の受取・消費と好感度の更新を検証する。"""
+
 from progress_profiles import profile_for
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
@@ -270,12 +272,16 @@ class StorageTests(unittest.TestCase):
         self.db.execute("INSERT INTO george_present_items VALUES (42,'tools',1)")
         self.db.commit()
         self.assertEqual(self.store.give(42, 200, 'ロザリー', 'magic'), (1, 100, 0))
-        self.assertEqual(self.store.give(42, 201, 'ロザリー', 'rare'), (0, 100, 0))
-        self.assertEqual(self.store.give(42, 202, 'ロザリー', 'food'), (0, 100, 0))
-        self.assertEqual(self.store.give(42, 250, 'ロザリー', 'tools'), (0, 100, 0))
+        before = self.store.inventory(42)
+        for operation, item in ((201, 'rare'), (202, 'food'), (250, 'tools')):
+            with self.subTest(item=item), self.assertRaisesRegex(ValueError, '喜ばれる贈り物だけ'):
+                self.store.give(42, operation, 'ロザリー', item)
+            self.assertEqual(self.store.inventory(42), before)
+            self.assertIsNone(self.db.execute('SELECT interaction_id FROM george_present_receipts WHERE interaction_id=?', (operation,)).fetchone())
+            self.assertIsNone(self.store.album(42, 'ロザリー')[3])
         self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
         self.assertEqual(self.store.give(42, 203, 'ロザリー', 'magic'), (0, 100, 1))
-        self.assertEqual(self.store.inventory(42), {'magic': 3})
+        self.assertEqual(self.store.inventory(42), {'magic': 3, 'rare': 1, 'food': 1, 'tools': 1})
         self.assertEqual(self.store.give(42, 204, 'ロザリー', 'magic'), (5, 105, 1))
         self.assertIsNotNone(self.store.album(42, 'ロザリー')[3])
         self.set_favorite('美海')

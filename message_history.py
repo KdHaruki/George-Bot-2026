@@ -1,7 +1,8 @@
-"""Incoming messages addressed to George; no public reader or AI retrieval."""
+"""ジョージ宛てのDM・メンション・返信を記録し、30日を過ぎた履歴を削除する。"""
+
 from contextlib import contextmanager
 
-from command_history import CommandHistory
+from history_writer import HistoryWriter
 from database import DatabaseStore
 
 
@@ -29,8 +30,7 @@ class MessageHistoryStore(DatabaseStore):
         return deleted
 
 
-class MessageHistory(CommandHistory):
-    label = 'Message history'
+class MessageHistory(HistoryWriter):
     feature = '受信メッセージDB'
 
     def __init__(self, store=None):

@@ -1,3 +1,5 @@
+"""画面の文言・項目順・表示内容を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch

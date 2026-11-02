@@ -1,4 +1,5 @@
-"""Settle JST calendar-day affection without a polling task."""
+"""日本時間の日付に基づき、お気に入りの好感度の日次加算を反映する。"""
+
 from datetime import datetime, time, timedelta
 
 from favorite_album import JST

@@ -1,4 +1,5 @@
-"""Daily base and support gifts; all fortune runs count toward titles."""
+"""おみくじの贈り物と応援ボーナスを付与し、挑戦結果を称号に反映する。"""
+
 import json
 import random
 import time

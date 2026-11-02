@@ -1,33 +1,17 @@
-"""Build checked-in factual card data from locally downloaded tables.
+"""取得済みの資料から、Botが使用するカード一覧を手動で作成する。"""
 
-Run fetch_gacha_sources.py first. No rarity is guessed for missing characters.
-"""
+# 先に fetch_gacha_sources.py で資料を取得する。資料にない人物のレアリティは推測しない。
+
 import hashlib
 import json
 from pathlib import Path
 import re
 import sys
-import unicodedata
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from progress import progressData
 from gacha import vierge_character_card, RULES, VIERGE_CHARACTERS
 from dataclasses import asdict
 from scripts.fetch_gacha_sources import SOURCES
-
-
-def normalize(value):
-    return re.sub(r'[\s・＝=―ーｰ]', '', unicodedata.normalize('NFKC', value))
-
-
-ALIASES = {
-    '安堂環': '安藤環', '城ヶ崎愛奈': '城ケ崎愛奈',
-    'クラリス・エーデルライト': 'クラリス・エーテルライト',
-    'クラリス': 'クラリス・エーテルライト', 'アインス': 'アインス・エクスアウラ',
-    'カトリーヌ': 'カトリーヌ・オベール', 'セナ': 'セナ・ユニヴェール',
-    'ルルーナ': 'ルルーナ・ゼンディア', 'ユーフィリア': 'コードΩ00ユーフィリア',
-    'エルセア': 'エルセア=エコルダ', 'ゼシカ': 'システム＝NPゼシカ',
-}
 
 
 def rows(name):

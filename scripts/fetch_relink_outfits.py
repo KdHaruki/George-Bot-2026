@@ -1,4 +1,5 @@
-"""Read the exact 衣装 field; reuse cached pages and fetch missing pages slowly."""
+"""取得済みページを再利用しながら、リリンクの衣装とレアリティを手動で収集する。"""
+
 import json
 from pathlib import Path
 import time

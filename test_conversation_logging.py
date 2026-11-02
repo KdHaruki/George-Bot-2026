@@ -1,3 +1,5 @@
+"""DM・メンション・返信の運用ログを検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, MagicMock, patch

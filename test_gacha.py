@@ -1,3 +1,5 @@
+"""ガチャの抽選・排出率・保証を検証する。"""
+
 import collections
 import random
 import unittest
@@ -9,7 +11,8 @@ import discord
 from discord import app_commands
 
 from gacha import Gacha, RULES, choose_rarity, RELINK_OUTFITS, current_card, Card, outfit_display_name, VIERGE_CHARACTERS
-from gacha_commands import register_gacha_commands, rates_embed, result_embed
+from gacha_commands import register_gacha_commands
+from gacha_display import rates_embed, result_embed
 from command_help import command_help
 from progress import progressData
 

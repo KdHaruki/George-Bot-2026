@@ -1,7 +1,9 @@
+"""連続ガチャの回数と一言用の情報を検証する。"""
+
 import unittest
 from gacha_activity import DrawActivity
 from gacha import Card
-from gacha_commands import collection_facts, gacha_comment, rapid_comment_counts_match
+from gacha_display import collection_facts, gacha_comment, rapid_comment_counts_match
 from progress_profiles import george_name
 
 

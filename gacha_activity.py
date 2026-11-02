@@ -1,4 +1,5 @@
-"""Small, process-local window for optional consecutive-draw comments."""
+"""短時間のガチャ実行回数を記憶し、連続実行時の一言に使う。"""
+
 import time
 from collections import OrderedDict, deque
 

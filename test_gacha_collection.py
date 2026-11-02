@@ -1,3 +1,5 @@
+"""所持カード・お気に入り・抽選結果の保存を検証する。"""
+
 import unittest
 from contextlib import contextmanager
 from dataclasses import asdict
@@ -10,13 +12,15 @@ from discord import app_commands
 from gacha import Card, Gacha, RULES, vierge_character_card
 from progress_profiles import george_name
 from gacha_collection import CollectionStore
-from gacha_commands import CardListView, favorite_details, gacha_comment, register_gacha_commands, result_embed
+from collection_display import CardListView, favorite_details
+from gacha_commands import register_gacha_commands
+from gacha_display import gacha_comment, result_embed
 from database import MemoryUnavailable
 
 
 class DrawHighlightTests(unittest.TestCase):
     def test_features_use_canonical_people_and_actual_rarities(self):
-        from gacha_commands import draw_highlights, collection_facts
+        from gacha_display import draw_highlights, collection_facts
         def card(name, rarity='R'):
             return SimpleNamespace(character=name, rarity=rarity, name=name)
         cards = [card('美海', 'UR'), card('日向美海', 'UR'), card('美海', 'UR')]
@@ -367,7 +371,7 @@ class ResultCommentTests(unittest.TestCase):
     def test_favorite_exact_and_same_character_take_priority(self):
         favorite = Card('fav', 'ロザリー', 'お気に入り', 'UR')
         variant = Card('variant', 'ロザリー', '別カード', 'SR')
-        with patch('gacha_commands.random.choice', side_effect=lambda choices: choices[0]):
+        with patch('gacha_display.random.choice', side_effect=lambda choices: choices[0]):
             exact = gacha_comment('vierge', [favorite], favorite=('vierge', favorite, 2))
             self.assertIn('お気に入りのロザリー', exact)
             other = gacha_comment('vierge', [variant], favorite=('vierge', favorite, 2))
@@ -380,7 +384,7 @@ class ResultCommentTests(unittest.TestCase):
         card = Card('one', 'ロザリー', 'ロザリー', 'SR')
         new = [dict(new=True)]
         duplicate = [dict(new=False)]
-        with patch('gacha_commands.random.choice', side_effect=lambda choices: choices[0]):
+        with patch('gacha_display.random.choice', side_effect=lambda choices: choices[0]):
             self.assertIn('初入手が1種類', gacha_comment('vierge', [card], new))
             self.assertIn('枚数はしっかり増えた', gacha_comment('vierge', [card], duplicate))
             self.assertNotIn('増えた', gacha_comment('vierge', [card]))
@@ -402,6 +406,34 @@ class ResultCommentTests(unittest.TestCase):
 
 
 class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
+    async def test_owned_autocomplete_lists_only_owned_people_and_filters_names(self):
+        engine = Gacha()
+        ros = next(c for c in engine.pools['vierge']['UR'] if c.character == 'ロザリー')
+        miumi = next(c for c in engine.pools['vierge']['UR'] if c.character == '日向美海')
+        alias = Card('old-miumi', '美海', '美海', '★1')
+        rows = [('vierge', ros, 1), ('vierge', miumi, 1), ('relink', alias, 2)]
+        store = SimpleNamespace(url='test', owned=Mock(return_value=rows))
+        client, tree, interaction = self.objects(store)
+        self.addAsyncCleanup(client.close)
+        autocomplete = tree.get_command('所持カード')._params['プログレス'].autocomplete
+        choices = await autocomplete(interaction, '')
+        self.assertEqual({choice.value for choice in choices}, {'ロザリー', '日向美海'})
+        self.assertEqual(len(choices), 2)
+        self.assertEqual([c.value for c in await autocomplete(interaction, '美海')], ['日向美海'])
+        self.assertEqual(await autocomplete(interaction, '未所持の名前'), [])
+        self.assertTrue(all(call.args == (interaction.user.id,) for call in store.owned.call_args_list))
+        store.owned.return_value = []
+        self.assertEqual(await autocomplete(interaction, ''), [])
+        store.owned.side_effect = MemoryUnavailable('offline')
+        self.assertEqual(await autocomplete(interaction, ''), [])
+
+    async def test_owned_autocomplete_is_limited_to_25_people(self):
+        rows = [('vierge', c, 1) for c in Gacha().pools['vierge']['UR']]
+        client, tree, interaction = self.objects(SimpleNamespace(url='test', owned=Mock(return_value=rows)))
+        self.addAsyncCleanup(client.close)
+        autocomplete = tree.get_command('所持カード')._params['プログレス'].autocomplete
+        self.assertEqual(len(await autocomplete(interaction, '')), 25)
+
     async def test_short_and_empty_lists_omit_view_instead_of_passing_none(self):
         card = next(card for card in Gacha().pools['vierge']['UR'] if card.character == 'ロザリー')
         store = SimpleNamespace(url='test', owned=Mock(return_value=[]))
@@ -498,9 +530,13 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         rows = [('vierge', low, 1), ('relink', high, 2)]
         def set_favorite(uid, game, card_id, toggle=False):
             chosen = next(row for row in rows if row[0] == game and row[1].id == card_id)
-            state[0] = None if state[0] == chosen else chosen
+            state[0] = None if toggle and state[0] == chosen else chosen
             return state[0]
-        store = SimpleNamespace(url='test', owned=Mock(return_value=rows), favorite=Mock(side_effect=lambda uid: state[0]), set_favorite=Mock(side_effect=set_favorite))
+        def remove_favorite(uid, character):
+            self.assertEqual(character, 'ロザリー')
+            state[0] = None
+        store = SimpleNamespace(url='test', owned=Mock(return_value=rows), favorite=Mock(side_effect=lambda uid: state[0]),
+                                set_favorite=Mock(side_effect=set_favorite), remove_favorite=Mock(side_effect=remove_favorite))
         client, tree, interaction = self.objects(store)
         command = tree.get_command('お気に入り').get_command('プログレス登録')
         self.assertEqual([p.name for p in command.parameters], ['プログレス'])
@@ -512,8 +548,13 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         await tree.get_command('お気に入り').get_command('プログレス確認').callback(interaction)
         self.assertIsNotNone(state[0])
         await command.callback(interaction, 'ロザリー')
-        self.assertIsNone(state[0])
+        self.assertIsNotNone(state[0])
+        confirmation = interaction.followup.send.call_args.kwargs['view']
         self.assertIn('解除', interaction.followup.send.call_args.args[0])
+        interaction.edit_original_response = AsyncMock()
+        await confirmation.confirm.callback(interaction)
+        self.assertIsNone(state[0])
+        store.remove_favorite.assert_called_once_with(10, 'ロザリー')
         await command.callback(interaction, '未所持の名前')
         self.assertIn('まだ持っていない', interaction.followup.send.call_args.args[0])
         self.assertIsNone(tree.get_command('未所持カード'))
@@ -537,14 +578,14 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         return client, bot.tree, interaction
 
     async def test_favorite_uses_character_art_and_lists_both_games(self):
-        from gacha_commands import favorite_art
+        from collection_display import favorite_art
         engine = Gacha()
         vierge = next(c for c in engine.pools['vierge']['UR'] if c.character == '日向美海')
         # A retained low-rarity card with the old short name still belongs to the same person.
         relink = Card('legacy-miumi', '美海', '美海', '★1')
         rows = [('vierge', vierge, 2), ('relink', relink, 3)]
         store = SimpleNamespace(url='test', owned=Mock(return_value=rows),
-            favorite=Mock(return_value=('vierge', vierge, 2)), set_favorite=Mock(return_value=('vierge', vierge, 2)))
+            favorite=Mock(return_value=None), set_favorite=Mock(return_value=('vierge', vierge, 2)))
         client, tree, interaction = self.objects(store)
         self.addAsyncCleanup(client.close)
         command = tree.get_command('お気に入り').get_command('プログレス登録')
@@ -552,7 +593,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         names = await command._params['プログレス'].autocomplete(interaction, '美海')
         self.assertEqual([c.value for c in names], ['日向美海'])
         await command.callback(interaction, '美海')
-        self.assertEqual(store.set_favorite.call_args.kwargs['toggle'], 'character')
+        store.set_favorite.assert_called_once_with(10, 'relink', relink.id)
         details = next(c.kwargs['embed'] for c in interaction.followup.send.call_args_list if 'embed' in c.kwargs)
         self.assertEqual(details.description.removesuffix('\n\u200b'), '**日向美海**')
         inventory = '\n'.join(f.value for f in details.fields if '所持カード' in f.name)
@@ -567,7 +608,7 @@ class CollectionCommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(rows), 2)  # No ★3 ownership is required for character artwork.
 
     def test_favorite_matches_all_relink_aliases_to_canonical_names(self):
-        from gacha_commands import favorite_matches
+        from collection_display import favorite_matches
         from progress_profiles import character_key
         engine = Gacha()
         rows = [(game, card, 1) for game, pools in engine.pools.items() for pool in pools.values() for card in pool]

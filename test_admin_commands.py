@@ -1,3 +1,5 @@
+"""管理者コマンドの権限と公開範囲を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock

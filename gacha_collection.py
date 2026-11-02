@@ -1,4 +1,5 @@
-"""User-owned collections, saved atomically with idempotent draw receipts."""
+"""所持カード・ガチャ保証・お気に入りを保存し、同じ抽選の二重反映を防ぐ。"""
+
 from contextlib import contextmanager
 from dataclasses import asdict
 import json
@@ -72,6 +73,7 @@ class CollectionStore(DatabaseStore):
 
     @staticmethod
     def migrate_vierge(connection):
+        # 旧カードIDを持つ利用者の所持数を守るため、現在も必要な移行処理。
         connection.execute('CREATE TABLE IF NOT EXISTS george_gacha_migrations (name TEXT PRIMARY KEY)')
         key = ('vierge-characters-v1',)
         query = 'SELECT 1 FROM george_gacha_migrations WHERE name=%s'
@@ -94,6 +96,7 @@ class CollectionStore(DatabaseStore):
         connection.execute('INSERT INTO george_gacha_migrations(name) VALUES (%s)', key)
 
     def save_draw(self, user_id, game, interaction_id, cards):
+        """ユーザーをロックし、保証適用・所持数・称号を同じトランザクションで確定する。"""
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             previous = connection.execute('SELECT user_id,game,result FROM george_gacha_draws WHERE interaction_id=%s', (interaction_id,)).fetchone()
@@ -179,7 +182,22 @@ class CollectionStore(DatabaseStore):
                 WHERE f.user_id=%s""", (user_id,)).fetchone()
         return (row[0], current_card(row[0], Card(**row[1])), row[2]) if row else None
 
+    def remove_favorite(self, user_id, expected_character):
+        """確認画面に表示した本人だけを解除し、別画面で変更したお気に入りは解除しない。"""
+        with self.connect() as connection:
+            connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
+            settle_daily(connection, user_id)
+            row = connection.execute('''SELECT c.card FROM george_gacha_favorites f
+                JOIN george_gacha_cards c ON (c.user_id,c.game,c.card_id)=(f.user_id,f.game,f.card_id)
+                WHERE f.user_id=%s''', (user_id,)).fetchone()
+            if not row or character_key(row[0]['character']) != character_key(expected_character):
+                raise ValueError('お気に入りが変わっているぜ。登録コマンドから開き直してくれ！')
+            start_daily(connection, user_id, None)
+            connection.execute('DELETE FROM george_gacha_favorites WHERE user_id=%s', (user_id,))
+
     def set_favorite(self, user_id, game, card_id, toggle=False):
+        # DBは既存の所持カードを参照するが、現行コマンドはキャラクター単位で登録する。
+        # toggle='character' は別レアリティ・別作品の同じ本人も解除対象にする。
         with self.connect() as connection:
             connection.execute('SELECT pg_advisory_xact_lock(%s)', (user_id,))
             row = connection.execute("SELECT card,quantity FROM george_gacha_cards WHERE user_id=%s AND game=%s AND card_id=%s", (user_id, game, card_id)).fetchone()

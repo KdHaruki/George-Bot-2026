@@ -1,4 +1,5 @@
-"""Offline gacha simulation. Rates use integer basis points, never Gemini."""
+"""保存済みのカード一覧と排出率に基づいてガチャを抽選する。"""
+
 from dataclasses import dataclass, replace
 import json
 from pathlib import Path

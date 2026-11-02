@@ -1,3 +1,5 @@
+"""管理者向けの季節通知コマンドを登録し、設定の切替と確認を行う。"""
+
 import asyncio
 import discord
 from discord import app_commands

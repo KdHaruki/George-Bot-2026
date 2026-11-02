@@ -1,3 +1,5 @@
+"""ジョージ宛てメッセージの保存と保持期間を検証する。"""
+
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace

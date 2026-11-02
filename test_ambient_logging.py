@@ -1,3 +1,5 @@
+"""会話参加と見送り理由のログを検証する。"""
+
 import logging
 import unittest
 

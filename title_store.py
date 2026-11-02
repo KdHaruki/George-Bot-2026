@@ -1,3 +1,5 @@
+"""贈り物と所持カードの保存処理を引き継ぎ、称号の進捗と装着設定を保存する。"""
+
 import json
 from contextlib import contextmanager
 from presents import PresentStore

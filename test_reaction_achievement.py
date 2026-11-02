@@ -1,3 +1,5 @@
+"""リアクションと称号に関する処理を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch

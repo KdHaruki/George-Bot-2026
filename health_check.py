@@ -1,4 +1,5 @@
-"""Shared, rate-limited active checks without credentials or user content."""
+"""認証情報や会話本文を表示せず、外部サービスの稼働状態を確認する。"""
+
 import asyncio
 import time
 import discord

@@ -1,4 +1,5 @@
-"""Japan holiday data from the Cabinet Office, shared across all guilds."""
+"""内閣府の祝日データと共通行事から、日本時間の通知対象をまとめる。"""
+
 import csv
 import io
 import logging

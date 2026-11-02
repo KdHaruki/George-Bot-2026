@@ -1,3 +1,5 @@
+"""スラッシュコマンドの履歴記録を検証する。"""
+
 import asyncio
 import json
 import unittest

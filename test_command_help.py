@@ -1,3 +1,5 @@
+"""ヘルプの文言・並び順・表示先の案内を検証する。"""
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
@@ -70,15 +72,17 @@ class HelpTests(unittest.TestCase):
             embed = command_help(in_guild)
             self.assertLessEqual(len(embed), 6000)
             self.assertTrue(all(len(field.value) <= 1024 for field in embed.fields))
-            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【スラッシュコマンド一覧】', '【スラッシュコマンド一覧（あなただけに表示されます）】', '【メンション一覧】'])
-            text = embed.fields[1].value.removesuffix('\n\u200b') + '\n\n' + embed.fields[2].value
+            self.assertEqual([field.name for field in embed.fields], ['【ジョージの機能一覧】', '【はじめての遊び方】', '【スラッシュコマンド一覧】', '【スラッシュコマンド一覧（あなただけに表示されます）】', '【メンション一覧】'])
+            self.assertIn('① `/ガチャ`', embed.fields[1].value)
+            self.assertIn('④ `/お気に入り プレゼント`', embed.fields[1].value)
+            text = embed.fields[2].value.removesuffix('\n\u200b') + '\n\n' + embed.fields[3].value
             examples = ['/ガチャ アンジュ・ヴィエルジュ',
                         '/ガチャ アンジュ・リリンク', '/おみくじ', '/ガチャ確率', '/クイズ', '/所持カード ロザリー', '/プログレス ロザリー',
                     '/お気に入り プログレス登録 ロザリー', '/お気に入り プログレス確認', '/お気に入り プレゼント',
                         '/称号', '/ヘルプ']
             self.assertEqual([block.split('`')[1] for block in text.split('\n\n')], examples)
             self.assertNotIn('★', str(embed.to_dict()))
-            self.assertTrue(embed.fields[2].value.startswith('`/ガチャ確率`'))
+            self.assertTrue(embed.fields[3].value.startswith('`/ガチャ確率`'))
             self.assertNotIn('（あなただけに表示されます）', text)
             self.assertTrue(embed.fields[0].value.endswith('\n\u200b'))
             self.assertTrue(embed.fields[1].value.endswith('\n\u200b'))

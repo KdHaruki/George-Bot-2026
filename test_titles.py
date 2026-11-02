@@ -1,3 +1,5 @@
+"""称号の獲得条件・進捗・表示・装着を検証する。"""
+
 import json
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -598,6 +600,19 @@ class FakeRole:
 
 
 class TitleRoleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_view_explains_where_equipped_title_is_visible(self):
+        earned = [('fortune10', '神頼み', None)]
+        view = TitleView(42, earned, None, SimpleNamespace(id=1), 'fortune10')
+        self.assertIn('このサーバーのプロフィールのロール欄に表示され、他の人にも見える', view.embed().description)
+        self.assertIn('称号を選択 →「装着」', view.embed().description)
+        view.mode = 'pending'
+        self.assertIn('プロフィールのロール欄', view.embed().description)
+        view.stop()
+        dm = TitleView(42, earned, None)
+        self.assertIn('DMでは一覧のみ', dm.embed().description)
+        self.assertNotIn('このサーバー', dm.embed().description)
+        dm.stop()
+
     def objects(self):
         old, target, unrelated = FakeRole(10), FakeRole(11), FakeRole(99)
         store = SimpleNamespace(titles=Mock(return_value=[('fortune10', '神頼み', None)]),

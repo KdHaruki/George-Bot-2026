@@ -1,4 +1,5 @@
-"""Permanent achievements, updated in the same transactions as their triggers."""
+"""称号の名前・条件・表示順を定義し、関連する処理と同時に獲得を記録する。"""
+
 import json
 
 from progress_profiles import character_key

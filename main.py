@@ -1,3 +1,5 @@
+"""Discord Botを起動し、コマンド・メッセージ・会話参加の処理を各機能へ振り分ける。"""
+
 from ambient_logging import logger as ambient_logger
 from operation_logging import event as log_event, command_finished
 from message_history import MessageHistory
@@ -9,12 +11,14 @@ import os
 import logging
 import re
 import asyncio
+import signal
 from threading import Thread
 from ambient_chat import AmbientChat, REACTION_CHANCE, SERIOUS
 from ambient_history import load_ambient_history
 from george_chat import GeorgeChat, ChatBusy, ChatUnavailable, describe_chat_error, is_management_question, MANAGEMENT_REPLY
 import progress as progress_module
 from keep_alive import keep_alive
+from deployment import DeploymentState, DeploymentCommandTree
 from fun_features import FORTUNES, LUCKY_PROGRESS, fortune_embed
 from database import MemoryUnavailable
 from reply_context import george_reply_target
@@ -22,7 +26,8 @@ from command_help import command_help, annotate_private_commands
 from health_check import HealthCheck
 from seasonal_notifications import SeasonalStore, SeasonalScheduler
 from seasonal_commands import register_seasonal_commands
-from gacha_commands import register_gacha_commands, favorite_details
+from gacha_commands import register_gacha_commands
+from collection_display import favorite_details
 from command_permissions import require_administrator
 from command_history import CommandHistory
 from ange_quiz import register_quiz_commands
@@ -31,7 +36,7 @@ from title_store import TitleStore
 from title_roles import TitleRoles
 from title_commands import register_title_commands
 from title_notifications import notify_titles
-from progress_profiles import profile_for, george_name, normalize
+from progress_profiles import george_name, normalize
 from discord_layout import space_headings
 
 ########################################
@@ -45,7 +50,9 @@ class MyClient(discord.Client):
         intents.message_content = True
         super().__init__(intents=intents)
 
-        self.tree = app_commands.CommandTree(self)
+        self.deployment = DeploymentState()
+        self._shutdown_task = None
+        self.tree = DeploymentCommandTree(self)
         self.george_chat = GeorgeChat()
         self.ambient = AmbientChat()
         self.seasonal_store = SeasonalStore()
@@ -54,11 +61,18 @@ class MyClient(discord.Client):
         self.health = HealthCheck()
         self.command_history = CommandHistory()
         self.message_history = MessageHistory()
+        # TitleStore は贈り物・所持カードの保存機能も継承する。同じ保存先を共有する。
         self.present_store = TitleStore()
         self.title_store = self.present_store
         self.title_roles = TitleRoles(self.title_store)
 
     async def setup_hook(self):
+        # Renderの終了通知を受けたら、実行中のスラッシュコマンドを待つ。
+        # Windowsの開発環境ではイベントループのシグナル登録に対応していない。
+        try:
+            asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, self.request_shutdown)
+        except NotImplementedError:
+            pass
         annotate_private_commands(self.tree)
         commands = await self.tree.sync()
         print("Commands synced globally: " + ", ".join(command.name for command in commands), flush=True)
@@ -76,7 +90,19 @@ class MyClient(discord.Client):
             self.cleaned_guilds.discard(guild.id)
             logging.warning("Guild command sync failed: guild=%s type=%s status=%s", guild.id, type(exc).__name__, exc.status)
 
+    def request_shutdown(self):
+        if not self.deployment.begin_shutdown():
+            return
+        log_event('デプロイ', '終了通知を受信・実行中のコマンドを最大20秒待機')
+        self._shutdown_task = asyncio.create_task(self.shutdown_for_deploy())
+
+    async def shutdown_for_deploy(self):
+        pending = await self.deployment.wait_for_commands()
+        log_event('デプロイ', 'コマンドの終了待ち完了', 未完了件数=pending)
+        await self.close()
+
     async def close(self):
+        self.deployment.begin_shutdown()
         try:
             await self.seasonal.close()
             await self.command_history.close()
@@ -87,6 +113,7 @@ class MyClient(discord.Client):
 
 
 client = MyClient()
+# 登録はここで一度だけ行い、Discordへの同期は setup_hook にまとめる。
 register_seasonal_commands(client)
 register_gacha_commands(client)
 register_quiz_commands(client)
@@ -123,10 +150,21 @@ async def help_embed(bot, in_guild):
 
 @client.event
 async def on_ready():
+    client.deployment.connected()
     print("ログインしました", flush=True)
     for guild in client.guilds:
         await client.clear_guild_commands(guild)
         await cleanup_retired_title(guild)
+
+
+@client.event
+async def on_disconnect():
+    client.deployment.disconnected()
+
+
+@client.event
+async def on_resumed():
+    client.deployment.connected()
 
 
 @client.event
@@ -194,7 +232,7 @@ async def progress_autocomplete(interaction: discord.Interaction, current: str):
         elif any(current in normalize(p.get(f'progressNickname{i}', '')) for i in range(1, 4)):
             contains.append(name)
 
-    worlds = [color + 'の世界' for color in '青黒赤白緑']
+    worlds = [color + 'の世界' for color in progress_module.WORLD_NAMES]
     results = [world for world in worlds if current.strip() in world] + starts + contains
 
     return [
@@ -216,13 +254,7 @@ async def progress(interaction: discord.Interaction, name: str):
 
     name = name.strip()
 
-    world_map = {
-        "青":0,"青の":0,"青世界":0,"青の世界":0,
-        "黒":1,"黒の":1,"黒世界":1,"黒の世界":1,
-        "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
-        "白":3,"白の":3,"白世界":3,"白の世界":3,
-        "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
-    }
+    world_map = progress_module.WORLD_QUERY_INDEX
 
     if name in world_map:
         result = progress_module.progressSearchAll(world_map[name])
@@ -244,7 +276,7 @@ async def progress(interaction: discord.Interaction, name: str):
     if name in world_map:
         try:
             await asyncio.to_thread(client.title_store.world_search, interaction.user.id, interaction.id,
-                                    '青黒赤白緑'[world_map[name]])
+                                    progress_module.WORLD_NAMES[world_map[name]])
         except MemoryUnavailable:
             logging.warning('World search title update failed')
             await interaction.followup.send('検索結果は表示したが、称号の記録を確認できなかったぜ。あとでもう一度試してくれ。', ephemeral=True)
@@ -343,13 +375,7 @@ async def reply_to_addressed_message(message, target, reacted, feature):
     parts = message.content.split()
     if len(parts) >= 3 and parts[1].lower() in ["pro", "progress", "プロ", "プログレス"]:
         keyword = parts[2]
-        world_map = {
-            "青":0,"青の":0,"青世界":0,"青の世界":0,
-            "黒":1,"黒の":1,"黒世界":1,"黒の世界":1,
-            "赤":2,"赤の":2,"赤世界":2,"赤の世界":2,
-            "白":3,"白の":3,"白世界":3,"白の世界":3,
-            "緑":4,"緑の":4,"緑世界":4,"緑の世界":4,
-        }
+        world_map = progress_module.WORLD_QUERY_INDEX
 
         if keyword in world_map:
             result = progress_module.progressSearchAll(world_map[keyword])
@@ -496,8 +522,6 @@ if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_TOKEN")
     if not TOKEN:
         raise RuntimeError("DISCORD_TOKENを環境変数に設定してください")
-    keep_alive()
+    keep_alive(client.deployment.is_ready)
     start_gemini_diagnostics()
     client.run(TOKEN)
-
-__all__ = ["progressData","progressSearch","progressSearchAll"]

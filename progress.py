@@ -1,3 +1,5 @@
+"""プログレスのプロフィールとジョージの呼び方を定義し、名前や世界で検索する。"""
+
 #################################################
 # メッセージ
 #################################################
@@ -312,52 +314,17 @@ def progressSearch(text):
 # 世界別一覧
 #################################################
 
-def progressSearchAll(type):
+# 世界の並びと別名は候補表示・スラッシュコマンド・旧メンション検索で共用する。
+WORLD_NAMES = tuple('青黒赤白緑')
+WORLD_QUERY_INDEX = {query: index for index, color in enumerate(WORLD_NAMES)
+                     for query in (color, color + 'の', color + '世界', color + 'の世界')}
 
-    blue = []
-    black = []
-    red = []
-    white = []
-    green = []
 
-    for p in progressData:
-
-        if p["progressWorld"] == "青":
-            blue.append(p["progressName"])
-
-        if p["progressWorld"] == "黒":
-            black.append(p["progressName"])
-
-        if p["progressWorld"] == "赤":
-            red.append(p["progressName"])
-
-        if p["progressWorld"] == "白":
-            white.append(p["progressName"])
-
-        if p["progressWorld"] == "緑":
-            green.append(p["progressName"])
-
-    result = response(6)
-
-    def make(world, data):
-        text = f"\n\n【{world}の世界】\n"
-        for n in data:
-            text += "・" + n + "\n"
-        return text
-
-    if type == 0:
-        result += make("青", blue)
-
-    elif type == 1:
-        result += make("黒", black)
-
-    elif type == 2:
-        result += make("赤", red)
-
-    elif type == 3:
-        result += make("白", white)
-
-    elif type == 4:
-        result += make("緑", green)
-
-    return result
+def progressSearchAll(world_index):
+    """指定した1世界の一覧だけを返す。全世界検索は提供しない。"""
+    heading = response(6)
+    if world_index not in range(len(WORLD_NAMES)):
+        return heading
+    color = WORLD_NAMES[world_index]
+    names = [record['progressName'] for record in progressData if record['progressWorld'] == color]
+    return heading + f'\n\n【{color}の世界】\n' + ''.join('・' + name + '\n' for name in names)
