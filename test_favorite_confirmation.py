@@ -81,8 +81,7 @@ class ConfirmationViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('好感度は上限の100', presents.embed().description)
         self.assertIn('3分', presents.embed().footer.text)
         quiz = QuizView(42)
-        self.assertIn('/クイズ', quiz.embed().footer.text)
-        self.assertIn('3分', quiz.embed().footer.text)
+        self.assertFalse(quiz.embed().footer.text)
         quiz.finished = True
         self.assertFalse(quiz.embed().footer.text)
         titles = TitleView(42, [('fortune10', '神頼み', None)], None, guild=SimpleNamespace(id=1))

@@ -18,13 +18,14 @@ HINT_FIELDS = [('progressWorld', '出身世界'), ('progressLike', '好きなも
                ('progressDetail1', 'プロフィール')]
 
 
-def hints_for(record):
+def hints_for(record, *, redact=True):
     names = [record.get('progressName', '')] + [record.get(f'progressNickname{i}', '') for i in range(1, 4)]
     hints = []
     for key, label in HINT_FIELDS:
         value = record.get(key, '').strip()
-        for name in sorted(filter(None, names), key=len, reverse=True):
-            value = value.replace(name, '？？？')
+        if redact:
+            for name in sorted(filter(None, names), key=len, reverse=True):
+                value = value.replace(name, '？？？')
         if value:
             hints.append((label, value[:900]))
     return hints
@@ -50,6 +51,7 @@ class QuizView(discord.ui.View):
         self.message = None
         self.lock = asyncio.Lock()
         self.finished = False
+        self.correct = False
         self.attempts = 0
         for record in choices:
             button = discord.ui.Button(label=record['progressName'][:80], style=discord.ButtonStyle.secondary)
@@ -63,15 +65,13 @@ class QuizView(discord.ui.View):
 
     def embed(self, status='このヒントのプログレスは誰だ？'):
         hints = self.hints[:self.revealed]
-        if self.finished and self.revealed == len(self.hints):
-            order = {label: index for index, (_, label) in enumerate(HINT_FIELDS)}
-            hints = sorted(hints, key=lambda hint: order[hint[0]])
+        if self.correct:
+            # 伏せ字から復元せず、元データを使う。複数の名前・愛称も正しく表示する。
+            hints = hints_for(self.answer, redact=False)
             status += GAP
         embed = discord.Embed(title='アンジュクイズ', description=status, color=0xE2AD48)
         for label, value in hints:
             embed.add_field(name=f'【{label}】', value=discord.utils.escape_markdown(value), inline=False)
-        if not self.finished:
-            embed.set_footer(text='操作期限：画面を開いてから3分。期限後は /クイズ で開き直せるぜ。')
         return embed
 
     async def interaction_check(self, interaction):
@@ -96,6 +96,7 @@ class QuizView(discord.ui.View):
                     logging.warning('Quiz streak save failed')
             if name == self.answer['progressName']:
                 self.finished = True
+                self.correct = True
                 self.revealed = len(self.hints)
                 for item in self.children:
                     item.disabled = True

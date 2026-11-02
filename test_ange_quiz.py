@@ -81,6 +81,38 @@ class QuizTests(unittest.IsolatedAsyncioTestCase):
                            'progressDetail1': 'ロザリー、愛称ロザ'})
         self.assertNotIn('ロザ', hints[0][1])
 
+    async def test_correct_result_shows_original_name_and_aliases(self):
+        records = [dict(progressName=name, progressNickname1=alias,
+                        progressWorld='黒', progressLike=f'{alias}の好きなもの',
+                        progressDetail1=f'{name}、愛称{alias}')
+                   for name, alias in [('ロザリー', 'ロザ'), ('ソフィーナ', 'ソフィ'),
+                                       ('日向美海', '美海'), ('東条遥', '遥')]]
+        view = QuizView(42, records=records, rng=random.Random(1))
+        view.revealed = len(view.hints)
+        question = '\n'.join(field.value for field in view.embed().fields)
+        self.assertNotIn(view.answer['progressName'], question)
+        self.assertNotIn(view.answer['progressNickname1'], question)
+        self.assertIn('？？？', question)
+        correct = next(button for button in view.children if button.label == view.answer['progressName'])
+        interaction = self.interaction()
+        await correct.callback(interaction)
+        result = interaction.edit_original_response.call_args.kwargs['embed']
+        values = {field.name: field.value for field in result.fields}
+        self.assertEqual(values['【プロフィール】'], view.answer['progressDetail1'])
+        self.assertEqual(values['【好きなもの】'], view.answer['progressLike'])
+        self.assertNotIn('？？？', '\n'.join(values.values()))
+        self.assertEqual(list(values)[:2], ['【出身世界】', '【好きなもの】'])
+
+    async def test_timeout_does_not_unmask_names_even_when_all_hints_shown(self):
+        view = QuizView(42)
+        view.answer = {'progressName': 'ロザリー', 'progressNickname1': 'ロザ',
+                       'progressDetail1': 'ロザリー、愛称ロザ'}
+        view.hints = hints_for(view.answer)
+        view.revealed = len(view.hints)
+        await view.on_timeout()
+        self.assertIn('？？？', view.embed().fields[0].value)
+        self.assertNotIn('ロザ', view.embed().fields[0].value)
+
     async def test_reward_only_on_correct_and_once_per_view(self):
         store = SimpleNamespace(claim_quiz=Mock(return_value={'granted': True, 'item': 'food'}))
         view = QuizView(42, reward_store=store, reward_id=100)
